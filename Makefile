@@ -25,6 +25,11 @@ gleaner.m2:
 	GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 env go build -ldflags "-X main.VERSION=$(MAINVERSION)" -o $(BINARY)_m2;\
     cp $(BINARY)_m2 ../../
 
+gleaner.m2.linux:
+	cd cmd/$(BINARY) ; \
+	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 env go build -ldflags "-X main.VERSION=$(MAINVERSION)" -o $(BINARY)_m2_linux;\
+    cp $(BINARY)_m2_linux ../../
+
 glcon:
 	cd cmd/$(BINARYIO) ; \
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 env go build -ldflags "-X main.VERSION=$(MAINVERSION)" -o $(BINARYIO);\
@@ -45,7 +50,7 @@ glcon.m2:
 	GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 env go build -ldflags "-X main.VERSION=$(MAINVERSION)" -o $(BINARYIO)_m2;\
 	cp $(BINARYIO)_m2 ../../
 
-releases: gleaner gleaner.exe gleaner.darwin gleaner.m2 glcon glcon.exe glcon.darwin glcon.m2
+releases: gleaner gleaner.exe gleaner.darwin gleaner.m2 glcon glcon.exe glcon.darwin glcon.m2 gleaner.m2.linux
 
 docker:
 	podman build  --tag="nsfearthcube/gleaner:$(VERSION)"  --file=./build/Dockerfile .
