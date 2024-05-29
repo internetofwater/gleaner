@@ -53,13 +53,13 @@ jobs:
             echo "::endgroup::"
       - name: Build and Run Gleaner Harvest #2
         run: |
-            echo "::group::Build and Run Gleaner Harvest"
+            echo "::group::Build and Run Gleaner Harvest Again"
             make 
             sh scripts/iow/start-gleaner.sh
             echo "::endgroup::"  
       - name: Verify Harvest Counts on #2 Harvest (Verify Idempotency)
         run: |
-            echo "::group::Verify Harvest Counts on First Harvest (Pristine S3)"
+            echo "::group::Verify Harvest Counts on Second Harvest (Verify Idempotency)"
             sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/orgs 5
             sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/prov/cdss0 30 
             sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/prov/dams0 45
