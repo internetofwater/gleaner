@@ -12,23 +12,37 @@ jobs:
           go-version: '1.20'
       - name: Install and Run Gleaner Runtime Dependencies, Test Utils, and Setup Env.
         run: |
+            echo "::group::Install/Run Gleaner Runtime Dependencies"
             mkdir -p $HOME/bin
             curl https://dl.min.io/client/mc/release/linux-amd64/mc -o $HOME/bin/mc && chmod +x $HOME/bin/mc 
             sh scripts/iow/start-headless-chrome.sh
             sh scripts/iow/start-minio.sh && sleep 3
+            echo "::endgroup::"
+      - name: Setup Environment
+        run: |
+            echo "::group::Setup Environment"
             $HOME/bin/mc alias set myminio http://localhost:9000 amazingaccesskey amazingsecretkey
             $HOME/bin/mc mb myminio/iow
-      - run: make 
-      - run: sh scripts/iow/start-gleaner.sh      
-      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/orgs 5
-      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/prov/cdss0 30 
-      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/prov/dams0 45
-      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/prov/nmwdist0 266 
-      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/prov/refgages0 330 
-      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/prov/refmainstems 66 
-      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/summoned/cdss0 30
-      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/summoned/dams0 45 
-      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/summoned/nmwdist0 265
-      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/summoned/refgages0 330 
-      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/summoned/refmainstems 66
+            echo "::endgroup::"
+      - name: Build and Run Gleaner Harvest
+        run: |
+            echo "::group::Build and Run Gleaner Harvest"
+            make 
+            sh scripts/iow/start-gleaner.sh
+            echo "::endgroup::"  
+      - name: Verify Harvest Counts on First Harvest (Pristine S3)
+        run: |
+            echo "::group::Verify Harvest Counts on First Harvest (Pristine S3)"
+            sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/orgs 5
+            sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/prov/cdss0 30 
+            sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/prov/dams0 45
+            sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/prov/nmwdist0 266 
+            sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/prov/refgages0 330 
+            sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/prov/refmainstems 66 
+            sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/summoned/cdss0 30
+            sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/summoned/dams0 45 
+            sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/summoned/nmwdist0 265
+            sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/summoned/refgages0 330 
+            sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/summoned/refmainstems 66
+            echo "::endgroup::"
  
