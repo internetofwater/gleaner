@@ -10,14 +10,14 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.20'
-      - run: sudo apt-get install make
-      - run: sudo apt-get install git 
-      - run: mkdir -p $HOME/bin
-      - run: curl https://dl.min.io/client/mc/release/linux-amd64/mc -o $HOME/bin/mc && chmod +x $HOME/bin/mc 
-      - run: sh scripts/iow/start-headless-chrome.sh
-      - run: sh scripts/iow/start-minio.sh && sleep 3
-      - run: $HOME/bin/mc alias set myminio http://localhost:9000 amazingaccesskey amazingsecretkey
-      - run: $HOME/bin/mc mb myminio/iow
+      - name: Install and Run Gleaner Runtime Dependencies, Test Utils, and Setup Env.
+        run: |
+            mkdir -p $HOME/bin
+            curl https://dl.min.io/client/mc/release/linux-amd64/mc -o $HOME/bin/mc && chmod +x $HOME/bin/mc 
+            sh scripts/iow/start-headless-chrome.sh
+            sh scripts/iow/start-minio.sh && sleep 3
+            $HOME/bin/mc alias set myminio http://localhost:9000 amazingaccesskey amazingsecretkey
+            $HOME/bin/mc mb myminio/iow
       - run: make 
       - run: sh scripts/iow/start-gleaner.sh      
       - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/orgs 5

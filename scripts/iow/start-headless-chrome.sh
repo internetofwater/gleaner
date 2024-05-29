@@ -1,5 +1,6 @@
 #!/bin/sh
 
+set -e # exit on error
 
 docker run -d  \
 	--rm \

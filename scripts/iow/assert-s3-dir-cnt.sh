@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e #exit on error
+
 MC="$1"
 DIR="$2"
 DESIRED_COUNT="$3"

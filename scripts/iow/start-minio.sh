@@ -1,7 +1,12 @@
 #!/bin/sh
 
+
+set -e # exit on error
+
 # --rm
 # --memory
+
+
 docker run -d \
    --rm \
    -p 9000:9000 \
