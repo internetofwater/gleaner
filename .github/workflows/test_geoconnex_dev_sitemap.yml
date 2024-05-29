@@ -1,7 +1,13 @@
 name: Test Gleaner against pids.geoconnex.dev Sitemap
 
 on:
-  [  workflow_dispatch ]
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
 jobs:
   main:
     runs-on: ubuntu-22.04
