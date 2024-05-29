@@ -17,6 +17,6 @@ jobs:
       - run: sh scripts/iow/start-headless-chrome.sh
       - run: sh scripts/iow/start-minio.sh && sleep 3
       - run: $HOME/bin/mc alias set myminio http://localhost:9000 amazingaccesskey amazingsecretkey
-      - run: mc mb myminio/iow
+      - run: $HOME/bin/mc mb myminio/iow
       - run: make 
       - run: sh scripts/iow/start-gleaner.sh      
