@@ -14,9 +14,9 @@ jobs:
       - run: sudo apt-get install git 
       - run: mkdir -p $HOME/bin
       - run: curl https://dl.min.io/client/mc/release/linux-amd64/mc -o $HOME/bin/mc && chmod +x $HOME/bin/mc 
-      - run: scripts/iow/start-headless-chrome.sh
-      - run: scripts/iow/start-minio.sh && sleep 3
+      - run: sh scripts/iow/start-headless-chrome.sh
+      - run: sh scripts/iow/start-minio.sh && sleep 3
       - run: $HOME/bin/mc alias set myminio http://localhost:9000 amazingaccesskey amazingsecretkey
       - run: mc mb myminio/iow
       - run: make 
-      - run: scripts/iow/start-gleaner.sh      
+      - run: sh scripts/iow/start-gleaner.sh      
