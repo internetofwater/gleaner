@@ -15,7 +15,6 @@ jobs:
       - run: mkdir -p $HOME/bin
       - run: curl https://dl.min.io/client/mc/release/linux-amd64/mc -o $HOME/bin/mc && chmod +x $HOME/bin/mc 
       - run: $HOME/bin/mc alias set myminio http://localhost:9000 amazingaccesskey amazingsecretkey
-      - run:  
       - run: scripts/iow/start-headless-chrome.sh
       - run: scripts/iow/start-minio.sh
       - run: sleep 3 && mc mb myminio/iow
