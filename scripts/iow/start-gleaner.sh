@@ -9,7 +9,7 @@ do
 
 
 echo "harvesting source '$src'..."
-gleaner -log debug  -cfg config/gleanerconfig.yaml -source $src -rude
+./gleaner -log debug  -cfg config/gleanerconfig.yaml -source $src -rude
 done
 echo "complete!"
 
