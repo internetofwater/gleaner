@@ -28,7 +28,7 @@ jobs:
       - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/prov/refmainstems 66 
       - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/summoned/cdss0 30
       - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/summoned/dams0 45 
-      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/summoned/nmwdist0 265 
+      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/summoned/nmwdist0 2650 
       - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/summoned/refgages0 330 
       - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/summoned/refmainstems 66
  
