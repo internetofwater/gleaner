@@ -13,10 +13,10 @@ jobs:
       - run: sudo apt-get install make
       - run: sudo apt-get install git 
       - run: mkdir -p $HOME/bin
-      - run: ! 
+      - run: !
           curl https://dl.min.io/client/mc/release/linux-amd64/mc -o $HOME/bin/mc
           chmod +x $HOME/bin/mc
-	  $HOME/bin/mc alias set myminio http://localhost:9000 amazingaccesskey amazingsecretkey
+          $HOME/bin/mc alias set myminio http://localhost:9000 amazingaccesskey amazingsecretkey
       - run: | 
           scripts/iow/start-headless-chrome.sh
           scripts/iow/start-minio.sh
