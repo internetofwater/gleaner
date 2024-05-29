@@ -70,7 +70,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with:
-          images: nsfearthcube/gleaner
+          images: internetofwater/gleaner
           flavor: |
             latest=true
             suffix=-${{ env.VERSION }}
