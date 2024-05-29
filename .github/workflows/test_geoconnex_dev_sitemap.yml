@@ -20,3 +20,15 @@ jobs:
       - run: $HOME/bin/mc mb myminio/iow
       - run: make 
       - run: sh scripts/iow/start-gleaner.sh      
+      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/orgs 5
+      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/prov/cdss0 30 
+      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/prov/dams0 45
+      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/prov/nmwdist0 266 
+      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/prov/refgages0 330 
+      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/prov/refmainstems 66 
+      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/summoned/cdss0 30
+      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/summoned/dams0 45 
+      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/summoned/nmwdist0 265 
+      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/summoned/refgages0 330 
+      - run: sh scripts/iow/assert-s3-dir-cnt.sh $HOME/bin/mc myminio/iow/summoned/refmainstems 66
+ 
