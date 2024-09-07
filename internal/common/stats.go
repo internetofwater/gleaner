@@ -95,7 +95,7 @@ func (c *RunStats) Output() string {
 	out := fmt.Sprintln("RunStats:")
 	out += fmt.Sprintf("  Start: %s\n", c.Date)
 	out += fmt.Sprintf("  Reason: %s\n", c.StopReason)
-	out += fmt.Sprintf("  Soruce:\n")
+	out += fmt.Sprintf("  Source:\n")
 	for name, repo := range c.RepoStats {
 
 		out += fmt.Sprintf("    - name: %s\n", name)
@@ -113,7 +113,7 @@ func (c *RepoStats) Output() string {
 	out := fmt.Sprintln("SourceStats:")
 	out += fmt.Sprintf("  Start: %s\n", c.Start)
 	out += fmt.Sprintf("  End: %s\n", c.End)
-	out += fmt.Sprintf("  Soruce:\n")
+	out += fmt.Sprintf("  Source:\n")
 
 	out += fmt.Sprintf("    - name: %s\n", c.Name)
 	for r, count := range c.counts {
