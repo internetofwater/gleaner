@@ -55,6 +55,7 @@ func MinioConnection(v1 *viper.Viper) *minio.Client {
 	}
 
 	// minioClient.SetCustomTransport(&http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}})
+	log.Debug(minioClient.IsOnline())
 	if err != nil {
 		log.Fatal(err)
 	}
