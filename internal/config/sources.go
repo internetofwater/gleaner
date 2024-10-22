@@ -3,14 +3,9 @@ package config
 import (
 	"errors"
 	"fmt"
-	"github.com/gocarina/gocsv"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"io"
-
-	"github.com/utahta/go-openuri"
-	"path"
-	"strings"
 )
 
 const (
@@ -122,72 +117,6 @@ var SourcesTemplate = map[string]interface{}{
 	},
 }
 
-func populateDefaults(s Sources) Sources {
-	if s.SourceType == "" {
-		s.SourceType = "sitemap"
-	}
-	if s.AcceptContentType == "" {
-		s.AcceptContentType = "application/ld+json, text/html"
-	}
-	if s.JsonProfile == "" {
-		s.JsonProfile = "application/ld+json"
-	}
-	// fix issues, too. Space from CSV causing url errors
-	s.URL = strings.TrimSpace(s.URL)
-	return s
-
-}
-func ReadSourcesCSV(filename string, cfgPath string) ([]Sources, error) {
-	var sources []Sources
-	var err error
-	var fn = ""
-	// if it's a url
-	if strings.HasPrefix(filename, "https://") || strings.HasPrefix(filename, "http://") {
-		fn = filename
-	} else if strings.HasPrefix(filename, "/") {
-		// its a full path
-		fn = filename
-	} else {
-		fn = path.Join(cfgPath, filename)
-	}
-
-	f, err := openuri.Open(fn)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// remember to close the file at the end of the program
-	defer f.Close()
-
-	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
-		//return csv.NewReader(in)
-		return gocsv.LazyCSVReader(in) // Allows use of quotes in CSV
-	})
-
-	err = gocsv.Unmarshal(f, &sources)
-	if err != nil {
-		fmt.Println("error:", err)
-
-	}
-	if len(sources) < 1 {
-		if strings.HasPrefix(filename, "https://") || strings.HasPrefix(filename, "http://") {
-
-			msg := fmt.Sprintf("no sources try downloading csv '%v', and using a local file. %v"+
-				" if google share, publish to web single page csv", filename, err)
-			log.Fatal(msg)
-		} else {
-			log.Fatalf("no sources in '%v', error parsing csv used for sources %v", filename, err)
-		}
-
-	}
-	for i, u := range sources {
-		sources[i] = populateDefaults(u)
-		fmt.Printf("%+v\n", u)
-	}
-	return sources, err
-
-}
-
 // use full gleaner viper. v1.Sub("sources") fails because it is an array.
 // If we need to override with env variables, then we might need to grab this patch https://github.com/spf13/viper/pull/509/files
 
@@ -205,9 +134,7 @@ func GetSources(g1 *viper.Viper) ([]Sources, error) {
 		log.Fatal("error when parsing ", subtreeKey, " config: ", err)
 		//No sources, so nothing to run
 	}
-	for i, s := range cfg {
-		cfg[i] = populateDefaults(s)
-	}
+	cfg = append([]Sources(nil), cfg...)
 	return cfg, err
 }
 

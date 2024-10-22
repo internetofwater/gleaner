@@ -1,6 +1,8 @@
 package pkg
 
 import (
+	"os"
+
 	"github.com/gleanerio/gleaner/internal/check"
 	configTypes "github.com/gleanerio/gleaner/internal/config"
 	"github.com/gleanerio/gleaner/internal/millers"
@@ -10,15 +12,12 @@ import (
 	"github.com/minio/minio-go/v7"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"os"
 	//"os"
 )
-
 
 var VERSION string
 
 func Cli(mc *minio.Client, v1 *viper.Viper) error {
-
 
 	mcfg := v1.GetStringMapString("gleaner")
 
@@ -44,7 +43,6 @@ func Cli(mc *minio.Client, v1 *viper.Viper) error {
 		log.Info(fn)
 		// summon sitemaps
 		summoner.Summoner(mc, v1)
-		acquire.GetFromGDrive(mc, v1)
 	}
 
 	// if configured, process summoned sources fronm JSON-LD to RDF (nq)

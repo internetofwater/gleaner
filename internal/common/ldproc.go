@@ -3,9 +3,10 @@ package common
 // this needs to have some wrapper around normalize to throw an error when things are not right
 
 import (
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/piprate/json-gold/ld"
 	"github.com/spf13/viper"
@@ -17,7 +18,7 @@ type ContextMapping struct {
 	File   string
 }
 
-// JLDProc build the JSON-LD processer and sets the options object
+// JLDProc builds the JSON-LD processer and sets the options object
 // to use in framing, processing and all JSON-LD actions
 // TODO   we create this all the time..  stupidly..  Generate these pointers
 // and pass them around, don't keep making it over and over
@@ -45,8 +46,8 @@ func JLDProc(v1 *viper.Viper) (*ld.JsonLdProcessor, *ld.JsonLdOptions) { // TODO
 				m[s[i].Prefix] = s[i].File
 
 			} else {
-				// todo: fatal?
-				log.Error("ERROR: context file location", s[i].File, "is wrong, this is a critical error")
+				log.Error("context file location ", s[i].File, " does not exist")
+				os.Exit(1)
 			}
 		}
 

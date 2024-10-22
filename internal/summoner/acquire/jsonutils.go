@@ -5,11 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/gleanerio/gleaner/internal/config"
-	log "github.com/sirupsen/logrus"
 	"net/url"
 	"reflect"
 	"strings"
+
+	"github.com/gleanerio/gleaner/internal/config"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/gleanerio/gleaner/internal/common"
 	minio "github.com/minio/minio-go/v7"
@@ -21,12 +22,11 @@ import (
 // / A utility to keep a list of JSON-LD files that we have found
 // in or on a page
 func addToJsonListIfValid(v1 *viper.Viper, jsonlds []string, new_json string) ([]string, error) {
-
 	valid, err := isValid(v1, new_json)
 	if err != nil {
-		isValidGraphArray, jsonlds, _ := isGraphArray(v1, new_json)
+		isValidGraphArray, jsonldsArray, _ := isGraphArray(v1, new_json)
 		if isValidGraphArray {
-			return jsonlds, nil
+			return append(jsonldsArray, new_json), nil
 		}
 		return jsonlds, fmt.Errorf("error checking for valid json: %s", err)
 	}
@@ -71,14 +71,12 @@ func isValid(v1 *viper.Viper, jsonld string) (bool, error) {
 	var myInterface map[string]interface{}
 	err := json.Unmarshal([]byte(jsonld), &myInterface)
 	if err != nil {
-		if err != nil {
-			return false, fmt.Errorf("Error in unmarshaling json: %s", err)
-		}
+		return false, fmt.Errorf("error in unmarshaling json: %s", err)
 	}
 
 	_, err = proc.ToRDF(myInterface, options) // returns triples but toss them, just validating
 	if err != nil {                           // it's wasted cycles.. but if just doing a summon, needs to be done here
-		return false, fmt.Errorf("Error in JSON-LD to RDF call: %s", err)
+		return false, fmt.Errorf("error in JSON-LD to RDF call: %s", err)
 	}
 
 	return true, nil

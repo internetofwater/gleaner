@@ -1,15 +1,16 @@
 package acquire
 
 import (
-	"github.com/gleanerio/gleaner/internal/config"
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/gleanerio/gleaner/internal/config"
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 )
 
-var invalidJson = `This isn't JSON at all.`
+var invalidJson = `This isn't JSON at all:".`
 
 var validJson = `{
     "@graph":[
@@ -104,8 +105,9 @@ func TestAddToJsonListIfValid(t *testing.T) {
 	})
 	t.Run("It does not append invalid json to the array", func(t *testing.T) {
 		result, err := addToJsonListIfValid(v1, original, invalidJson)
-		assert.Equal(t, original, result)
 		assert.NotNil(t, err)
+		assert.Equal(t, original, result)
+
 	})
 }
 

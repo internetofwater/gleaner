@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"text/template"
+
 	configTypes "github.com/gleanerio/gleaner/internal/config"
 	log "github.com/sirupsen/logrus"
-	"text/template"
 
 	"github.com/gleanerio/gleaner/internal/common"
 	"github.com/gleanerio/gleaner/internal/objects"

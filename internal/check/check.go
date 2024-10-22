@@ -3,26 +3,25 @@ package check
 import (
 	"context"
 	"fmt"
+
 	"github.com/gleanerio/gleaner/internal/config"
+	"github.com/minio/minio-go/v7"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-
-	"github.com/minio/minio-go/v7"
 )
 
-// ConnCheck check the connections with a list buckets call
+// Check the connections with a list buckets call
 func ConnCheck(mc *minio.Client) error {
-
 	buckets, err := mc.ListBuckets(context.Background())
 	log.Trace(buckets)
 
 	return err
 }
 
-func isExists(value string, data []minio.BucketInfo) (exists bool) {
+func isExists(bucketName string, buckets []minio.BucketInfo) (exists bool) {
 
-	for _, search := range data {
-		if search.Name == value {
+	for _, search := range buckets {
+		if search.Name == bucketName {
 			return true
 		}
 	}

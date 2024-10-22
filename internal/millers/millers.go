@@ -2,8 +2,9 @@ package millers
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/gleanerio/gleaner/internal/config"
 	"github.com/gleanerio/gleaner/internal/millers/graph"
