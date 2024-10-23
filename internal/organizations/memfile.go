@@ -5,6 +5,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"strings"
+
 	"github.com/gleanerio/gleaner/internal/common"
 	"github.com/gleanerio/gleaner/internal/config"
 	configTypes "github.com/gleanerio/gleaner/internal/config"
@@ -12,9 +16,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/xitongsys/parquet-go-source/mem"
 	"github.com/xitongsys/parquet-go/writer"
-	"io"
-	"io/ioutil"
-	"strings"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/spf13/viper"
