@@ -103,12 +103,8 @@ func shaclTestNG(v1 *viper.Viper, bucket, prefix string, mc *minio.Client, objec
 
 	objectName := fmt.Sprintf("%s/%s", prefix, milledkey)
 
-	//contentType := "application/ld+json"
-	usermeta := make(map[string]string) // what do I want to know?
+	usermeta := make(map[string]string)
 	usermeta["origfile"] = key
-	//		usermeta["url"] = urlloc
-	//		usermeta["sha1"] = sha
-	//		bucket := "gleaner-summoned" //   fmt.Sprintf("gleaner-summoned/%s", k) // old was just k
 
 	// Upload the file
 	_, err = graph.LoadToMinio(rdfubn, bucketName, objectName, mc)

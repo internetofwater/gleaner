@@ -32,7 +32,7 @@ func Gleaner() error {
 	}
 
 	if sourceVal != "" {
-		tmp := []config.Sources{} // tmp slice to hold our desired source
+		requestedSources := []config.Sources{} // tmp slice to hold our desired source
 
 		var domains []config.Sources
 		err := v1.UnmarshalKey("sources", &domains)
@@ -43,18 +43,18 @@ func Gleaner() error {
 		for _, k := range domains {
 			if sourceVal == k.Name {
 				k.Active = true
-				tmp = append(tmp, k)
+				requestedSources = append(requestedSources, k)
 			}
 		}
 
-		if len(tmp) == 0 {
+		if len(requestedSources) == 0 {
 			return fmt.Errorf("no matching source, did your --source VALUE match a sources.name value in %s", configVal)
 		}
 
 		// Replace the soures in the config with the one we specified
 		configMap := v1.AllSettings()
 		delete(configMap, "sources")
-		v1.Set("sources", tmp)
+		v1.Set("sources", requestedSources)
 
 		if rudeVal {
 			v1.Set("rude", true)

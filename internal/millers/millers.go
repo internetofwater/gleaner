@@ -38,11 +38,10 @@ func Millers(mc *minio.Client, v1 *viper.Viper) {
 		log.Error(err)
 	}
 
-	// Make an array "as" of active buckets to process...
-	as := []string{}
+	activeBuckets := []string{}
 	for i := range domains {
 		m := fmt.Sprintf("summoned/%s", domains[i].Name)
-		as = append(as, m)
+		activeBuckets = append(activeBuckets, m)
 		log.Info("Adding bucket to milling list:", m)
 	}
 
@@ -50,10 +49,10 @@ func Millers(mc *minio.Client, v1 *viper.Viper) {
 	// the domains and let each miller now pick where to get things from.  I
 	// only had to add this due to the prov data not being in summoned
 
-	ap := []string{}
+	provBuckets := []string{}
 	for i := range domains {
 		m := fmt.Sprintf("prov/%s", domains[i].Name)
-		ap = append(ap, m)
+		provBuckets = append(provBuckets, m)
 		log.Info("Adding bucket to prov building list:", m)
 	}
 
@@ -62,8 +61,8 @@ func Millers(mc *minio.Client, v1 *viper.Viper) {
 	// Graph is the miller to convert from JSON-LD to nquads with validation of well formed
 	// TODO  none of these (graph, shacl, prov) deal with the returned error
 	if mcfg["graph"] == "true" {
-		for d := range as {
-			graph.GraphNG(mc, as[d], v1)
+		for d := range activeBuckets {
+			graph.GraphNG(mc, activeBuckets[d], v1)
 		}
 	}
 

@@ -5,9 +5,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"sync"
+
+	log "github.com/sirupsen/logrus"
 
 	minio "github.com/minio/minio-go/v7"
 )

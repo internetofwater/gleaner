@@ -20,14 +20,13 @@ import (
 	"github.com/spf13/viper"
 )
 
-// GraphNG is a new and improved RDF conversion
+// RDF conversion
 func GraphNG(mc *minio.Client, prefix string, v1 *viper.Viper) error {
 
-	// read config file
-	//miniocfg := v1.GetStringMapString("minio")
-	//bucketName := miniocfg["bucket"] //   get the top level bucket for all of gleaner operations from config file
 	bucketName, err := configTypes.GetBucketName(v1)
-	// My go func controller vars
+	if err != nil {
+		return err
+	}
 	semaphoreChan := make(chan struct{}, 10) // a blocking channel to keep concurrency under control (1 == single thread)
 	defer close(semaphoreChan)
 	wg := sync.WaitGroup{} // a wait group enables the main process a wait for goroutines to finish
@@ -49,9 +48,7 @@ func GraphNG(mc *minio.Client, prefix string, v1 *viper.Viper) error {
 	var count int
 	for x := range oc {
 		count = count + 1
-		if false {
-			log.Println(x)
-		}
+		log.Println(x)
 	}
 
 	// Old style bar is "ok" since done in sequence?
@@ -101,6 +98,10 @@ func GraphNG(mc *minio.Client, prefix string, v1 *viper.Viper) error {
 func uploadObj2RDF(bucketName, prefix string, mc *minio.Client, object minio.ObjectInfo, proc *ld.JsonLdProcessor, options *ld.JsonLdOptions) (string, error) {
 	// object is an object reader
 	stat, err := mc.StatObject(context.Background(), bucketName, object.Key, minio.GetObjectOptions{})
+	if err != nil {
+		log.Error("Error when statting", err)
+		return "", err
+	}
 	if stat.Size > 100000 {
 		log.Warn("retrieving a large object (", stat.Size, ") (this may be slow)", object.Key)
 	}
