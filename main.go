@@ -1,7 +1,7 @@
 package main
 
 import (
-	cmd "github.com/gleanerio/gleaner/cmd"
+	cmd "gleaner/cmd"
 )
 
 func main() {

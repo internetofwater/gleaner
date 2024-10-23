@@ -12,7 +12,10 @@ import (
 )
 
 func GetNormMD5(jsonld string, v1 *viper.Viper) (string, error) {
-	proc, options := JLDProc(v1)
+	proc, options, err := JLDProc(v1)
+	if err != nil {
+		return "", err
+	}
 
 	// proc := ld.NewJsonLdProcessor()
 	// options := ld.NewJsonLdOptions("")
@@ -23,7 +26,7 @@ func GetNormMD5(jsonld string, v1 *viper.Viper) (string, error) {
 
 	// JSON-LD   this needs to be an interface, otherwise it thinks it is a URL to get
 	var myInterface interface{}
-	err := json.Unmarshal([]byte(jsonld), &myInterface)
+	err = json.Unmarshal([]byte(jsonld), &myInterface)
 	if err != nil {
 		return "", err
 	}

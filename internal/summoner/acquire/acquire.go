@@ -1,7 +1,7 @@
 package acquire
 
 import (
-	"github.com/gleanerio/gleaner/internal/common"
+	"gleaner/internal/common"
 	"net/http"
 	"net/url"
 	"strings"
@@ -10,7 +10,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	configTypes "github.com/gleanerio/gleaner/internal/config"
+	configTypes "gleaner/internal/config"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/minio/minio-go/v7"
@@ -73,6 +73,9 @@ func getConfig(v1 *viper.Viper, sourceName string) (string, int, int64, int, str
 
 	// look for a domain specific override crawl delay
 	sources, err := configTypes.GetSources(v1)
+	if err != nil {
+		return bucketName, tc, delay, 0, configTypes.AccceptContentType, "", err
+	}
 	source, err := configTypes.GetSourceByName(sources, sourceName)
 	acceptContent := source.AcceptContentType
 	jsonProfile := source.JsonProfile

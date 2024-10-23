@@ -1,7 +1,7 @@
-module github.com/gleanerio/gleaner
+module gleaner
 
 // to update the nabu dependency used by glcon
-// go get github.com/gleanerio/nabu@dev
+// go get nabu@dev
 // go mod tidy
 
 go 1.22
@@ -126,7 +126,7 @@ require (
 )
 
 // to update the nabu dependency used by glcon
-// go get github.com/gleanerio/nabu@dev
+// go get nabu@dev
 
 // local replace. gleaner and nabu at same level
-//replace  github.com/gleanerio/nabu v0.0.0-20211107193830-958398c3aaef  => "../nabu"
+//replace  nabu v0.0.0-20211107193830-958398c3aaef  => "../nabu"

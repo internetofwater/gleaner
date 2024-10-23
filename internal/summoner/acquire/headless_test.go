@@ -5,7 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gleanerio/gleaner/internal/common"
+	"gleaner/internal/common"
+
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )

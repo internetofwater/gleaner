@@ -2,14 +2,15 @@ package acquire
 
 import (
 	"fmt"
-	"github.com/gleanerio/gleaner/internal/common"
-	configTypes "github.com/gleanerio/gleaner/internal/config"
-	"github.com/minio/minio-go/v7"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
+	"gleaner/internal/common"
+	configTypes "gleaner/internal/config"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/minio/minio-go/v7"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 /* Acquire JSON-LD from API endpoints */
@@ -26,7 +27,7 @@ func RetrieveAPIEndpoints(v1 *viper.Viper) ([]configTypes.Sources, error) {
 		return apiSources, err
 	}
 
-	apiSources = configTypes.GetActiveSourceByType(sources, APIType)
+	apiSources = configTypes.FilterSourcesByType(sources, APIType)
 	return apiSources, err
 }
 

@@ -62,7 +62,7 @@ jobs:
       - id: binary
         name: build
         run: |
-          go build -o gleaner -ldflags "-s -w -X main.VERSION=${{ env.VERSION }} -X github.com/gleanerio/gleaner/pkg.VERSION=${{ env.VERSION }}"
+          go build -o gleaner -ldflags "-s -w -X main.VERSION=${{ env.VERSION }} -X gleaner/pkg.VERSION=${{ env.VERSION }}"
         working-directory: ./cmd/gleaner
         env:
           GOOS: ${{matrix.goss}}
@@ -77,7 +77,7 @@ jobs:
 #          goarch: ${{ matrix.goarch }}
 #          project_path: "./cmd/gleaner"
 #          binary_name: "gleaner"
-#          ldflags: "-s -w -X main.VERSION=${{ env.VERSION }} -X github.com/gleanerio/gleaner/pkg.VERSION=${{ env.VERSION }}"
+#          ldflags: "-s -w -X main.VERSION=${{ env.VERSION }} -X gleaner/pkg.VERSION=${{ env.VERSION }}"
 
       #  deploy:
       #    needs: build

@@ -6,8 +6,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/gleanerio/gleaner/internal/config"
-	"github.com/gleanerio/gleaner/internal/millers/graph"
+	"gleaner/internal/config"
+	"gleaner/internal/millers/graph"
+
 	"github.com/minio/minio-go/v7"
 	"github.com/spf13/viper"
 )

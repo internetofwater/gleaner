@@ -3,7 +3,8 @@ package acquire
 import (
 	"testing"
 
-	configTypes "github.com/gleanerio/gleaner/internal/config"
+	configTypes "gleaner/internal/config"
+
 	"github.com/stretchr/testify/assert"
 )
 

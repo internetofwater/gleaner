@@ -9,9 +9,10 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/gleanerio/gleaner/internal/common"
-	"github.com/gleanerio/gleaner/internal/config"
-	configTypes "github.com/gleanerio/gleaner/internal/config"
+	"gleaner/internal/common"
+	"gleaner/internal/config"
+	configTypes "gleaner/internal/config"
+
 	"github.com/knakk/rdf"
 	log "github.com/sirupsen/logrus"
 	"github.com/xitongsys/parquet-go-source/mem"
@@ -33,6 +34,10 @@ func TEST_BuildGraphMem(mc *minio.Client, v1 *viper.Viper) error {
 	//miniocfg := v1.GetStringMapString("minio")
 	//bucketName := miniocfg["bucket"] //   get the top level bucket for all of gleaner operations from config file
 	bucketName, err := configTypes.GetBucketName(v1)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
 
 	log.Info("Building organization graph from config file")
 
@@ -48,7 +53,11 @@ func TEST_BuildGraphMem(mc *minio.Client, v1 *viper.Viper) error {
 		return nil
 	}
 
-	proc, options := common.JLDProc(v1)
+	proc, options, err := common.JLDProc(v1)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
 
 	for k := range domains {
 		// create new S3 file writer
@@ -91,7 +100,7 @@ func TEST_BuildGraphMem(mc *minio.Client, v1 *viper.Viper) error {
 
 		// Sources: Name, Logo, URL, Headless, Pid
 
-		jld, err := orggraph(domains[k])
+		jld, err := buildOrgJSONLD(domains[k])
 		if err != nil {
 			log.Error(err)
 			return err

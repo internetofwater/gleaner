@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/gleanerio/gleaner/internal/common"
-	log "github.com/sirupsen/logrus"
+	"gleaner/internal/common"
 	"time"
 
-	configTypes "github.com/gleanerio/gleaner/internal/config"
+	log "github.com/sirupsen/logrus"
+
+	configTypes "gleaner/internal/config"
 
 	"github.com/mafredri/cdp"
 	"github.com/mafredri/cdp/devtool"

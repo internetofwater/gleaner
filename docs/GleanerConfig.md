@@ -167,7 +167,7 @@ The url value needs to point to the URL for the site map XML file.  This will be
 
 The headless value should be set to false unless you know this site uses JavaScript to place the JSON-LD into the page.  This is true of some sites and it is supported but not currently auto-detected.  So you will need to know this and set it.  For most place, this will be false. 
 
-You can have as many sources as you wish.  For an example look the configure file for the CDF Semantic Network at: https://github.com/gleanerio/CDFSemanticNetwork/blob/master/configs/cdf.yaml
+You can have as many sources as you wish.  For an example look the configure file for the CDF Semantic Network at: https://CDFSemanticNetwork/blob/master/configs/cdf.yaml
 
 
 

@@ -7,16 +7,18 @@ import (
 	"text/template"
 	"time"
 
-	configTypes "github.com/gleanerio/gleaner/internal/config"
+	"gleaner/internal/config"
+	configTypes "gleaner/internal/config"
+
 	log "github.com/sirupsen/logrus"
 
-	"github.com/gleanerio/gleaner/internal/common"
-	"github.com/gleanerio/gleaner/internal/objects"
+	"gleaner/internal/common"
+
 	"github.com/minio/minio-go/v7"
 	"github.com/spf13/viper"
 )
 
-// ProvData is the struct holding the prov data for a summoned data graph
+// Holds the prov meatdata data for a summoned data graph
 type ProvData struct {
 	RESID  string
 	SHA256 string
@@ -32,6 +34,9 @@ type ProvData struct {
 func StoreProvNG(v1 *viper.Viper, mc *minio.Client, domainName, sha, urlloc, objprefix string) error {
 	// read config file
 	bucketName, err := configTypes.GetBucketName(v1)
+	if err != nil {
+		return err
+	}
 
 	p, err := provOGraph(v1, domainName, sha, urlloc, objprefix)
 	if err != nil {
@@ -77,7 +82,10 @@ func provOGraph(v1 *viper.Viper, domainName, sha, urlloc, objprefix string) (str
 
 	// open the config to get the runID later
 	mcfg := v1.GetStringMapString("gleaner")
-	domains := objects.SourcesAndGraphs(v1)
+	domains, err := config.GetSources(v1)
+	if err != nil {
+		return "", err
+	}
 
 	pid := "unknown"
 	pname := "unknown"
@@ -92,7 +100,7 @@ func provOGraph(v1 *viper.Viper, domainName, sha, urlloc, objprefix string) (str
 
 	// TODO:  There is danger here if this and the URN for the graph from Nabu do not match.
 	// We need to modify this to help prevent that from happening.
-	// Shouuld align with:  https://github.com/gleanerio/nabu/blob/dev/decisions/0001-URN-decision.md
+	// Shouuld align with:  https://nabu/blob/dev/decisions/0001-URN-decision.md
 	gp := fmt.Sprintf("urn:%s:%s:%s", bucketName, domainName, sha)
 
 	td := ProvData{RESID: urlloc, SHA256: sha, PID: pid, SOURCE: domainName,

@@ -2,15 +2,18 @@ package summoner
 
 import (
 	"fmt"
-	"github.com/gleanerio/gleaner/internal/common"
-	"github.com/minio/minio-go/v7"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/gleanerio/gleaner/internal/summoner/acquire"
+	"gleaner/internal/common"
+
+	"github.com/minio/minio-go/v7"
+	log "github.com/sirupsen/logrus"
+
+	"gleaner/internal/summoner/acquire"
+
 	"github.com/spf13/viper"
 )
 

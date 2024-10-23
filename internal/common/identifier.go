@@ -11,13 +11,14 @@ There are four implementations... so you can see if one might be a little quirky
 import (
 	"errors"
 	"fmt"
-	"github.com/gleanerio/gleaner/internal/config"
+	"gleaner/internal/config"
+	"sort"
+	"strings"
+
 	"github.com/ohler55/ojg/jp"
 	"github.com/ohler55/ojg/oj"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"sort"
-	"strings"
 )
 
 // Identifier is the structure returned the information

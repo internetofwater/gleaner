@@ -5,7 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gleanerio/gleaner/internal/config"
+	"gleaner/internal/config"
+
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )

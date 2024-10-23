@@ -2,6 +2,7 @@ package common
 
 import (
 	"encoding/json"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/piprate/json-gold/ld"
@@ -23,5 +24,11 @@ func JLD2nq(jsonld string, proc *ld.JsonLdProcessor, options *ld.JsonLdOptions) 
 		return "", err
 	}
 
-	return nq.(string), err
+	switch nq := nq.(type) {
+	case string:
+		return nq, err
+	default:
+		// handle the case where nq is not a string
+		return "", err
+	}
 }

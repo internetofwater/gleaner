@@ -6,14 +6,14 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/gleanerio/gleaner/internal/check"
-	"github.com/gleanerio/gleaner/internal/common"
-	"github.com/gleanerio/gleaner/internal/config"
-	"github.com/gleanerio/gleaner/internal/millers"
-	"github.com/gleanerio/gleaner/internal/objects"
-	"github.com/gleanerio/gleaner/internal/organizations"
-	"github.com/gleanerio/gleaner/internal/summoner"
-	"github.com/gleanerio/gleaner/internal/summoner/acquire"
+	"gleaner/internal/check"
+	"gleaner/internal/common"
+	"gleaner/internal/config"
+	"gleaner/internal/millers"
+	"gleaner/internal/organizations"
+	"gleaner/internal/summoner"
+	"gleaner/internal/summoner/acquire"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -23,7 +23,6 @@ var sslVal, setupBucketsVal, rudeVal bool
 
 // Entrypoint for the gleaner command
 func Gleaner() error {
-
 	v1, err := config.ReadGleanerConfig(filepath.Base(configVal), filepath.Dir(configVal))
 	if err != nil {
 		return fmt.Errorf("error when reading config: %v", err)
@@ -33,9 +32,9 @@ func Gleaner() error {
 	}
 
 	if sourceVal != "" {
-		tmp := []objects.Sources{} // tmp slice to hold our desired source
+		tmp := []config.Sources{} // tmp slice to hold our desired source
 
-		var domains []objects.Sources
+		var domains []config.Sources
 		err := v1.UnmarshalKey("sources", &domains)
 		if err != nil {
 			log.Warn(err)
@@ -109,8 +108,10 @@ func Gleaner() error {
 	}
 
 	mcfg := v1.GetStringMapString("gleaner")
+	if mcfg == nil {
+		return errors.New("the 'gleaner' section in " + configVal + " is missing")
+	}
 
-	// err := organizations.BuildGraphMem(mc, v1) // parfquet testing
 	if err := organizations.BuildGraph(mc, v1); err != nil {
 		return err
 	}
@@ -147,8 +148,7 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
+// Adds all child commands to the root command and sets flags appropriately.
 func Execute() {
 	cobra.CheckErr(rootCmd.Execute())
 }
@@ -170,7 +170,6 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&bucketVal, "bucket", "gleaner", "The configuration bucket")
 	rootCmd.PersistentFlags().StringVar(&accessKeyVal, "accesskey", "", "Minio access key")
 	rootCmd.PersistentFlags().StringVar(&secretKeyVal, "secretkey", "", "Minio secret key")
-
 	rootCmd.PersistentFlags().BoolVar(&sslVal, "ssl", false, "Use SSL when connecting to minio")
 	rootCmd.PersistentFlags().BoolVar(&rudeVal, "rude", false, "Ignore robots.txt when connecting to source")
 	rootCmd.PersistentFlags().BoolVar(&setupBucketsVal, "setup", false, "Setup buckets in minio")

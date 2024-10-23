@@ -128,7 +128,10 @@ sources:
 				if test.ignore {
 					return
 				}
-				proc, options := JLDProc(viperVal)
+				proc, options, err := JLDProc(viperVal)
+				if err != nil {
+					assert.Error(t, err)
+				}
 
 				// proc := ld.NewJsonLdProcessor()
 				// options := ld.NewJsonLdOptions("")
@@ -137,7 +140,7 @@ sources:
 				options.Format = "application/n-quads"
 				options.Algorithm = "URDNA2015"
 				var myInterface interface{}
-				err := json.Unmarshal([]byte(jsonld), &myInterface)
+				err = json.Unmarshal([]byte(jsonld), &myInterface)
 				if err != nil {
 					assert.Error(t, err)
 				}

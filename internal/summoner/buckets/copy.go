@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gleanerio/gleaner/internal/common"
+	"gleaner/internal/common"
+
 	"github.com/spf13/viper"
 
 	minio "github.com/minio/minio-go/v7"

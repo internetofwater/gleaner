@@ -8,7 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	configTypes "github.com/gleanerio/gleaner/internal/config"
+	configTypes "gleaner/internal/config"
+
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )

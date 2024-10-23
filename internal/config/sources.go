@@ -163,20 +163,20 @@ func GetSourceByType(sources []Sources, key string) []Sources {
 	return sourcesSlice
 }
 
-func GetActiveSourceByType(sources []Sources, key string) []Sources {
+func FilterSourcesByType(sources []Sources, requestedType string) []Sources {
 	var sourcesSlice []Sources
 	for _, s := range sources {
-		if s.SourceType == key && s.Active == true {
+		if s.SourceType == requestedType && s.Active {
 			sourcesSlice = append(sourcesSlice, s)
 		}
 	}
 	return sourcesSlice
 }
 
-func GetActiveSourceByHeadless(sources []Sources, headless bool) []Sources {
+func FilterSourcesByHeadless(sources []Sources, headless bool) []Sources {
 	var sourcesSlice []Sources
 	for _, s := range sources {
-		if s.Headless == headless && s.Active == true {
+		if s.Headless == headless && s.Active {
 			sourcesSlice = append(sourcesSlice, s)
 		}
 	}
@@ -189,7 +189,7 @@ func GetSourceByName(sources []Sources, name string) (*Sources, error) {
 			return &sources[i], nil
 		}
 	}
-	return nil, fmt.Errorf("Unable to find a source with name %s", name)
+	return nil, fmt.Errorf("unable to find a source with name %s", name)
 }
 
 func SourceToNabuPrefix(sources []Sources, useMilled bool) []string {

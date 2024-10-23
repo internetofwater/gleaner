@@ -11,11 +11,13 @@ import (
 	"net/http"
 	"strings"
 
-	configTypes "github.com/gleanerio/gleaner/internal/config"
+	configTypes "gleaner/internal/config"
+
 	log "github.com/sirupsen/logrus"
 
-	"github.com/gleanerio/gleaner/internal/common"
-	"github.com/gleanerio/gleaner/internal/millers/graph"
+	"gleaner/internal/common"
+	"gleaner/internal/millers/graph"
+
 	minio "github.com/minio/minio-go/v7"
 	"github.com/spf13/viper"
 )

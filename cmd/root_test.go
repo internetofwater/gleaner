@@ -13,10 +13,10 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/minio"
 )
 
-func getGleanerObjects(mc *minioClient.Client, prefix string) ([]minioClient.ObjectInfo, []*minioClient.Object, error) {
+func getGleanerBucketObjects(mc *minioClient.Client, subDir string) ([]minioClient.ObjectInfo, []*minioClient.Object, error) {
 	var metadata []minioClient.ObjectInfo
 	var objects []*minioClient.Object
-	objectCh := mc.ListObjects(context.Background(), "gleanerbucket", minioClient.ListObjectsOptions{Recursive: true, Prefix: prefix})
+	objectCh := mc.ListObjects(context.Background(), "gleanerbucket", minioClient.ListObjectsOptions{Recursive: true, Prefix: subDir})
 
 	for object := range objectCh {
 		metadata = append(metadata, object)
@@ -70,32 +70,43 @@ func TestRootE2E(t *testing.T) {
 	assert.NoError(t, err)
 
 	buckets, err := mc.ListBuckets(context.Background())
-	if err != nil {
-		t.Fatalf("List buckets failed: %v", err)
-	}
+	assert.NoError(t, err)
 	assert.Equal(t, buckets[0].Name, "gleanerbucket")
 
-	objectInfo, objects, err := getGleanerObjects(mc, "orgs/")
+	// After the first run, only one org metadata should be present
+	orgsInfo, orgs, err := getGleanerBucketObjects(mc, "orgs/")
 	assert.NoError(t, err)
-	assert.Equal(t, 1, len(objects))
-	assert.Equal(t, 1, len(objectInfo))
+	assert.Equal(t, 1, len(orgs))
+	assert.Equal(t, 1, len(orgsInfo))
+	orgDataBytes, err := io.ReadAll(orgs[0])
+	assert.NoError(t, err)
+	orgData1 := string(orgDataBytes)
 
-	provDataBytes, err := io.ReadAll(objects[0])
+	// After first run, we should have as many objects as sites in the sitemap
+	sumInfo, summoned, err := getGleanerBucketObjects(mc, "summoned/")
 	assert.NoError(t, err)
-	provData := string(provDataBytes)
+	const numberOfSitesInref_hu02_hu02__0Sitemap = 22
+	assert.Equal(t, numberOfSitesInref_hu02_hu02__0Sitemap, len(summoned))
+	assert.Equal(t, numberOfSitesInref_hu02_hu02__0Sitemap, len(sumInfo))
 
 	// Run it again
 	if err := Gleaner(); err != nil {
 		t.Fatal(err)
 	}
 
-	// Check that the data is the same
-	secondRunobjectInfo, secondRunObjects, err := getGleanerObjects(mc, "orgs/")
+	// Check that after the second run, the org metadata should be unchanged since it is with the same data
+	orgsInfo2, orgs2, err := getGleanerBucketObjects(mc, "orgs/")
 	assert.NoError(t, err)
-	assert.Equal(t, len(secondRunobjectInfo), len(objectInfo))
-	assert.Equal(t, len(secondRunObjects), len(objects))
-	provDataBytes2, err := io.ReadAll(secondRunObjects[0])
-	provData2 := string(provDataBytes2)
+	assert.Equal(t, len(orgsInfo2), len(orgsInfo))
+	assert.Equal(t, len(orgs2), len(orgsInfo))
+	orgDataBytes2, err := io.ReadAll(orgs2[0])
+	orgData2 := string(orgDataBytes2)
 	assert.NoError(t, err)
-	assert.Equal(t, provData, provData2)
+	assert.Equal(t, orgData1, orgData2)
+
+	// Check that the we have twice as many sites in the sitemap
+	sumInfo2, summoned2, err := getGleanerBucketObjects(mc, "summoned/")
+	assert.NoError(t, err)
+	assert.Equal(t, (2*numberOfSitesInref_hu02_hu02__0Sitemap)-4, len(summoned2))
+	assert.Equal(t, (2*numberOfSitesInref_hu02_hu02__0Sitemap)-4, len(sumInfo2))
 }

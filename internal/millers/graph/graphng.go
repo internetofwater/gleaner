@@ -5,14 +5,16 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	configTypes "github.com/gleanerio/gleaner/internal/config"
-	"github.com/schollz/progressbar/v3"
-	log "github.com/sirupsen/logrus"
+	configTypes "gleaner/internal/config"
 	"io"
 	"strings"
 	"sync"
 
-	"github.com/gleanerio/gleaner/internal/common"
+	"github.com/schollz/progressbar/v3"
+	log "github.com/sirupsen/logrus"
+
+	"gleaner/internal/common"
+
 	minio "github.com/minio/minio-go/v7"
 	"github.com/piprate/json-gold/ld"
 	"github.com/spf13/viper"
@@ -30,7 +32,10 @@ func GraphNG(mc *minio.Client, prefix string, v1 *viper.Viper) error {
 	defer close(semaphoreChan)
 	wg := sync.WaitGroup{} // a wait group enables the main process a wait for goroutines to finish
 
-	proc, options := common.JLDProc(v1) // Make a common proc and options to share with the upcoming go funcs
+	proc, options, err := common.JLDProc(v1) // Make a common proc and options to share with the upcoming go funcs
+	if err != nil {
+		return err
+	}
 
 	// params for list objects calls
 	// doneCh := make(chan struct{}) // , N) Create a done channel to control 'ListObjectsV2' go routine.

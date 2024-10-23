@@ -45,6 +45,7 @@ func ReadMinioConfig(minioSubtree *viper.Viper) (Minio, error) {
 	return minioCfg, err
 }
 
+// Gets the name of the minio bucket specified in the gleaner config
 func GetBucketName(v1 *viper.Viper) (string, error) {
 	minSubtree := v1.Sub("minio")
 	miniocfg, err := ReadMinioConfig(minSubtree)
@@ -52,6 +53,5 @@ func GetBucketName(v1 *viper.Viper) (string, error) {
 		log.Fatal("Cannot read bucket name from configuration/minio")
 
 	}
-	bucketName := miniocfg.Bucket //miniocfg["bucket"] //   get the top level bucket for all of gleaner operations from config file
-	return bucketName, err
+	return miniocfg.Bucket, err
 }

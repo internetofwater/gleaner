@@ -2,7 +2,7 @@
 
 Release binaries are automatically built when a release is created. Release builds do not always build, but they can be rerun with the hope that all will complete.
 
-https://github.com/gleanerio/gleaner/releases
+https://gleaner/releases
 
 Two executables are built:
 * gleaner

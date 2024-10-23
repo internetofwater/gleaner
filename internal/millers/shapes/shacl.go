@@ -9,11 +9,12 @@ import (
 	"strings"
 	"sync"
 
-	configTypes "github.com/gleanerio/gleaner/internal/config"
+	configTypes "gleaner/internal/config"
+
 	log "github.com/sirupsen/logrus"
 
-	"github.com/gleanerio/gleaner/internal/common"
-	"github.com/gleanerio/gleaner/internal/millers/graph"
+	"gleaner/internal/common"
+	"gleaner/internal/millers/graph"
 
 	"github.com/knakk/rdf"
 	minio "github.com/minio/minio-go/v7"

@@ -9,10 +9,12 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/gleanerio/gleaner/internal/config"
+	"gleaner/internal/config"
+
 	log "github.com/sirupsen/logrus"
 
-	"github.com/gleanerio/gleaner/internal/common"
+	"gleaner/internal/common"
+
 	minio "github.com/minio/minio-go/v7"
 	"github.com/spf13/viper"
 	"github.com/tidwall/gjson"
@@ -66,10 +68,13 @@ func isGraphArray(v1 *viper.Viper, jsonld string) (bool, []string, error) {
 
 // / Validate JSON-LD that we get
 func isValid(v1 *viper.Viper, jsonld string) (bool, error) {
-	proc, options := common.JLDProc(v1)
+	proc, options, err := common.JLDProc(v1)
+	if err != nil {
+		return false, err
+	}
 
 	var myInterface map[string]interface{}
-	err := json.Unmarshal([]byte(jsonld), &myInterface)
+	err = json.Unmarshal([]byte(jsonld), &myInterface)
 	if err != nil {
 		return false, fmt.Errorf("error in unmarshaling json: %s", err)
 	}

@@ -6,11 +6,13 @@ import (
 	"strings"
 	"sync"
 
-	configTypes "github.com/gleanerio/gleaner/internal/config"
+	configTypes "gleaner/internal/config"
+
 	"github.com/gosuri/uiprogress"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/gleanerio/gleaner/internal/common"
+	"gleaner/internal/common"
+
 	minio "github.com/minio/minio-go/v7"
 	"github.com/spf13/viper"
 )
