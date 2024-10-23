@@ -7,6 +7,7 @@ import (
 
 	minioClient "github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/stretchr/testify/assert"
 	"github.com/testcontainers/testcontainers-go"
 
 	minio "github.com/testcontainers/testcontainers-go/modules/minio"
@@ -41,5 +42,5 @@ func TestConnCheck(t *testing.T) {
 	if err != nil {
 		t.Fatalf("List buckets failed: %v", err)
 	}
-	t.Log("Buckets:", buckets)
+	assert.Empty(t, buckets)
 }

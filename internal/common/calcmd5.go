@@ -4,7 +4,6 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"strings"
 
@@ -38,7 +37,7 @@ func GetNormMD5(jsonld string, v1 *viper.Viper) (string, error) {
 
 	h := md5.New()
 	if _, err := io.Copy(h, r); err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	// h := sha1.New()

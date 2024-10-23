@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -42,18 +41,9 @@ func ReadGleanerConfig(filename string, cfgDir string) (*viper.Viper, error) {
 	v.SetConfigName(fileNameWithoutExtTrimSuffix(filename))
 	v.AddConfigPath(cfgDir)
 	v.SetConfigType("yaml")
-	//v.BindEnv("headless", "GLEANER_HEADLESS_ENDPOINT")
-	v.BindEnv("minio.address", "MINIO_ADDRESS")
-	v.BindEnv("minio.port", "MINIO_PORT")
-	v.BindEnv("minio.ssl", "MINIO_USE_SSL")
-	v.BindEnv("minio.accesskey", "MINIO_ACCESS_KEY")
-	v.BindEnv("minio.secretkey", "MINIO_SECRET_KEY")
-	v.AutomaticEnv()
 	err := v.ReadInConfig()
 	if err != nil {
-		fmt.Printf("cannot find config file. '%v' If glcon Did you 'glcon generate --cfgName XXX' \n", filename)
-		log.Fatalf("cannot find config file. '%v' Did you 'glcon generate --cfgName XXX' ", filename)
-		//panic(err)
+		return v, fmt.Errorf("error when parsing gleaner config: %w", err)
 	}
 	return v, err
 }

@@ -3,11 +3,12 @@ package shapes
 import (
 	"context"
 	"fmt"
+	"strings"
+	"sync"
+
 	configTypes "github.com/gleanerio/gleaner/internal/config"
 	"github.com/gosuri/uiprogress"
 	log "github.com/sirupsen/logrus"
-	"strings"
-	"sync"
 
 	"github.com/gleanerio/gleaner/internal/common"
 	minio "github.com/minio/minio-go/v7"
@@ -28,9 +29,6 @@ func ShapeNG(mc *minio.Client, prefix string, v1 *viper.Viper) error {
 	semaphoreChan := make(chan struct{}, 30) // a blocking channel to keep concurrency under control (1 == single thread)
 	defer close(semaphoreChan)
 	wg := sync.WaitGroup{} // a wait group enables the main process a wait for goroutines to finish
-
-	// Make a common proc and options to share with the upcoming go funcs
-	proc, options := common.JLDProc(v1)
 
 	// params for list objects calls
 	doneCh := make(chan struct{}) // , N) Create a done channel to control 'ListObjectsV2' go routine.
@@ -74,7 +72,7 @@ func ShapeNG(mc *minio.Client, prefix string, v1 *viper.Viper) error {
 			go func(object minio.ObjectInfo) {
 				semaphoreChan <- struct{}{}
 				//status := shaclTest(e[k].Urlval, e[k].Jld, m[j].Key, m[j].Jld, &gb)
-				_, err := shaclTestNG(v1, bucketName, "verified", mc, object, shape, proc, options)
+				_, err := shaclTestNG(v1, bucketName, "verified", mc, object, shape)
 				if err != nil {
 					log.Error(err)
 				}

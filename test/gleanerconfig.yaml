@@ -2,7 +2,7 @@ context:
   cache: true
   strict: true
 contextmaps:
-- file: ./assets/schemaorg-current-http.jsonld
+- file: ../assets/schemaorg-current-http.jsonld
   prefix: https://schema.org/
 gleaner:
   mill: false
@@ -11,12 +11,12 @@ gleaner:
 millers:
   graph: true
 minio:
-  accessKey: minio_access_key
+  accessKey: minioadmin
   address: localhost
   bucket: gleanerbucket
   port: 9000
   region: us
-  secretKey: minio_secret_key
+  secretKey: minioadmin
   ssl: false
 sources:
 - active: 'true'

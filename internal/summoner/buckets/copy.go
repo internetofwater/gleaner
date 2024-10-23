@@ -3,6 +3,7 @@ package buckets
 import (
 	"context"
 	"fmt"
+
 	"github.com/gleanerio/gleaner/internal/common"
 	"github.com/spf13/viper"
 
@@ -33,29 +34,4 @@ func list(v1 *viper.Viper) {
 		fmt.Println(object)
 	}
 
-}
-
-func copy(v1 *viper.Viper) {
-	mc := common.MinioConnection(v1)
-	// Use-case 1: Simple copy object with no conditions.
-	// Source object
-	srcOpts := minio.CopySrcOptions{
-		Bucket: "my-sourcebucketname",
-		Object: "my-sourceobjectname",
-	}
-
-	// Destination object
-	dstOpts := minio.CopyDestOptions{
-		Bucket: "my-bucketname",
-		Object: "my-objectname",
-	}
-
-	// Copy object call
-	uploadInfo, err := mc.CopyObject(context.Background(), dstOpts, srcOpts)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	fmt.Println("Successfully copied object:", uploadInfo)
 }

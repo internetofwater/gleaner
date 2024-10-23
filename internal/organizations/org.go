@@ -97,14 +97,13 @@ func BuildGraph(mc *minio.Client, v1 *viper.Viper) error {
 func orggraph(k objects.Sources) (string, error) {
 	var doc bytes.Buffer
 
-	t, err := template.New("prov").Parse(t)
+	template, err := template.New("prov").Parse(t)
 	if err != nil {
-		log.Error(err)
+		return "", err
 	}
 
-	err = t.Execute(&doc, k)
-	if err != nil {
-		log.Error(err)
+	if err := template.Execute(&doc, k); err != nil {
+		return "", err
 	}
 
 	return doc.String(), err

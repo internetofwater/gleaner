@@ -1,10 +1,16 @@
 package common
 
 import (
+	"bytes"
 	"fmt"
-	configTypes "github.com/gleanerio/gleaner/internal/config"
 	"os"
 	"path/filepath"
+	"strings"
+	"testing"
+
+	configTypes "github.com/gleanerio/gleaner/internal/config"
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 )
 
 /*
@@ -22,13 +28,6 @@ test your jsonpaths here:
 http://jsonpath.herokuapp.com/
 There are four implementations... so you can see if one might be a little quirky
 */
-import (
-	"bytes"
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
-	"strings"
-	"testing"
-)
 
 // jsonexpectations is in test_common_structs
 
@@ -359,9 +358,9 @@ func testGenerateJsonPathIdentifier(tests []jsonexpectations, t *testing.T) {
 context:
   cache: true
 contextmaps:
-- file: ../../configs/schemaorg-current-https.jsonld
+- file: ../../assets/schemaorg-current-https.jsonld
   prefix: https://schema.org/
-- file: ../../configs/schemaorg-current-https.jsonld
+- file: ../../assets/schemaorg-current-https.jsonld
   prefix: http://schema.org/
 sources:
 - sourcetype: sitemap
@@ -424,9 +423,9 @@ func testGenerateFileShaIdentifier(tests []jsonexpectations, t *testing.T) {
 context:
   cache: true
 contextmaps:
-- file: ../../configs/schemaorg-current-https.jsonld
+- file: ../../assets/schemaorg-current-https.jsonld
   prefix: https://schema.org/
-- file: ../../configs/schemaorg-current-https.jsonld
+- file: ../../assets/schemaorg-current-https.jsonld
   prefix: http://schema.org/
 sources:
 - sourcetype: sitemap

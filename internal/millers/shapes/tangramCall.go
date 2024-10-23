@@ -5,23 +5,23 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	configTypes "github.com/gleanerio/gleaner/internal/config"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"strings"
 
+	configTypes "github.com/gleanerio/gleaner/internal/config"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/gleanerio/gleaner/internal/common"
 	"github.com/gleanerio/gleaner/internal/millers/graph"
 	minio "github.com/minio/minio-go/v7"
-	"github.com/piprate/json-gold/ld"
 	"github.com/spf13/viper"
 )
 
 // Call the SHACL service container (or cloud instance) // TODO: service URL needs to be in the config file!
-func shaclTestNG(v1 *viper.Viper, bucket, prefix string, mc *minio.Client, object, shape minio.ObjectInfo, proc *ld.JsonLdProcessor, options *ld.JsonLdOptions) (string, error) {
+func shaclTestNG(v1 *viper.Viper, bucket, prefix string, mc *minio.Client, object, shape minio.ObjectInfo) (string, error) {
 
 	// read config file
 	//miniocfg := v1.GetStringMapString("minio")

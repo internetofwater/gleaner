@@ -32,8 +32,6 @@ func isExists(bucketName string, buckets []minio.BucketInfo) (exists bool) {
 func Buckets(mc *minio.Client, bucket string) error {
 	var err error
 
-	// for i := range bl {
-	//found, err := mc.BucketExists(context.Background(), bucket) // returns a redirect if region is not correct
 	buckets, err := mc.ListBuckets(context.Background())
 	found := isExists(bucket, buckets)
 	if err != nil {
@@ -45,19 +43,16 @@ func Buckets(mc *minio.Client, bucket string) error {
 	if found {
 		log.Debug("Validated access to object store:", bucket)
 	}
-	// }
 
 	return err
 }
 
 // MakeBuckets checks the setup
 func MakeBuckets(mc *minio.Client, bucket string) error {
-	var err error
 
-	// for i := range bl {
 	found, err := mc.BucketExists(context.Background(), bucket)
 	if err != nil {
-		log.Debug("Existing bucket", bucket, "check:", err)
+		return err
 	}
 	if found {
 		log.Debug("Gleaner Bucket", bucket, "found.")
@@ -66,9 +61,9 @@ func MakeBuckets(mc *minio.Client, bucket string) error {
 		err = mc.MakeBucket(context.Background(), bucket, minio.MakeBucketOptions{Region: "us-east-1"}) // location is kinda meaningless here
 		if err != nil {
 			log.Debug("Make bucket:", err)
+			return err
 		}
 	}
-	// }
 
 	return err
 }
@@ -108,9 +103,7 @@ func Setup(mc *minio.Client, v1 *viper.Viper) error {
 
 }
 
-/*
-Check to see we can connect to s3 instance, and that buckets exist
-*/
+// Check if we can connect and that the proper bucket exists
 func PreflightChecks(mc *minio.Client, v1 *viper.Viper) error {
 	// Validate Minio access
 	bucketName, err := config.GetBucketName(v1)

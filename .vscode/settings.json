@@ -1,6 +1,4 @@
 {
-    "go.lintTool": "golangci-lint",
-    "go.lintFlags": [
-        "--fast"
-    ]
+    // remove timeout for go tests so we can view the testcontainers
+    "go.testTimeout": "10m"
 }
