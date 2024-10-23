@@ -69,13 +69,11 @@ func TestRootE2E(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	t.Run("Contains proper buckets", func(t *testing.T) {
-		buckets, err := mc.ListBuckets(context.Background())
-		if err != nil {
-			t.Fatalf("List buckets failed: %v", err)
-		}
-		assert.Equal(t, buckets[0].Name, "gleanerbucket")
-	})
+	buckets, err := mc.ListBuckets(context.Background())
+	if err != nil {
+		t.Fatalf("List buckets failed: %v", err)
+	}
+	assert.Equal(t, buckets[0].Name, "gleanerbucket")
 
 	objectInfo, objects, err := getGleanerObjects(mc, "orgs/")
 	assert.NoError(t, err)
