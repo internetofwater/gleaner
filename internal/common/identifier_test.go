@@ -407,7 +407,6 @@ sources:
 					t.Fatal("error reading source file:", err)
 				}
 				result, err := GenerateIdentifier(viperVal, s, string(source))
-				//valStr := fmt.Sprint(result.uniqueId)
 				assert.Equal(t, test.expected, result.UniqueId, "uuid faild")
 				assert.Equal(t, test.expectedPath, result.MatchedPath, "matched path failed")
 				assert.Equal(t, test.IdentifierType, result.IdentifierType, "identifier failed")
@@ -472,7 +471,6 @@ sources:
 					t.Fatal("error reading source file:", err)
 				}
 				result, err := GenerateIdentifier(viperVal, s, string(source))
-				//valStr := fmt.Sprint(result.uniqueId)
 				assert.Equal(t, test.expected, result.UniqueId, "uuid failed")
 				assert.Equal(t, test.expectedPath, result.MatchedPath, "matched path failed")
 				assert.Equal(t, test.IdentifierType, result.IdentifierType, "identifiertype match failed")

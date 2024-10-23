@@ -87,7 +87,6 @@ func TestIsValid(t *testing.T) {
 		assert.Nil(t, err)
 	})
 	t.Run("It returns false and throws an error for invalid JSON-LD", func(t *testing.T) {
-
 		result, err := isValid(v1, invalidJson)
 		assert.Equal(t, false, result)
 		assert.NotNil(t, err)

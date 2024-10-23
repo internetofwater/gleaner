@@ -13,22 +13,18 @@ import (
 	"github.com/spf13/viper"
 )
 
-/* Acquire JSON-LD from API endpoints */
-const APIType = "api"
-
 // Read the config and get API endpoint template strings
 func RetrieveAPIEndpoints(v1 *viper.Viper) ([]configTypes.Sources, error) {
-	var apiSources []configTypes.Sources
 
 	// Get our API sources
 	sources, err := configTypes.GetSources(v1)
 	if err != nil {
 		log.Error("Error getting sources to summon: ", err)
-		return apiSources, err
+		return []configTypes.Sources{}, err
 	}
 
-	apiSources = configTypes.FilterSourcesByType(sources, APIType)
-	return apiSources, err
+	return configTypes.FilterSourcesByType(sources, "api"), nil
+
 }
 
 // given a paged API url template, iterate through the pages until we get

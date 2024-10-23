@@ -218,17 +218,7 @@ func SourceToNabuProv(sources []Sources) []string {
 
 	var prefixes []string
 	for _, s := range sources {
-
-		switch s.SourceType {
-
-		case "sitemap":
-			prefixes = append(prefixes, "prov/"+s.Name)
-
-		case "sitegraph":
-			prefixes = append(prefixes, "prov/"+s.Name)
-		case "googledrive":
-			prefixes = append(prefixes, "prov/"+s.Name)
-		}
+		prefixes = append(prefixes, "prov/"+s.Name)
 	}
 	return prefixes
 }

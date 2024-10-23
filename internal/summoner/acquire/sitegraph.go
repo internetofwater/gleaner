@@ -20,10 +20,8 @@ import (
 
 type Sources = configTypes.Sources
 
-const siteGraphType = "sitegraph"
-
 // Downloads pre-built site graphs
-func GetGraph(mc *minio.Client, v1 *viper.Viper) (string, error) {
+func LoadSiteSitegraphsIfExist(mc *minio.Client, v1 *viper.Viper) (string, error) {
 
 	bucketName, err := configTypes.GetBucketName(v1)
 	if err != nil {
@@ -34,15 +32,18 @@ func GetGraph(mc *minio.Client, v1 *viper.Viper) (string, error) {
 	if err != nil {
 		log.Error(err)
 	}
-	domains := configTypes.FilterSourcesByType(sources, siteGraphType)
+	domainsToCrawl := configTypes.FilterSourcesByType(sources, "sitegraph")
+	if len(domainsToCrawl) == 0 {
+		return "", fmt.Errorf("no sitegraph sources found")
+	}
 
-	for k := range domains {
-		log.Info("Processing sitegraph file (this can be slow with little feedback):", domains[k].URL)
-		log.Info("Downloading sitegraph file:", domains[k].URL)
+	for _, domain := range domainsToCrawl {
+		log.Info("Processing sitegraph file (this can be slow with little feedback):", domain.URL)
+		log.Info("Downloading sitegraph file:", domain.URL)
 
-		d, err := getJSON(domains[k].URL)
+		d, err := getJSON(domain.URL)
 		if err != nil {
-			fmt.Println("error with reading graph JSON: " + domains[k].URL)
+			fmt.Println("error with reading graph JSON: " + domain.URL)
 		}
 
 		// TODO, how do we quickly validate the JSON-LD files to make sure it is at least formatted well
@@ -50,35 +51,38 @@ func GetGraph(mc *minio.Client, v1 *viper.Viper) (string, error) {
 		sha := common.GetSHA(d) // Don't normalize big files..
 
 		// Upload the file
-		log.Info("Sitegraph file downloaded. Uploading to", bucketName, domains[k].URL)
+		log.Info("Sitegraph file downloaded. Uploading to", bucketName, domain.URL)
 
-		objectName := fmt.Sprintf("summoned/%s/%s.jsonld", domains[k].Name, sha)
+		objectName := fmt.Sprintf("summoned/%s/%s.jsonld", domain.Name, sha)
 		_, err = graph.LoadToMinio(d, bucketName, objectName, mc)
 		if err != nil {
 			return objectName, err
 		}
-		log.Info("Sitegraph file uploaded to", bucketName, "Uploaded :", domains[k].URL)
+		log.Info("Sitegraph file uploaded to", bucketName, "Uploaded :", domain.URL)
 		// mill the json-ld to nq and upload to minio
 		// we bypass graph.GraphNG which does a time consuming blank node fix which is not required
 		// when dealing with a single large file.
 		// log.Print("Milling graph")
 		//graph.GraphNG(mc, fmt.Sprintf("summoned/%s/", domains[k].Name), v1)
 		proc, options, err := common.JLDProc(v1) // Make a common proc and options to share with the upcoming go funcs
+		if err != nil {
+			return "", err
+		}
 		rdf, err := common.JLD2nq(d, proc, options)
 		if err != nil {
 			return "", err
 		}
 
-		log.Info("Processed Sitegraph being uploaded to", bucketName, domains[k].URL)
-		milledName := fmt.Sprintf("milled/%s/%s.rdf", domains[k].Name, sha)
+		log.Info("Processed Sitegraph being uploaded to", bucketName, domain.URL)
+		milledName := fmt.Sprintf("milled/%s/%s.rdf", domain.Name, sha)
 		_, err = graph.LoadToMinio(rdf, bucketName, milledName, mc)
 		if err != nil {
 			return objectName, err
 		}
-		log.Info("Processed Sitegraph Upload to", bucketName, "complete:", domains[k].URL)
+		log.Info("Processed Sitegraph Upload to", bucketName, "complete:", domain.URL)
 
 		// build prov
-		err = StoreProvNG(v1, mc, domains[k].Name, sha, domains[k].URL, "summoned")
+		err = StoreProvNG(v1, mc, domain.Name, sha, domain.URL, "summoned")
 		if err != nil {
 			return objectName, err
 		}

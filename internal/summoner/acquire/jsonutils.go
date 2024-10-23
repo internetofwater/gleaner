@@ -66,7 +66,7 @@ func isGraphArray(v1 *viper.Viper, jsonld string) (bool, []string, error) {
 	return false, jsonlds, errs
 }
 
-// / Validate JSON-LD that we get
+// Return true if the string is valid JSON-LD
 func isValid(v1 *viper.Viper, jsonld string) (bool, error) {
 	proc, options, err := common.JLDProc(v1)
 	if err != nil {
@@ -87,9 +87,6 @@ func isValid(v1 *viper.Viper, jsonld string) (bool, error) {
 	return true, nil
 }
 
-// *********
-// context fixes
-// *********
 // let's try to do them all, in one, since that will make the code a bit cleaner and easier to test
 // don' think this is currently called anywhere
 const httpContext = "http://schema.org/"
@@ -374,10 +371,15 @@ func ProcessJson(v1 *viper.Viper,
 }
 
 func Upload(v1 *viper.Viper, mc *minio.Client, bucketName string, site string, urlloc string, jsonld string) (string, error) {
-	var err error
-	//mcfg := v1.GetStringMapString("context")
+
 	sources, err := config.GetSources(v1)
+	if err != nil {
+		return "", err
+	}
 	source, err := config.GetSourceByName(sources, site)
+	if err != nil {
+		return "", err
+	}
 	//srcFixOption, srcHttpOption := getOptions(source.FixContextOption)
 
 	//// In the config file, context { strict: true } bypasses these fixups.
@@ -412,6 +414,9 @@ func Upload(v1 *viper.Viper, mc *minio.Client, bucketName string, site string, u
 	//	log.Error("ERROR: URL:", urlloc, "Action: Getting normalized sha  Error:", err)
 	//}
 	jsonld, identifier, err := ProcessJson(v1, source, urlloc, jsonld)
+	if err != nil {
+		return "", err
+	}
 
 	sha := identifier.UniqueId
 	objectName := fmt.Sprintf("summoned/%s/%s.jsonld", site, sha)
@@ -441,7 +446,12 @@ func Upload(v1 *viper.Viper, mc *minio.Client, bucketName string, site string, u
 		log.Error(err)
 	}
 
-	// ProcessJson the file with FPutObject
+	// Make sure the object doesn't already exist and we don't accidentally overwrite it
+	if _, err := mc.StatObject(context.Background(), bucketName, objectName, minio.StatObjectOptions{}); err == nil {
+		log.Warn("Object already exists:", objectName)
+		return "", err
+	}
+
 	_, err = mc.PutObject(context.Background(), bucketName, objectName, b, int64(b.Len()), minio.PutObjectOptions{ContentType: contentType, UserMetadata: usermeta})
 	if err != nil {
 		log.Errorf("%s: %s", objectName, err) // Fatal?   seriously?    I guess this is the object write, so the run is likely a bust at this point, but this seems a bit much still.

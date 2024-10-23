@@ -196,9 +196,7 @@ func GenerateFileSha(v1 *viper.Viper, jsonld string) (Identifier, error) {
 	uuid := GetSHA(jsonld) // Moved to the normalized sha value
 
 	if uuid == "" {
-		// error
-		log.Error("ERROR: uuid generator:", "Action: Getting file sha")
-		id = Identifier{}
+		return id, errors.New("could not generate uuid as a sha")
 	}
 	log.Debug(" Action: Json sha generated", uuid)
 	id = Identifier{UniqueId: uuid,

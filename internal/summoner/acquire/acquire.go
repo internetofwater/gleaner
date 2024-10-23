@@ -125,9 +125,7 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 
 		// TODO / WARNING for large site we can exhaust memory with just the creation of the
 		// go routines. 1 million =~ 4 GB  So we need to control how many routines we
-		// make too..  reference https://github.com/mr51m0n/gorc (but look for someting in the core
-		// library too)
-
+		// make too..
 		go func(i int, sourceName string) {
 			semaphoreChan <- struct{}{}
 
@@ -171,7 +169,7 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 			//	if err != nil {
 			//		log.Error("#", i, " error on ", urlloc, err) // print an message containing the index (won't keep order)
 			//		repoStats.Inc(common.Issues)
-			//		lwg.Done() // tell the wait group that we be done
+			//		lwg.Done() // tell the wait group that wes be done
 			//		<-semaphoreChan
 			//		return
 			//	}
@@ -224,6 +222,7 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 }
 
 func FindJSONInResponse(v1 *viper.Viper, urlloc string, jsonProfile string, repologger *log.Logger, response *http.Response) ([]string, error) {
+	// NewDocumentResponse is deprecated but the alternative doesn't seem to work
 	doc, err := goquery.NewDocumentFromResponse(response)
 	if err != nil {
 		return nil, err

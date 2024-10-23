@@ -1,10 +1,5 @@
 package sitemaps
 
-// NOTE:  this code cam from https://github.com/yterajima/go-sitemap
-// I copied it here to test and see if need to make some mods.
-// I hope to either simply call that package as in import or
-// contribute back any needed changes and then link.
-
 import (
 	"encoding/xml"
 	"strings"
@@ -45,13 +40,13 @@ func DomainSitemap(sm string) (Sitemap, error) {
 	smsm := Sitemap{}
 
 	urls := make([]URL, 0)
-	err := sitemap.ParseFromSite(sm, func(e sitemap.Entry) error {
-		entry := URL{}
-		entry.Loc = strings.TrimSpace(e.GetLocation())
+	err := sitemap.ParseFromSite(sm, func(entry sitemap.Entry) error {
+		url := URL{}
+		url.Loc = strings.TrimSpace(entry.GetLocation())
 		//TODO why is this failing?  The string doesn't exist..  need to test and trap
 		// 	entry.LastMod = e.GetLastModified().String()
 		// entry.ChangeFreq = strings.TrimSpace(e.GetChangeFrequency())
-		urls = append(urls, entry)
+		urls = append(urls, url)
 		return nil
 	})
 
@@ -63,9 +58,10 @@ func DomainSitemap(sm string) (Sitemap, error) {
 	return smsm, err
 }
 
-func DomainIndex(sm string) ([]string, error) {
+// Get the domain from the sitemap
+func DomainIndex(sitemapURL string) ([]string, error) {
 	result := make([]string, 0)
-	err := sitemap.ParseIndexFromSite(sm, func(e sitemap.IndexEntry) error {
+	err := sitemap.ParseIndexFromSite(sitemapURL, func(e sitemap.IndexEntry) error {
 		result = append(result, strings.TrimSpace(e.GetLocation()))
 		return nil
 	})

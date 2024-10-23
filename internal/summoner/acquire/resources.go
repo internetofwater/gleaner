@@ -33,10 +33,8 @@ import (
 //	}
 //
 // type Sources = configTypes.Sources
-const siteMapType = "sitemap"
-const robotsType = "robots"
 
-// ResourceURLs looks gets the resource URLs for a domain.  The results is a
+// Gets the resource URLs for a domain.  The results is a
 // map with domain name as key and []string of the URLs to process.
 func ResourceURLs(v1 *viper.Viper, mc *minio.Client, headless bool) (map[string][]string, error) {
 	domainsMap := make(map[string][]string)
@@ -54,7 +52,7 @@ func ResourceURLs(v1 *viper.Viper, mc *minio.Client, headless bool) (map[string]
 		return domainsMap, err // if we can't read list, ok to return an error
 	}
 
-	sitemapDomains := configTypes.FilterSourcesByType(domains, siteMapType)
+	sitemapDomains := configTypes.FilterSourcesByType(domains, "sitemap")
 
 	for _, domain := range sitemapDomains {
 		var robots *robotstxt.RobotsData
@@ -91,7 +89,7 @@ func ResourceURLs(v1 *viper.Viper, mc *minio.Client, headless bool) (map[string]
 		log.Debug(domain.Name, "sitemap size is :", len(domainsMap[domain.Name]), " mode: ", mcfg.Mode)
 	}
 
-	robotsDomains := configTypes.FilterSourcesByType(domains, robotsType)
+	robotsDomains := configTypes.FilterSourcesByType(domains, "robots")
 
 	for _, domain := range robotsDomains {
 

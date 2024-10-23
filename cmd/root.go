@@ -118,8 +118,7 @@ func Gleaner() error {
 
 	// If configured, summon sources
 	if mcfg["summon"] == "true" {
-		// Index the sitegraphs first, if any
-		fn, err := acquire.GetGraph(mc, v1)
+		fn, err := acquire.LoadSiteSitegraphsIfExist(mc, v1)
 		if err != nil {
 			log.Error(err)
 		}
