@@ -206,7 +206,7 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 				repoStats.Inc(common.Summoned)
 			}
 
-			UploadWrapper(v1, mc, bucketName, sourceName, urlloc, repologger, repoStats, jsonlds)
+			UploadWithLogsAndMetadata(v1, mc, bucketName, sourceName, urlloc, repologger, repoStats, jsonlds)
 
 			bar.Add(1)                                          // bar.Incr()
 			log.Trace("#", i, "thread for", urlloc)             // print an message containing the index (won't keep order)
@@ -264,30 +264,32 @@ func FindJSONInResponse(v1 *viper.Viper, urlloc string, jsonProfile string, repo
 	return jsonlds, nil
 }
 
-func UploadWrapper(v1 *viper.Viper, mc *minio.Client, bucketName string, sourceName string, urlloc string, repologger *log.Logger, repoStats *common.RepoStats, jsonlds []string) {
-	for i, jsonld := range jsonlds {
-		if jsonld != "" { // traps out the root domain...   should do this different
-			logFields := log.Fields{"url": urlloc, "issue": "Uploading"}
-			log.WithFields(logFields).Trace("#", i, "Uploading ")
-			repologger.WithFields(logFields).Trace()
-			sha, err := Upload(v1, mc, bucketName, sourceName, urlloc, jsonld)
-			if err != nil {
-				logFields = log.Fields{"url": urlloc, "sha": sha, "issue": "Error uploading jsonld to object store"}
-				log.WithFields(logFields).Error("Error uploading jsonld to object store: ", urlloc, err)
-				repologger.WithFields(logFields).Error(err)
-				repoStats.Inc(common.StoreError)
-			} else {
-				logFields = log.Fields{"url": urlloc, "sha": sha, "issue": "Uploaded to object store"}
-				repologger.WithFields(logFields).Trace(err)
-				log.WithFields(logFields).Info("Successfully put ", sha, " in summoned bucket for ", urlloc)
-				repoStats.Inc(common.Stored)
-			}
+// Wrap the minio PutObject function with verbose logging and track the stats
+func UploadWithLogsAndMetadata(v1 *viper.Viper, mc *minio.Client, bucketName string, sourceName string, urlloc string, repologger *log.Logger, repoStats *common.RepoStats, jsonlds []string) {
 
-		} else {
+	for i, jsonld := range jsonlds {
+		if jsonld == "" {
 			logFields := log.Fields{"url": urlloc, "issue": "Empty JSON-LD document found "}
 			log.WithFields(logFields).Info("Empty JSON-LD document found. Continuing.")
 			repologger.WithFields(logFields).Error("Empty JSON-LD document found. Continuing.")
+			continue
+		}
 
+		logFields := log.Fields{"url": urlloc, "issue": "Uploading"}
+		log.WithFields(logFields).Trace("#", i, "Uploading ")
+		repologger.WithFields(logFields).Trace()
+		sha, err := Upload(v1, mc, bucketName, sourceName, urlloc, jsonld)
+
+		if err != nil {
+			logFields = log.Fields{"url": urlloc, "sha": sha, "issue": "Error uploading jsonld to object store"}
+			log.WithFields(logFields).Error("Error uploading jsonld to object store: ", urlloc, err)
+			repologger.WithFields(logFields).Error(err)
+			repoStats.Inc(common.StoreError)
+		} else {
+			logFields = log.Fields{"url": urlloc, "sha": sha, "issue": "Uploaded to object store"}
+			repologger.WithFields(logFields).Trace(err)
+			log.WithFields(logFields).Info("Successfully put ", sha, " in summoned bucket for ", urlloc)
+			repoStats.Inc(common.Stored)
 		}
 	}
 }

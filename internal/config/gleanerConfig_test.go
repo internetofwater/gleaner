@@ -5,7 +5,7 @@ import (
 )
 
 func TestGleanerConfig(t *testing.T) {
-	v, err := ReadGleanerConfig("gleanerconfig.yaml", "../../test")
+	v, err := ReadGleanerConfig("gleanerconfig.yaml", "../../test_helpers")
 	if err != nil {
 		t.Fatal(err)
 	}

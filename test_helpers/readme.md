@@ -1,1 +1,1 @@
-This directory contains assets that are used for tests
+This directory contains assets or code that is used for testing

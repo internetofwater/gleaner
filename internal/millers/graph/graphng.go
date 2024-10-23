@@ -84,7 +84,7 @@ func GraphNG(mc *minio.Client, prefix string, v1 *viper.Viper) error {
 	log.Info("Assembling result graph for prefix:", prefix, "to:", millprefix)
 	log.Info("Result graph will be at:", rslt)
 
-	err = common.PipeCopyNG(rslt, bucketName, millprefix, mc)
+	err = common.PipeCopyNamedGraph(rslt, bucketName, millprefix, mc)
 	if err != nil {
 		log.Error("Error on pipe copy:", err)
 	} else {

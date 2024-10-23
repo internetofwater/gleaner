@@ -13,7 +13,7 @@ import (
 	minio "github.com/minio/minio-go/v7"
 )
 
-func PipeCopyNG(name, bucket, prefix string, mc *minio.Client) error {
+func PipeCopyNamedGraph(name, bucket, prefix string, mc *minio.Client) error {
 	log.Debug("Start pipe reader / writer sequence")
 
 	pr, pw := io.Pipe()     // TeeReader of use?

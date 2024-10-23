@@ -441,7 +441,7 @@ func Upload(v1 *viper.Viper, mc *minio.Client, bucketName string, site string, u
 		log.Info("not suppported, yet. needs url sanitizing")
 	}
 	// write the prov entry for this object
-	err = StoreProvNG(v1, mc, site, sha, urlloc, "milled")
+	err = StoreProvNamedGraph(v1, mc, site, sha, urlloc, "milled")
 	if err != nil {
 		log.Error(err)
 	}

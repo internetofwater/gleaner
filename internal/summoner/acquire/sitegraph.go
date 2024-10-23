@@ -82,8 +82,7 @@ func LoadSiteSitegraphsIfExist(mc *minio.Client, v1 *viper.Viper) (string, error
 		log.Info("Processed Sitegraph Upload to", bucketName, "complete:", domain.URL)
 
 		// build prov
-		err = StoreProvNG(v1, mc, domain.Name, sha, domain.URL, "summoned")
-		if err != nil {
+		if err := StoreProvNamedGraph(v1, mc, domain.Name, sha, domain.URL, "summoned"); err != nil {
 			return objectName, err
 		}
 

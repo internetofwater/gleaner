@@ -31,8 +31,8 @@ type ProvData struct {
 	DOMAIN string
 }
 
-func StoreProvNG(v1 *viper.Viper, mc *minio.Client, domainName, sha, urlloc, objprefix string) error {
-	// read config file
+func StoreProvNamedGraph(v1 *viper.Viper, mc *minio.Client, domainName, sha, urlloc, objprefix string) error {
+	// read config file to get the bucket name
 	bucketName, err := configTypes.GetBucketName(v1)
 	if err != nil {
 		return err
