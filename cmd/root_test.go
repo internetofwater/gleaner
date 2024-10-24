@@ -31,13 +31,15 @@ func TestRootE2E(t *testing.T) {
 	_, _ = uiFile.WriteString(ui)
 	uiFile.Close()
 
-	accessKeyVal = minioContainer.Username
-	secretKeyVal = minioContainer.Password
-	addressVal = strings.Split(url, ":")[0]
-	portVal = strings.Split(url, ":")[1]
-	sourceVal = "ref_hu02_hu02__0"
-	configVal = "../test_helpers/gleanerconfig.yaml"
-	setupBucketsVal = true
+	gleanerCliArgs := &GleanerCliArgs{
+		AccessKey:    minioContainer.Username,
+		SecretKey:    minioContainer.Password,
+		Address:      strings.Split(url, ":")[0],
+		Port:         strings.Split(url, ":")[1],
+		Source:       "ref_hu02_hu02__0",
+		Config:       "../test_helpers/gleanerconfig.yaml",
+		SetupBuckets: true,
+	}
 
 	defer func() {
 		if err := testcontainers.TerminateContainer(minioContainer); err != nil {
@@ -46,7 +48,7 @@ func TestRootE2E(t *testing.T) {
 	}()
 	assert.NoError(t, err)
 
-	if err := Gleaner(); err != nil {
+	if err := Gleaner(gleanerCliArgs); err != nil {
 		t.Fatal(err)
 	}
 
@@ -82,7 +84,7 @@ func TestRootE2E(t *testing.T) {
 	assert.Equal(t, numberOfSitesInref_hu02_hu02__0Sitemap, len(sumInfo))
 
 	// Run it again
-	if err := Gleaner(); err != nil {
+	if err := Gleaner(gleanerCliArgs); err != nil {
 		t.Fatal(err)
 	}
 
@@ -117,12 +119,14 @@ func TestGeoconnexPids(t *testing.T) {
 	_, _ = uiFile.WriteString(ui)
 	uiFile.Close()
 
-	accessKeyVal = minioContainer.Username
-	secretKeyVal = minioContainer.Password
-	addressVal = strings.Split(url, ":")[0]
-	portVal = strings.Split(url, ":")[1]
-	configVal = "../test_helpers/geoconnex-pids.yaml"
-	setupBucketsVal = true
+	gleanerCliArgs := &GleanerCliArgs{
+		AccessKey:    minioContainer.Username,
+		SecretKey:    minioContainer.Password,
+		Address:      strings.Split(url, ":")[0],
+		Port:         strings.Split(url, ":")[1],
+		Config:       "../test_helpers/geoconnex-pids.yaml",
+		SetupBuckets: true,
+	}
 
 	defer func() {
 		if err := testcontainers.TerminateContainer(minioContainer); err != nil {
@@ -131,7 +135,7 @@ func TestGeoconnexPids(t *testing.T) {
 	}()
 	assert.NoError(t, err)
 
-	if err := Gleaner(); err != nil {
+	if err := Gleaner(gleanerCliArgs); err != nil {
 		t.Fatal(err)
 	}
 	mc, err := minioClient.New(url, &minioClient.Options{
@@ -154,7 +158,7 @@ func TestGeoconnexPids(t *testing.T) {
 	}
 	assertions()
 
-	if err := Gleaner(); err != nil {
+	if err := Gleaner(gleanerCliArgs); err != nil {
 		t.Fatal(err)
 	}
 

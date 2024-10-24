@@ -18,12 +18,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var addressVal, portVal, bucketVal, sourceVal, configVal, modeVal, secretKeyVal, accessKeyVal string
-var sslVal, setupBucketsVal, rudeVal bool
+type GleanerCliArgs struct {
+	Address      string // address for minio
+	Port         string // port for minio
+	Bucket       string // minio bucket to put data
+	Source       string // source to crawl from the config
+	Config       string // full path to config
+	Mode         string
+	SecretKey    string // secret key for minio
+	AccessKey    string // access key for minio
+	SSL          bool   // use SSL
+	SetupBuckets bool   // setup buckets before crawling
+	Rude         bool   // ignore robots.txt
+}
 
 // Entrypoint for the gleaner command
-func Gleaner() error {
-	v1, err := config.ReadGleanerConfig(filepath.Base(configVal), filepath.Dir(configVal))
+func Gleaner(cli *GleanerCliArgs) error {
+	v1, err := config.ReadGleanerConfig(filepath.Base(cli.Config), filepath.Dir(cli.Config))
 	if err != nil {
 		return fmt.Errorf("error when reading config: %v", err)
 	}
@@ -31,7 +42,7 @@ func Gleaner() error {
 		return errors.New("no minio config after reading config")
 	}
 
-	if sourceVal != "" {
+	if cli.Source != "" {
 		requestedSources := []config.Sources{} // tmp slice to hold our desired source
 
 		var domains []config.Sources
@@ -41,14 +52,14 @@ func Gleaner() error {
 		}
 
 		for _, k := range domains {
-			if sourceVal == k.Name {
+			if cli.Source == k.Name {
 				k.Active = true
 				requestedSources = append(requestedSources, k)
 			}
 		}
 
 		if len(requestedSources) == 0 {
-			return fmt.Errorf("no matching source, did your --source VALUE match a sources.name value in %s", configVal)
+			return fmt.Errorf("no matching source, did your --source VALUE match a sources.name value in %s", cli.Config)
 		}
 
 		// Replace the soures in the config with the one we specified
@@ -56,32 +67,32 @@ func Gleaner() error {
 		delete(configMap, "sources")
 		v1.Set("sources", requestedSources)
 
-		if rudeVal {
+		if cli.Rude {
 			v1.Set("rude", true)
 		}
-	} else if rudeVal && sourceVal == "" {
+	} else if cli.Rude && cli.Source == "" {
 		return errors.New("rude is only valid when --source is also specified")
 	}
 
 	// Parse a new mode entry from command line if present
-	if modeVal != "" {
+	if cli.Mode != "" {
 		m := v1.GetStringMap("summoner")
-		m["mode"] = modeVal
+		m["mode"] = cli.Mode
 		v1.Set("summoner", m)
 	}
-	if addressVal != "" {
+	if cli.Address != "" {
 		minio_config := v1.GetStringMap("minio")
-		minio_config["address"] = addressVal
+		minio_config["address"] = cli.Address
 		v1.Set("minio", minio_config)
 	}
-	if secretKeyVal != "" {
+	if cli.SecretKey != "" {
 		minio_config := v1.GetStringMap("minio")
-		minio_config["secretkey"] = secretKeyVal
+		minio_config["secretkey"] = cli.SecretKey
 		v1.Set("minio", minio_config)
 	}
-	if portVal != "" {
+	if cli.Port != "" {
 		minio_config := v1.GetStringMap("minio")
-		minio_config["port"] = portVal
+		minio_config["port"] = cli.Port
 		v1.Set("minio", minio_config)
 	}
 
@@ -92,7 +103,7 @@ func Gleaner() error {
 	mc := common.MinioConnection(v1)
 
 	// If requested, set up the buckets
-	if setupBucketsVal {
+	if cli.SetupBuckets {
 		log.Info("Setting up buckets inside minio")
 		err = check.Setup(mc, v1)
 		if err != nil {
@@ -101,7 +112,7 @@ func Gleaner() error {
 		log.Info("Buckets generated. Object store should be ready for runs")
 	}
 
-	// Validate Minio access
+	// idate Minio access
 	err = check.PreflightChecks(mc, v1)
 	if err != nil {
 		return fmt.Errorf("minio access check failed. Make sure the server is running. Full error was: '%v'", err)
@@ -109,7 +120,7 @@ func Gleaner() error {
 
 	mcfg := v1.GetStringMapString("gleaner")
 	if mcfg == nil {
-		return errors.New("the 'gleaner' section in " + configVal + " is missing")
+		return errors.New("the 'gleaner' section in " + cli.Config + " is missing")
 	}
 
 	if err := organizations.BuildGraph(mc, v1); err != nil {
@@ -140,8 +151,21 @@ var rootCmd = &cobra.Command{
 	TraverseChildren: true,
 	Short:            "Extract JSON-LD from web pages exposed in a domains sitemap file.",
 	Run: func(cmd *cobra.Command, args []string) {
-		err := Gleaner()
-		if err != nil {
+
+		gleanerCliArgs := &GleanerCliArgs{}
+		gleanerCliArgs.Address, _ = cmd.Flags().GetString("address")
+		gleanerCliArgs.Port, _ = cmd.Flags().GetString("port")
+		gleanerCliArgs.Bucket, _ = cmd.Flags().GetString("bucket")
+		gleanerCliArgs.Source, _ = cmd.Flags().GetString("source")
+		gleanerCliArgs.Config, _ = cmd.Flags().GetString("cfg")
+		gleanerCliArgs.Mode, _ = cmd.Flags().GetString("mode")
+		gleanerCliArgs.SecretKey, _ = cmd.Flags().GetString("secretkey")
+		gleanerCliArgs.AccessKey, _ = cmd.Flags().GetString("accesskey")
+		gleanerCliArgs.SSL, _ = cmd.Flags().GetBool("ssl")
+		gleanerCliArgs.SetupBuckets, _ = cmd.Flags().GetBool("setup")
+		gleanerCliArgs.Rude, _ = cmd.Flags().GetBool("rude")
+
+		if err := Gleaner(gleanerCliArgs); err != nil {
 			log.Fatal(err)
 		}
 	},
@@ -159,19 +183,18 @@ func init() {
 		fmt.Println(" MINIO_ACCESS_KEY or  MINIO_SECRET_KEY are set")
 		fmt.Println("if this is not intentional, please unset")
 	}
-
 	// Persistent flags defined here will be global for the entire application.
-	rootCmd.PersistentFlags().StringVar(&configVal, "cfg", "", "compatibility/overload: full path to config file (default location gleaner in configs/local)")
-	rootCmd.PersistentFlags().StringVar(&sourceVal, "source", "", "source name")
-	rootCmd.PersistentFlags().StringVar(&modeVal, "mode", "local", "Set the mode (full | diff) to index all or just diffs")
-	rootCmd.PersistentFlags().StringVar(&addressVal, "address", "localhost", "FQDN for server")
-	rootCmd.PersistentFlags().StringVar(&portVal, "port", "9000", "Port for minio server")
-	rootCmd.PersistentFlags().StringVar(&bucketVal, "bucket", "gleaner", "The configuration bucket")
-	rootCmd.PersistentFlags().StringVar(&accessKeyVal, "accesskey", "", "Minio access key")
-	rootCmd.PersistentFlags().StringVar(&secretKeyVal, "secretkey", "", "Minio secret key")
-	rootCmd.PersistentFlags().BoolVar(&sslVal, "ssl", false, "Use SSL when connecting to minio")
-	rootCmd.PersistentFlags().BoolVar(&rudeVal, "rude", false, "Ignore robots.txt when connecting to source")
-	rootCmd.PersistentFlags().BoolVar(&setupBucketsVal, "setup", false, "Setup buckets in minio")
+	rootCmd.PersistentFlags().String("cfg", "", "compatibility/overload: full path to config file (default location gleaner in configs/local)")
+	rootCmd.PersistentFlags().String("source", "", "source name")
+	rootCmd.PersistentFlags().String("mode", "local", "Set the mode (full | diff) to index all or just diffs")
+	rootCmd.PersistentFlags().String("address", "localhost", "FQDN for server")
+	rootCmd.PersistentFlags().String("port", "9000", "Port for minio server")
+	rootCmd.PersistentFlags().String("bucket", "gleaner", "The configuration bucket")
+	rootCmd.PersistentFlags().String("accesskey", "", "Minio access key")
+	rootCmd.PersistentFlags().String("secretkey", "", "Minio secret key")
+	rootCmd.PersistentFlags().Bool("ssl", false, "Use SSL when connecting to minio")
+	rootCmd.PersistentFlags().Bool("rude", false, "Ignore robots.txt when connecting to source")
+	rootCmd.PersistentFlags().Bool("setup", false, "Setup buckets in minio")
 
 	cobra.OnInitialize(common.InitLogging)
 }
