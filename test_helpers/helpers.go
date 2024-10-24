@@ -3,12 +3,22 @@ package test_helpers
 import (
 	"context"
 	"fmt"
+	"testing"
 
 	minioClient "github.com/minio/minio-go/v7"
+	"github.com/stretchr/testify/assert"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/minio"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
+
+func AssertObjectCount(t *testing.T, mc *minioClient.Client, subDir string, expected int) {
+
+	_, summoned, err := GetGleanerBucketObjects(mc, subDir)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, len(summoned))
+
+}
 
 func GetGleanerBucketObjects(mc *minioClient.Client, subDir string) ([]minioClient.ObjectInfo, []*minioClient.Object, error) {
 	var metadata []minioClient.ObjectInfo

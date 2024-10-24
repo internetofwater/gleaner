@@ -40,6 +40,17 @@ There are four implementations... so you can see if one might be a little quirky
 
 var empty = []configTypes.Sources{}
 
+type jsonexpectations struct {
+	name            string
+	json            map[string]string
+	IdentifierType  string `default:JsonSha`
+	IdentifierPaths string
+	expected        string
+	expectedPath    string
+	errorExpected   bool `default:false`
+	ignore          bool `default:false`
+}
+
 // using idenfiters as a stand in for array of identifiers.
 
 func testValidJsonPath(tests []jsonexpectations, t *testing.T) {

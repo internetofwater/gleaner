@@ -27,7 +27,7 @@ func TestRootE2E(t *testing.T) {
 	url, ui, err := test_helpers.ConnectionStrings(ctx, minioContainer)
 	assert.NoError(t, err)
 
-	uiFile, _ := os.Create("ui.txt")
+	uiFile, _ := os.Create("ui_port.txt")
 	_, _ = uiFile.WriteString(ui)
 	uiFile.Close()
 
@@ -101,4 +101,63 @@ func TestRootE2E(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, (2*numberOfSitesInref_hu02_hu02__0Sitemap)-4, len(summoned2))
 	assert.Equal(t, (2*numberOfSitesInref_hu02_hu02__0Sitemap)-4, len(sumInfo2))
+}
+
+func TestGeoconnexPids(t *testing.T) {
+	ctx := context.Background()
+
+	minioContainer, err := test_helpers.MinioRun(ctx, "minio/minio:latest")
+	if err != nil {
+		t.Fatalf("failed to start container: %s", err)
+	}
+	url, ui, err := test_helpers.ConnectionStrings(ctx, minioContainer)
+	assert.NoError(t, err)
+
+	uiFile, _ := os.Create("ui_port.txt")
+	_, _ = uiFile.WriteString(ui)
+	uiFile.Close()
+
+	accessKeyVal = minioContainer.Username
+	secretKeyVal = minioContainer.Password
+	addressVal = strings.Split(url, ":")[0]
+	portVal = strings.Split(url, ":")[1]
+	configVal = "../test_helpers/geoconnex-pids.yaml"
+	setupBucketsVal = true
+
+	defer func() {
+		if err := testcontainers.TerminateContainer(minioContainer); err != nil {
+			t.Errorf("failed to terminate container: %s", err)
+		}
+	}()
+	assert.NoError(t, err)
+
+	if err := Gleaner(); err != nil {
+		t.Fatal(err)
+	}
+	mc, err := minioClient.New(url, &minioClient.Options{
+		Creds:  credentials.NewStaticV4(minioContainer.Username, minioContainer.Password, ""),
+		Secure: false,
+	})
+	assert.NoError(t, err)
+
+	assertions := func() {
+		test_helpers.AssertObjectCount(t, mc, "orgs/", 5)
+		test_helpers.AssertObjectCount(t, mc, "summoned/cdss0/", 30)
+		test_helpers.AssertObjectCount(t, mc, "prov/dams0/", 45)
+		test_helpers.AssertObjectCount(t, mc, "prov/nmwdist0/", 266)
+		test_helpers.AssertObjectCount(t, mc, "prov/refgages0/", 330)
+		test_helpers.AssertObjectCount(t, mc, "prov/refmainstems/", 66)
+		test_helpers.AssertObjectCount(t, mc, "summoned/dams0/", 45)
+		test_helpers.AssertObjectCount(t, mc, "summoned/nmwdist0/", 265)
+		test_helpers.AssertObjectCount(t, mc, "summoned/refgages0/", 330)
+		test_helpers.AssertObjectCount(t, mc, "summoned/refmainstems/", 66)
+	}
+	assertions()
+
+	if err := Gleaner(); err != nil {
+		t.Fatal(err)
+	}
+
+	assertions()
+
 }
