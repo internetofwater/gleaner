@@ -3,14 +3,9 @@ package config
 import (
 	"errors"
 	"fmt"
-	"github.com/gocarina/gocsv"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"io"
-
-	"github.com/utahta/go-openuri"
-	"path"
-	"strings"
 )
 
 const (
@@ -122,72 +117,6 @@ var SourcesTemplate = map[string]interface{}{
 	},
 }
 
-func populateDefaults(s Sources) Sources {
-	if s.SourceType == "" {
-		s.SourceType = "sitemap"
-	}
-	if s.AcceptContentType == "" {
-		s.AcceptContentType = "application/ld+json, text/html"
-	}
-	if s.JsonProfile == "" {
-		s.JsonProfile = "application/ld+json"
-	}
-	// fix issues, too. Space from CSV causing url errors
-	s.URL = strings.TrimSpace(s.URL)
-	return s
-
-}
-func ReadSourcesCSV(filename string, cfgPath string) ([]Sources, error) {
-	var sources []Sources
-	var err error
-	var fn = ""
-	// if it's a url
-	if strings.HasPrefix(filename, "https://") || strings.HasPrefix(filename, "http://") {
-		fn = filename
-	} else if strings.HasPrefix(filename, "/") {
-		// its a full path
-		fn = filename
-	} else {
-		fn = path.Join(cfgPath, filename)
-	}
-
-	f, err := openuri.Open(fn)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// remember to close the file at the end of the program
-	defer f.Close()
-
-	gocsv.SetCSVReader(func(in io.Reader) gocsv.CSVReader {
-		//return csv.NewReader(in)
-		return gocsv.LazyCSVReader(in) // Allows use of quotes in CSV
-	})
-
-	err = gocsv.Unmarshal(f, &sources)
-	if err != nil {
-		fmt.Println("error:", err)
-
-	}
-	if len(sources) < 1 {
-		if strings.HasPrefix(filename, "https://") || strings.HasPrefix(filename, "http://") {
-
-			msg := fmt.Sprintf("no sources try downloading csv '%v', and using a local file. %v"+
-				" if google share, publish to web single page csv", filename, err)
-			log.Fatal(msg)
-		} else {
-			log.Fatalf("no sources in '%v', error parsing csv used for sources %v", filename, err)
-		}
-
-	}
-	for i, u := range sources {
-		sources[i] = populateDefaults(u)
-		fmt.Printf("%+v\n", u)
-	}
-	return sources, err
-
-}
-
 // use full gleaner viper. v1.Sub("sources") fails because it is an array.
 // If we need to override with env variables, then we might need to grab this patch https://github.com/spf13/viper/pull/509/files
 
@@ -205,9 +134,7 @@ func GetSources(g1 *viper.Viper) ([]Sources, error) {
 		log.Fatal("error when parsing ", subtreeKey, " config: ", err)
 		//No sources, so nothing to run
 	}
-	for i, s := range cfg {
-		cfg[i] = populateDefaults(s)
-	}
+	cfg = append([]Sources(nil), cfg...)
 	return cfg, err
 }
 
@@ -236,20 +163,20 @@ func GetSourceByType(sources []Sources, key string) []Sources {
 	return sourcesSlice
 }
 
-func GetActiveSourceByType(sources []Sources, key string) []Sources {
+func FilterSourcesByType(sources []Sources, requestedType string) []Sources {
 	var sourcesSlice []Sources
 	for _, s := range sources {
-		if s.SourceType == key && s.Active == true {
+		if s.SourceType == requestedType && s.Active {
 			sourcesSlice = append(sourcesSlice, s)
 		}
 	}
 	return sourcesSlice
 }
 
-func GetActiveSourceByHeadless(sources []Sources, headless bool) []Sources {
+func FilterSourcesByHeadless(sources []Sources, headless bool) []Sources {
 	var sourcesSlice []Sources
 	for _, s := range sources {
-		if s.Headless == headless && s.Active == true {
+		if s.Headless == headless && s.Active {
 			sourcesSlice = append(sourcesSlice, s)
 		}
 	}
@@ -262,7 +189,7 @@ func GetSourceByName(sources []Sources, name string) (*Sources, error) {
 			return &sources[i], nil
 		}
 	}
-	return nil, fmt.Errorf("Unable to find a source with name %s", name)
+	return nil, fmt.Errorf("unable to find a source with name %s", name)
 }
 
 func SourceToNabuPrefix(sources []Sources, useMilled bool) []string {
@@ -291,17 +218,7 @@ func SourceToNabuProv(sources []Sources) []string {
 
 	var prefixes []string
 	for _, s := range sources {
-
-		switch s.SourceType {
-
-		case "sitemap":
-			prefixes = append(prefixes, "prov/"+s.Name)
-
-		case "sitegraph":
-			prefixes = append(prefixes, "prov/"+s.Name)
-		case "googledrive":
-			prefixes = append(prefixes, "prov/"+s.Name)
-		}
+		prefixes = append(prefixes, "prov/"+s.Name)
 	}
 	return prefixes
 }
@@ -328,7 +245,7 @@ func PruneSources(v1 *viper.Viper, useSources []string) (*viper.Viper, error) {
 
 }
 
-// contains checks if a string is present in a slice
+// checks if a string is present in a slice
 func contains(s []string, str string) bool {
 	for _, v := range s {
 		if v == str {

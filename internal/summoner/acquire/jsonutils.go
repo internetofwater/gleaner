@@ -5,13 +5,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/gleanerio/gleaner/internal/config"
-	log "github.com/sirupsen/logrus"
 	"net/url"
 	"reflect"
 	"strings"
 
-	"github.com/gleanerio/gleaner/internal/common"
+	"gleaner/internal/config"
+
+	log "github.com/sirupsen/logrus"
+
+	"gleaner/internal/common"
+
 	minio "github.com/minio/minio-go/v7"
 	"github.com/spf13/viper"
 	"github.com/tidwall/gjson"
@@ -21,12 +24,11 @@ import (
 // / A utility to keep a list of JSON-LD files that we have found
 // in or on a page
 func addToJsonListIfValid(v1 *viper.Viper, jsonlds []string, new_json string) ([]string, error) {
-
 	valid, err := isValid(v1, new_json)
 	if err != nil {
-		isValidGraphArray, jsonlds, _ := isGraphArray(v1, new_json)
+		isValidGraphArray, jsonldsArray, _ := isGraphArray(v1, new_json)
 		if isValidGraphArray {
-			return jsonlds, nil
+			return append(jsonldsArray, new_json), nil
 		}
 		return jsonlds, fmt.Errorf("error checking for valid json: %s", err)
 	}
@@ -64,29 +66,27 @@ func isGraphArray(v1 *viper.Viper, jsonld string) (bool, []string, error) {
 	return false, jsonlds, errs
 }
 
-// / Validate JSON-LD that we get
+// Return true if the string is valid JSON-LD
 func isValid(v1 *viper.Viper, jsonld string) (bool, error) {
-	proc, options := common.JLDProc(v1)
+	proc, options, err := common.JLDProc(v1)
+	if err != nil {
+		return false, err
+	}
 
 	var myInterface map[string]interface{}
-	err := json.Unmarshal([]byte(jsonld), &myInterface)
+	err = json.Unmarshal([]byte(jsonld), &myInterface)
 	if err != nil {
-		if err != nil {
-			return false, fmt.Errorf("Error in unmarshaling json: %s", err)
-		}
+		return false, fmt.Errorf("error in unmarshaling json: %s", err)
 	}
 
 	_, err = proc.ToRDF(myInterface, options) // returns triples but toss them, just validating
 	if err != nil {                           // it's wasted cycles.. but if just doing a summon, needs to be done here
-		return false, fmt.Errorf("Error in JSON-LD to RDF call: %s", err)
+		return false, fmt.Errorf("error in JSON-LD to RDF call: %s", err)
 	}
 
 	return true, nil
 }
 
-// *********
-// context fixes
-// *********
 // let's try to do them all, in one, since that will make the code a bit cleaner and easier to test
 // don' think this is currently called anywhere
 const httpContext = "http://schema.org/"
@@ -371,10 +371,15 @@ func ProcessJson(v1 *viper.Viper,
 }
 
 func Upload(v1 *viper.Viper, mc *minio.Client, bucketName string, site string, urlloc string, jsonld string) (string, error) {
-	var err error
-	//mcfg := v1.GetStringMapString("context")
+
 	sources, err := config.GetSources(v1)
+	if err != nil {
+		return "", err
+	}
 	source, err := config.GetSourceByName(sources, site)
+	if err != nil {
+		return "", err
+	}
 	//srcFixOption, srcHttpOption := getOptions(source.FixContextOption)
 
 	//// In the config file, context { strict: true } bypasses these fixups.
@@ -409,6 +414,9 @@ func Upload(v1 *viper.Viper, mc *minio.Client, bucketName string, site string, u
 	//	log.Error("ERROR: URL:", urlloc, "Action: Getting normalized sha  Error:", err)
 	//}
 	jsonld, identifier, err := ProcessJson(v1, source, urlloc, jsonld)
+	if err != nil {
+		return "", err
+	}
 
 	sha := identifier.UniqueId
 	objectName := fmt.Sprintf("summoned/%s/%s.jsonld", site, sha)
@@ -433,12 +441,17 @@ func Upload(v1 *viper.Viper, mc *minio.Client, bucketName string, site string, u
 		log.Info("not suppported, yet. needs url sanitizing")
 	}
 	// write the prov entry for this object
-	err = StoreProvNG(v1, mc, site, sha, urlloc, "milled")
+	err = StoreProvNamedGraph(v1, mc, site, sha, urlloc, "milled")
 	if err != nil {
 		log.Error(err)
 	}
 
-	// ProcessJson the file with FPutObject
+	// Make sure the object doesn't already exist and we don't accidentally overwrite it
+	if _, err := mc.StatObject(context.Background(), bucketName, objectName, minio.StatObjectOptions{}); err == nil {
+		log.Warn("Object already exists:", objectName)
+		return "", err
+	}
+
 	_, err = mc.PutObject(context.Background(), bucketName, objectName, b, int64(b.Len()), minio.PutObjectOptions{ContentType: contentType, UserMetadata: usermeta})
 	if err != nil {
 		log.Errorf("%s: %s", objectName, err) // Fatal?   seriously?    I guess this is the object write, so the run is likely a bust at this point, but this seems a bit much still.

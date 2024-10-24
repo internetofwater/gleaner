@@ -1,7 +1,7 @@
 package acquire
 
 import (
-	"github.com/gleanerio/gleaner/internal/common"
+	"gleaner/internal/common"
 	"net/http"
 	"net/url"
 	"strings"
@@ -10,7 +10,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	configTypes "github.com/gleanerio/gleaner/internal/config"
+	configTypes "gleaner/internal/config"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/minio/minio-go/v7"
@@ -73,6 +73,9 @@ func getConfig(v1 *viper.Viper, sourceName string) (string, int, int64, int, str
 
 	// look for a domain specific override crawl delay
 	sources, err := configTypes.GetSources(v1)
+	if err != nil {
+		return bucketName, tc, delay, 0, configTypes.AccceptContentType, "", err
+	}
 	source, err := configTypes.GetSourceByName(sources, sourceName)
 	acceptContent := source.AcceptContentType
 	jsonProfile := source.JsonProfile
@@ -122,9 +125,7 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 
 		// TODO / WARNING for large site we can exhaust memory with just the creation of the
 		// go routines. 1 million =~ 4 GB  So we need to control how many routines we
-		// make too..  reference https://github.com/mr51m0n/gorc (but look for someting in the core
-		// library too)
-
+		// make too..
 		go func(i int, sourceName string) {
 			semaphoreChan <- struct{}{}
 
@@ -168,7 +169,7 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 			//	if err != nil {
 			//		log.Error("#", i, " error on ", urlloc, err) // print an message containing the index (won't keep order)
 			//		repoStats.Inc(common.Issues)
-			//		lwg.Done() // tell the wait group that we be done
+			//		lwg.Done() // tell the wait group that wes be done
 			//		<-semaphoreChan
 			//		return
 			//	}
@@ -205,7 +206,7 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 				repoStats.Inc(common.Summoned)
 			}
 
-			UploadWrapper(v1, mc, bucketName, sourceName, urlloc, repologger, repoStats, jsonlds)
+			UploadWithLogsAndMetadata(v1, mc, bucketName, sourceName, urlloc, repologger, repoStats, jsonlds)
 
 			bar.Add(1)                                          // bar.Incr()
 			log.Trace("#", i, "thread for", urlloc)             // print an message containing the index (won't keep order)
@@ -221,6 +222,7 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 }
 
 func FindJSONInResponse(v1 *viper.Viper, urlloc string, jsonProfile string, repologger *log.Logger, response *http.Response) ([]string, error) {
+	// NewDocumentResponse is deprecated but the alternative doesn't seem to work
 	doc, err := goquery.NewDocumentFromResponse(response)
 	if err != nil {
 		return nil, err
@@ -262,30 +264,32 @@ func FindJSONInResponse(v1 *viper.Viper, urlloc string, jsonProfile string, repo
 	return jsonlds, nil
 }
 
-func UploadWrapper(v1 *viper.Viper, mc *minio.Client, bucketName string, sourceName string, urlloc string, repologger *log.Logger, repoStats *common.RepoStats, jsonlds []string) {
-	for i, jsonld := range jsonlds {
-		if jsonld != "" { // traps out the root domain...   should do this different
-			logFields := log.Fields{"url": urlloc, "issue": "Uploading"}
-			log.WithFields(logFields).Trace("#", i, "Uploading ")
-			repologger.WithFields(logFields).Trace()
-			sha, err := Upload(v1, mc, bucketName, sourceName, urlloc, jsonld)
-			if err != nil {
-				logFields = log.Fields{"url": urlloc, "sha": sha, "issue": "Error uploading jsonld to object store"}
-				log.WithFields(logFields).Error("Error uploading jsonld to object store: ", urlloc, err)
-				repologger.WithFields(logFields).Error(err)
-				repoStats.Inc(common.StoreError)
-			} else {
-				logFields = log.Fields{"url": urlloc, "sha": sha, "issue": "Uploaded to object store"}
-				repologger.WithFields(logFields).Trace(err)
-				log.WithFields(logFields).Info("Successfully put ", sha, " in summoned bucket for ", urlloc)
-				repoStats.Inc(common.Stored)
-			}
+// Wrap the minio PutObject function with verbose logging and track the stats
+func UploadWithLogsAndMetadata(v1 *viper.Viper, mc *minio.Client, bucketName string, sourceName string, urlloc string, repologger *log.Logger, repoStats *common.RepoStats, jsonlds []string) {
 
-		} else {
+	for i, jsonld := range jsonlds {
+		if jsonld == "" {
 			logFields := log.Fields{"url": urlloc, "issue": "Empty JSON-LD document found "}
 			log.WithFields(logFields).Info("Empty JSON-LD document found. Continuing.")
 			repologger.WithFields(logFields).Error("Empty JSON-LD document found. Continuing.")
+			continue
+		}
 
+		logFields := log.Fields{"url": urlloc, "issue": "Uploading"}
+		log.WithFields(logFields).Trace("#", i, "Uploading ")
+		repologger.WithFields(logFields).Trace()
+		sha, err := Upload(v1, mc, bucketName, sourceName, urlloc, jsonld)
+
+		if err != nil {
+			logFields = log.Fields{"url": urlloc, "sha": sha, "issue": "Error uploading jsonld to object store"}
+			log.WithFields(logFields).Error("Error uploading jsonld to object store: ", urlloc, err)
+			repologger.WithFields(logFields).Error(err)
+			repoStats.Inc(common.StoreError)
+		} else {
+			logFields = log.Fields{"url": urlloc, "sha": sha, "issue": "Uploaded to object store"}
+			repologger.WithFields(logFields).Trace(err)
+			log.WithFields(logFields).Info("Successfully put ", sha, " in summoned bucket for ", urlloc)
+			repoStats.Inc(common.Stored)
 		}
 	}
 }

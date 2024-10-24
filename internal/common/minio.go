@@ -5,7 +5,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	configTypes "github.com/gleanerio/gleaner/internal/config"
+	configTypes "gleaner/internal/config"
+
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/spf13/viper"
@@ -14,6 +15,9 @@ import (
 // MinioConnection Set up minio and initialize client
 func MinioConnection(v1 *viper.Viper) *minio.Client {
 	mSub := v1.Sub("minio")
+	if mSub == nil {
+		log.Panic("no minio key")
+	}
 	mcfg, err := configTypes.ReadMinioConfig(mSub)
 	if err != nil {
 		log.Panic("error when file minio key:", err)
@@ -23,7 +27,7 @@ func MinioConnection(v1 *viper.Viper) *minio.Client {
 	var useSSL bool
 
 	if mcfg.Port == 0 {
-		endpoint = fmt.Sprintf("%s", mcfg.Address)
+		endpoint = mcfg.Address
 		accessKeyID = mcfg.Accesskey
 		secretAccessKey = mcfg.Secretkey
 		useSSL = mcfg.Ssl
@@ -54,7 +58,6 @@ func MinioConnection(v1 *viper.Viper) *minio.Client {
 			})
 	}
 
-	// minioClient.SetCustomTransport(&http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}})
 	if err != nil {
 		log.Fatal(err)
 	}

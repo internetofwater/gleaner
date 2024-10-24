@@ -7,16 +7,18 @@ import (
 	"text/template"
 	"time"
 
-	configTypes "github.com/gleanerio/gleaner/internal/config"
+	"gleaner/internal/config"
+	configTypes "gleaner/internal/config"
+
 	log "github.com/sirupsen/logrus"
 
-	"github.com/gleanerio/gleaner/internal/common"
-	"github.com/gleanerio/gleaner/internal/objects"
+	"gleaner/internal/common"
+
 	"github.com/minio/minio-go/v7"
 	"github.com/spf13/viper"
 )
 
-// ProvData is the struct holding the prov data for a summoned data graph
+// Holds the prov meatdata data for a summoned data graph
 type ProvData struct {
 	RESID  string
 	SHA256 string
@@ -29,11 +31,14 @@ type ProvData struct {
 	DOMAIN string
 }
 
-func StoreProvNG(v1 *viper.Viper, mc *minio.Client, k, sha, urlloc, objprefix string) error {
-	// read config file
+func StoreProvNamedGraph(v1 *viper.Viper, mc *minio.Client, domainName, sha, urlloc, objprefix string) error {
+	// read config file to get the bucket name
 	bucketName, err := configTypes.GetBucketName(v1)
+	if err != nil {
+		return err
+	}
 
-	p, err := provOGraph(v1, k, sha, urlloc, objprefix)
+	p, err := provOGraph(v1, domainName, sha, urlloc, objprefix)
 	if err != nil {
 		return err
 	}
@@ -48,8 +53,8 @@ func StoreProvNG(v1 *viper.Viper, mc *minio.Client, k, sha, urlloc, objprefix st
 
 	b := bytes.NewBufferString(p)
 
-	objectName := fmt.Sprintf("prov/%s/%s.jsonld", k, provsha) // k is the name of the provider from config
-	usermeta := make(map[string]string)                        // what do I want to know?
+	objectName := fmt.Sprintf("prov/%s/%s.jsonld", domainName, provsha) // k is the name of the provider from config
+	usermeta := make(map[string]string)                                 // what do I want to know?
 	usermeta["url"] = urlloc
 	usermeta["sha1"] = sha // recall this is the sha of the data graph the prov is about, not the prov graph itself
 
@@ -67,7 +72,7 @@ func StoreProvNG(v1 *viper.Viper, mc *minio.Client, k, sha, urlloc, objprefix st
 
 // provOGraph is a simpler provo prov function
 // I'll just build from a template for now, but using a real RDF lib to build these triples would be better
-func provOGraph(v1 *viper.Viper, k, sha, urlloc, objprefix string) (string, error) {
+func provOGraph(v1 *viper.Viper, domainName, sha, urlloc, objprefix string) (string, error) {
 	// read config file
 	miniocfg := v1.GetStringMapString("minio")
 	bucketName := miniocfg["bucket"] //   get the top level bucket for all of gleaner operations from config file
@@ -77,13 +82,16 @@ func provOGraph(v1 *viper.Viper, k, sha, urlloc, objprefix string) (string, erro
 
 	// open the config to get the runID later
 	mcfg := v1.GetStringMapString("gleaner")
-	domains := objects.SourcesAndGraphs(v1)
+	domains, err := config.GetSources(v1)
+	if err != nil {
+		return "", err
+	}
 
 	pid := "unknown"
 	pname := "unknown"
 	domain := "unknown"
 	for i := range domains {
-		if domains[i].Name == k {
+		if domains[i].Name == domainName {
 			pid = domains[i].PID
 			pname = domains[i].ProperName
 			domain = domains[i].Domain
@@ -92,10 +100,10 @@ func provOGraph(v1 *viper.Viper, k, sha, urlloc, objprefix string) (string, erro
 
 	// TODO:  There is danger here if this and the URN for the graph from Nabu do not match.
 	// We need to modify this to help prevent that from happening.
-	// Shouuld align with:  https://github.com/gleanerio/nabu/blob/dev/decisions/0001-URN-decision.md
-	gp := fmt.Sprintf("urn:%s:%s:%s", bucketName, k, sha)
+	// Shouuld align with:  https://nabu/blob/dev/decisions/0001-URN-decision.md
+	gp := fmt.Sprintf("urn:%s:%s:%s", bucketName, domainName, sha)
 
-	td := ProvData{RESID: urlloc, SHA256: sha, PID: pid, SOURCE: k,
+	td := ProvData{RESID: urlloc, SHA256: sha, PID: pid, SOURCE: domainName,
 		DATE:   currentTime.Format("2006-01-02"),
 		RUNID:  mcfg["runid"],
 		URN:    gp,

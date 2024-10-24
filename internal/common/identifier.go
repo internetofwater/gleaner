@@ -11,13 +11,14 @@ There are four implementations... so you can see if one might be a little quirky
 import (
 	"errors"
 	"fmt"
-	"github.com/gleanerio/gleaner/internal/config"
+	"gleaner/internal/config"
+	"sort"
+	"strings"
+
 	"github.com/ohler55/ojg/jp"
 	"github.com/ohler55/ojg/oj"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"sort"
-	"strings"
 )
 
 // Identifier is the structure returned the information
@@ -195,9 +196,7 @@ func GenerateFileSha(v1 *viper.Viper, jsonld string) (Identifier, error) {
 	uuid := GetSHA(jsonld) // Moved to the normalized sha value
 
 	if uuid == "" {
-		// error
-		log.Error("ERROR: uuid generator:", "Action: Getting file sha")
-		id = Identifier{}
+		return id, errors.New("could not generate uuid as a sha")
 	}
 	log.Debug(" Action: Json sha generated", uuid)
 	id = Identifier{UniqueId: uuid,

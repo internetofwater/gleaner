@@ -2,9 +2,10 @@ package acquire
 
 import (
 	"fmt"
+	"net/http"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/temoto/robotstxt"
-	"net/http"
 )
 
 func getRobotsTxt(robotsUrl string) (*robotstxt.RobotsData, error) {
@@ -25,7 +26,7 @@ func getRobotsTxt(robotsUrl string) (*robotstxt.RobotsData, error) {
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("Robots.txt unavailable at %s", robotsUrl)
+		return nil, fmt.Errorf("robots.txt unavailable at %s", robotsUrl)
 	}
 
 	defer resp.Body.Close()

@@ -2,10 +2,11 @@ package common
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type RunStats struct {
@@ -38,6 +39,7 @@ type RepoStats struct {
 	Name  string
 	Start time.Time
 	End   time.Time
+	// These stats are part of the counts map
 	//SitemapCount     int
 	//SitemapHttpError int
 	//SitemapIssues    int
@@ -51,8 +53,8 @@ func NewRepoStats(name string) *RepoStats {
 	return &r
 }
 func (c *RepoStats) setEndTime() {
-	c.mu.Lock()
 	// Lock so only one goroutine at a time can access the map c.v.
+	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.End = time.Now()
 }
@@ -95,7 +97,7 @@ func (c *RunStats) Output() string {
 	out := fmt.Sprintln("RunStats:")
 	out += fmt.Sprintf("  Start: %s\n", c.Date)
 	out += fmt.Sprintf("  Reason: %s\n", c.StopReason)
-	out += fmt.Sprintf("  Source:\n")
+	out += "  Source:\n"
 	for name, repo := range c.RepoStats {
 
 		out += fmt.Sprintf("    - name: %s\n", name)
@@ -113,7 +115,7 @@ func (c *RepoStats) Output() string {
 	out := fmt.Sprintln("SourceStats:")
 	out += fmt.Sprintf("  Start: %s\n", c.Start)
 	out += fmt.Sprintf("  End: %s\n", c.End)
-	out += fmt.Sprintf("  Source:\n")
+	out += "  Source:\n"
 
 	out += fmt.Sprintf("    - name: %s\n", c.Name)
 	for r, count := range c.counts {

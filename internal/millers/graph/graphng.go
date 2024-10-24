@@ -5,32 +5,36 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	configTypes "github.com/gleanerio/gleaner/internal/config"
-	"github.com/schollz/progressbar/v3"
-	log "github.com/sirupsen/logrus"
+	configTypes "gleaner/internal/config"
 	"io"
 	"strings"
 	"sync"
 
-	"github.com/gleanerio/gleaner/internal/common"
+	"github.com/schollz/progressbar/v3"
+	log "github.com/sirupsen/logrus"
+
+	"gleaner/internal/common"
+
 	minio "github.com/minio/minio-go/v7"
 	"github.com/piprate/json-gold/ld"
 	"github.com/spf13/viper"
 )
 
-// GraphNG is a new and improved RDF conversion
+// RDF conversion
 func GraphNG(mc *minio.Client, prefix string, v1 *viper.Viper) error {
 
-	// read config file
-	//miniocfg := v1.GetStringMapString("minio")
-	//bucketName := miniocfg["bucket"] //   get the top level bucket for all of gleaner operations from config file
 	bucketName, err := configTypes.GetBucketName(v1)
-	// My go func controller vars
+	if err != nil {
+		return err
+	}
 	semaphoreChan := make(chan struct{}, 10) // a blocking channel to keep concurrency under control (1 == single thread)
 	defer close(semaphoreChan)
 	wg := sync.WaitGroup{} // a wait group enables the main process a wait for goroutines to finish
 
-	proc, options := common.JLDProc(v1) // Make a common proc and options to share with the upcoming go funcs
+	proc, options, err := common.JLDProc(v1) // Make a common proc and options to share with the upcoming go funcs
+	if err != nil {
+		return err
+	}
 
 	// params for list objects calls
 	// doneCh := make(chan struct{}) // , N) Create a done channel to control 'ListObjectsV2' go routine.
@@ -44,9 +48,7 @@ func GraphNG(mc *minio.Client, prefix string, v1 *viper.Viper) error {
 	var count int
 	for x := range oc {
 		count = count + 1
-		if false {
-			log.Println(x)
-		}
+		log.Println(x)
 	}
 
 	// Old style bar is "ok" since done in sequence?
@@ -82,7 +84,7 @@ func GraphNG(mc *minio.Client, prefix string, v1 *viper.Viper) error {
 	log.Info("Assembling result graph for prefix:", prefix, "to:", millprefix)
 	log.Info("Result graph will be at:", rslt)
 
-	err = common.PipeCopyNG(rslt, bucketName, millprefix, mc)
+	err = common.PipeCopyNamedGraph(rslt, bucketName, millprefix, mc)
 	if err != nil {
 		log.Error("Error on pipe copy:", err)
 	} else {
@@ -96,6 +98,10 @@ func GraphNG(mc *minio.Client, prefix string, v1 *viper.Viper) error {
 func uploadObj2RDF(bucketName, prefix string, mc *minio.Client, object minio.ObjectInfo, proc *ld.JsonLdProcessor, options *ld.JsonLdOptions) (string, error) {
 	// object is an object reader
 	stat, err := mc.StatObject(context.Background(), bucketName, object.Key, minio.GetObjectOptions{})
+	if err != nil {
+		log.Error("Error when statting", err)
+		return "", err
+	}
 	if stat.Size > 100000 {
 		log.Warn("retrieving a large object (", stat.Size, ") (this may be slow)", object.Key)
 	}

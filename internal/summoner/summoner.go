@@ -2,15 +2,18 @@ package summoner
 
 import (
 	"fmt"
-	"github.com/gleanerio/gleaner/internal/common"
-	"github.com/minio/minio-go/v7"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/gleanerio/gleaner/internal/summoner/acquire"
+	"gleaner/internal/common"
+
+	"github.com/minio/minio-go/v7"
+	log "github.com/sirupsen/logrus"
+
+	"gleaner/internal/summoner/acquire"
+
 	"github.com/spf13/viper"
 )
 
@@ -43,10 +46,13 @@ func Summoner(mc *minio.Client, v1 *viper.Viper) {
 		log.Error("Error getting API endpoint sources:", err)
 	} else if len(apiSources) > 0 {
 		acquire.RetrieveAPIData(apiSources, mc, runStats, v1)
+	} else {
+		log.Info("No API endpoint sources found")
 	}
 
-	c := make(chan os.Signal)
+	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
 	go func() {
 		<-c
 		runStats.StopReason = "User Interrupt or Fatal Error"
@@ -55,13 +61,13 @@ func Summoner(mc *minio.Client, v1 *viper.Viper) {
 	}()
 
 	// Get a list of resource URLs that do and don't require headless processing
-	ru, err := acquire.ResourceURLs(v1, mc, false)
+	urls, err := acquire.ResourceURLs(v1, mc, false)
 	if err != nil {
 		log.Info("Error getting urls that do not require headless processing:", err)
 	}
 	// just report the error, and then run gathered urls
-	if len(ru) > 0 {
-		acquire.ResRetrieve(v1, mc, ru, runStats) // TODO  These can be go funcs that run all at the same time..
+	if len(urls) > 0 {
+		acquire.ResRetrieve(v1, mc, urls, runStats) // TODO  These can be go funcs that run all at the same time..
 	}
 
 	hru, err := acquire.ResourceURLs(v1, mc, true)

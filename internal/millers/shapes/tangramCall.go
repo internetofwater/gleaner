@@ -5,23 +5,25 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	configTypes "github.com/gleanerio/gleaner/internal/config"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"strings"
 
-	"github.com/gleanerio/gleaner/internal/common"
-	"github.com/gleanerio/gleaner/internal/millers/graph"
+	configTypes "gleaner/internal/config"
+
+	log "github.com/sirupsen/logrus"
+
+	"gleaner/internal/common"
+	"gleaner/internal/millers/graph"
+
 	minio "github.com/minio/minio-go/v7"
-	"github.com/piprate/json-gold/ld"
 	"github.com/spf13/viper"
 )
 
 // Call the SHACL service container (or cloud instance) // TODO: service URL needs to be in the config file!
-func shaclTestNG(v1 *viper.Viper, bucket, prefix string, mc *minio.Client, object, shape minio.ObjectInfo, proc *ld.JsonLdProcessor, options *ld.JsonLdOptions) (string, error) {
+func shaclTestNG(v1 *viper.Viper, bucket, prefix string, mc *minio.Client, object, shape minio.ObjectInfo) (string, error) {
 
 	// read config file
 	//miniocfg := v1.GetStringMapString("minio")
@@ -101,12 +103,8 @@ func shaclTestNG(v1 *viper.Viper, bucket, prefix string, mc *minio.Client, objec
 
 	objectName := fmt.Sprintf("%s/%s", prefix, milledkey)
 
-	//contentType := "application/ld+json"
-	usermeta := make(map[string]string) // what do I want to know?
+	usermeta := make(map[string]string)
 	usermeta["origfile"] = key
-	//		usermeta["url"] = urlloc
-	//		usermeta["sha1"] = sha
-	//		bucket := "gleaner-summoned" //   fmt.Sprintf("gleaner-summoned/%s", k) // old was just k
 
 	// Upload the file
 	_, err = graph.LoadToMinio(rdfubn, bucketName, objectName, mc)

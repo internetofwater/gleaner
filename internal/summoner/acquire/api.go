@@ -2,32 +2,29 @@ package acquire
 
 import (
 	"fmt"
-	"github.com/gleanerio/gleaner/internal/common"
-	configTypes "github.com/gleanerio/gleaner/internal/config"
-	"github.com/minio/minio-go/v7"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
+	"gleaner/internal/common"
+	configTypes "gleaner/internal/config"
 	"net/http"
 	"sync"
 	"time"
-)
 
-/* Acquire JSON-LD from API endpoints */
-const APIType = "api"
+	"github.com/minio/minio-go/v7"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+)
 
 // Read the config and get API endpoint template strings
 func RetrieveAPIEndpoints(v1 *viper.Viper) ([]configTypes.Sources, error) {
-	var apiSources []configTypes.Sources
 
 	// Get our API sources
 	sources, err := configTypes.GetSources(v1)
 	if err != nil {
 		log.Error("Error getting sources to summon: ", err)
-		return apiSources, err
+		return []configTypes.Sources{}, err
 	}
 
-	apiSources = configTypes.GetActiveSourceByType(sources, APIType)
-	return apiSources, err
+	return configTypes.FilterSourcesByType(sources, "api"), nil
+
 }
 
 // given a paged API url template, iterate through the pages until we get
@@ -137,7 +134,7 @@ func getAPISource(v1 *viper.Viper, mc *minio.Client, source configTypes.Sources,
 				repoStats.Inc(common.Summoned)
 			}
 
-			UploadWrapper(v1, mc, bucketName, sourceName, urlloc, repologger, repoStats, jsonlds)
+			UploadWithLogsAndMetadata(v1, mc, bucketName, sourceName, urlloc, repologger, repoStats, jsonlds)
 
 			log.Trace("#", i, "thread for", urlloc)             // print an message containing the index (won't keep order)
 			time.Sleep(time.Duration(delay) * time.Millisecond) // sleep a bit if directed to by the provider

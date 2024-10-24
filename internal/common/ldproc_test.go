@@ -2,16 +2,18 @@ package common
 
 import (
 	"bytes"
+	"os"
+
 	approvals "github.com/approvals/go-approval-tests"
 	"github.com/approvals/go-approval-tests/reporters"
-	"os"
 
 	"encoding/json"
 	"fmt"
+	"testing"
+
 	"github.com/piprate/json-gold/ld"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestMain(m *testing.M) {
@@ -107,9 +109,9 @@ func testNormalizeTriple(tests []jsonexpectations, t *testing.T) {
 context:
   cache: true
 contextmaps:
-- file: ../../configs/schemaorg-current-https.jsonld
+- file: ../../assets/schemaorg-current-https.jsonld
   prefix: https://schema.org/
-- file: ../../configs/schemaorg-current-https.jsonld
+- file: ../../assets/schemaorg-current-https.jsonld
   prefix: http://schema.org/
 sources:
 - sourcetype: sitemap
@@ -126,7 +128,10 @@ sources:
 				if test.ignore {
 					return
 				}
-				proc, options := JLDProc(viperVal)
+				proc, options, err := JLDProc(viperVal)
+				if err != nil {
+					assert.Error(t, err)
+				}
 
 				// proc := ld.NewJsonLdProcessor()
 				// options := ld.NewJsonLdOptions("")
@@ -135,7 +140,7 @@ sources:
 				options.Format = "application/n-quads"
 				options.Algorithm = "URDNA2015"
 				var myInterface interface{}
-				err := json.Unmarshal([]byte(jsonld), &myInterface)
+				err = json.Unmarshal([]byte(jsonld), &myInterface)
 				if err != nil {
 					assert.Error(t, err)
 				}

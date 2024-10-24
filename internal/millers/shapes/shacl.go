@@ -3,16 +3,18 @@ package shapes
 import (
 	"bytes"
 	"fmt"
-	configTypes "github.com/gleanerio/gleaner/internal/config"
-	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
 
-	"github.com/gleanerio/gleaner/internal/common"
-	"github.com/gleanerio/gleaner/internal/millers/graph"
+	configTypes "gleaner/internal/config"
+
+	log "github.com/sirupsen/logrus"
+
+	"gleaner/internal/common"
+	"gleaner/internal/millers/graph"
 
 	"github.com/knakk/rdf"
 	minio "github.com/minio/minio-go/v7"
