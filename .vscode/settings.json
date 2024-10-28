@@ -1,4 +1,4 @@
 {
     // remove timeout for go tests so we can view the testcontainers if they are paused without the test runner killing them
-    "go.testTimeout": "10m"
+    "go.testTimeout": "10m",
 }

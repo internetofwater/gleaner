@@ -10,10 +10,10 @@ import (
 
 const (
 	IdentifierSha     string = "identifiersha"
-	JsonSha                  = "jsonsha"
-	NormalizedJsonSha        = "normalizedjsonsha"
-	IdentifierString         = "identifierstring"
-	SourceUrl                = "sourceurl"
+	JsonSha           string = "jsonsha"
+	NormalizedJsonSha string = "normalizedjsonsha"
+	IdentifierString  string = "identifierstring"
+	SourceUrl         string = "sourceurl"
 )
 
 type ContextOption int64
@@ -208,8 +208,6 @@ func SourceToNabuPrefix(sources []Sources, useMilled bool) []string {
 		case "sitegraph":
 			// sitegraph not milled
 			prefixes = append(prefixes, fmt.Sprintf("%s/%s", "summoned", s.Name))
-		case "googledrive":
-			prefixes = append(prefixes, fmt.Sprintf("%s/%s", jsonld, s.Name))
 		}
 	}
 	return prefixes

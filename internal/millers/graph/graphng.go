@@ -166,11 +166,3 @@ func Obj2RDF(jsonld string, proc *ld.JsonLdProcessor, options *ld.JsonLdOptions)
 
 	return rdfubn, nil
 }
-
-// sugar function for the ui bar
-func rightPad2Len(s string, padStr string, overallLen int) string {
-	var padCountInt int
-	padCountInt = 1 + ((overallLen - len(padStr)) / len(padStr))
-	var retStr = s + strings.Repeat(padStr, padCountInt)
-	return retStr[:overallLen]
-}

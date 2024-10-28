@@ -1,14 +1,15 @@
 package acquire
 
 import (
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetRobotsTxt(t *testing.T) {
-	var robots = `User-agent: *
+	var robotsHeader = `User-agent: *
         Disallow: /cgi-bin
         Disallow: /forms
         Disallow: /api/gi-cat
@@ -18,7 +19,7 @@ func TestGetRobotsTxt(t *testing.T) {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
-		w.Write([]byte(robots))
+		w.Write([]byte(robotsHeader))
 	})
 
 	// generate a test server so we can capture and inspect the request

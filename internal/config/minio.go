@@ -1,6 +1,8 @@
 package config
 
 import (
+	"fmt"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -18,20 +20,19 @@ type Minio struct {
 
 }
 
-// auth fails if a region is set in minioclient...
 var MinioTemplate = map[string]interface{}{
 	"minio": map[string]string{
 		"address":   "localhost",
 		"port":      "9000",
 		"bucket":    "",
 		"ssl":       "false",
-		"region":    "",
+		"region":    "", // auth fails if a region is set in minioclient
 		"accesskey": "",
 		"secretkey": "",
 	},
 }
 
-// use config.Sub("minio)
+// Read the minio section from the viper config
 func ReadMinioConfig(minioSubtree *viper.Viper) (Minio, error) {
 	var minioCfg Minio
 	for key, value := range MinioTemplate {
@@ -40,7 +41,7 @@ func ReadMinioConfig(minioSubtree *viper.Viper) (Minio, error) {
 
 	err := minioSubtree.Unmarshal(&minioCfg)
 	if err != nil {
-		log.Fatal("error when parsing minio config: ", err)
+		return minioCfg, fmt.Errorf("error when parsing minio endpoint config: %v", err)
 	}
 	return minioCfg, err
 }

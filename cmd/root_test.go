@@ -70,7 +70,7 @@ func TestRootE2E(t *testing.T) {
 	}
 
 	assert.NoError(t, err)
-	assert.Equal(t, 1, len(orgs))
+	assert.Equal(t, 1, len(orgs)) // should only have one org since we only crawled one site
 	assert.Equal(t, 1, len(orgsInfo))
 	orgDataBytes, err := io.ReadAll(orgs[0])
 	assert.NoError(t, err)
@@ -162,6 +162,7 @@ func TestGeoconnexPids(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Asserts it is idempotent
 	assertions()
 
 }
