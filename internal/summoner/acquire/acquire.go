@@ -10,7 +10,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	configTypes "gleaner/internal/config"
+	config "gleaner/internal/config"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/minio/minio-go/v7"
@@ -52,16 +52,16 @@ func ResRetrieve(v1 *viper.Viper, mc *minio.Client, m map[string][]string, runSt
 }
 
 func getConfig(v1 *viper.Viper, sourceName string) (string, int, int64, int, string, string, error) {
-	bucketName, err := configTypes.GetBucketName(v1)
+	bucketName, err := config.GetBucketName(v1)
 	if err != nil {
-		return bucketName, 0, 0, 0, configTypes.AccceptContentType, "", err
+		return bucketName, 0, 0, 0, config.AccceptContentType, "", err
 	}
 
-	var mcfg configTypes.Summoner
-	mcfg, err = configTypes.ReadSummmonerConfig(v1.Sub("summoner"))
+	var mcfg config.Summoner
+	mcfg, err = config.ReadSummmonerConfig(v1.Sub("summoner"))
 
 	if err != nil {
-		return bucketName, 0, 0, 0, configTypes.AccceptContentType, "", err
+		return bucketName, 0, 0, 0, config.AccceptContentType, "", err
 	}
 	// Set default thread counts and global delay
 	tc := mcfg.Threads
@@ -72,11 +72,11 @@ func getConfig(v1 *viper.Viper, sourceName string) (string, int, int64, int, str
 	}
 
 	// look for a domain specific override crawl delay
-	sources, err := configTypes.GetSources(v1)
+	sources, err := config.GetSources(v1)
 	if err != nil {
-		return bucketName, tc, delay, 0, configTypes.AccceptContentType, "", err
+		return bucketName, tc, delay, 0, config.AccceptContentType, "", err
 	}
-	source, err := configTypes.GetSourceByName(sources, sourceName)
+	source, err := config.GetSourceByName(sources, sourceName)
 	acceptContent := source.AcceptContentType
 	jsonProfile := source.JsonProfile
 	hw := source.HeadlessWait

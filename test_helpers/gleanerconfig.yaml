@@ -2,7 +2,8 @@ context:
   cache: true
   strict: true
 contextmaps:
-- file: ../assets/schemaorg-current-http.jsonld
+# this is a filepath relative to the root of the project
+- file: assets/schemaorg-current-http.jsonld
   prefix: https://schema.org/
 gleaner:
   mill: false

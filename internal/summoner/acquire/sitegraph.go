@@ -64,7 +64,7 @@ func LoadSiteSitegraphsIfExist(mc *minio.Client, v1 *viper.Viper) (string, error
 		// when dealing with a single large file.
 		// log.Print("Milling graph")
 		//graph.GraphNG(mc, fmt.Sprintf("summoned/%s/", domains[k].Name), v1)
-		proc, options, err := common.JLDProc(v1) // Make a common proc and options to share with the upcoming go funcs
+		proc, options, err := common.GenerateJSONLDProcessor(v1) // Make a common proc and options to share with the upcoming go funcs
 		if err != nil {
 			return "", err
 		}

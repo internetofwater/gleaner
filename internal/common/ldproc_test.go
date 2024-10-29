@@ -2,10 +2,6 @@ package common
 
 import (
 	"bytes"
-	"os"
-
-	approvals "github.com/approvals/go-approval-tests"
-	"github.com/approvals/go-approval-tests/reporters"
 
 	"encoding/json"
 	"fmt"
@@ -16,17 +12,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMain(m *testing.M) {
-	//r := UseReporter(reporters.NewContinuousIntegrationReporter())
-	r := approvals.UseReporter(reporters.NewGoLandReporter())
-	defer r.Close()
+func TestFileExistsRelativeToRoot(t *testing.T) {
+	exists := FileExistsRelativeToRoot("./assets/schemaorg-current-https.jsonld")
+	assert.True(t, exists)
 
-	approvals.UseFolder("testdata")
+	exists = FileExistsRelativeToRoot("/assets/schemaorg-current-https.jsonld")
+	assert.True(t, exists)
 
-	os.Exit(m.Run())
+	exists = FileExistsRelativeToRoot("nonexist_dir/schemaorg-current-https.jsonld")
+	assert.False(t, exists)
 }
 
-// jsonexpectations is in test_common_structs
 /* ldjsonprocessor.Normalize often returns "" or the same set of triples
 for JSONLD Document with context or other issues.
 
@@ -109,9 +105,9 @@ func testNormalizeTriple(tests []jsonexpectations, t *testing.T) {
 context:
   cache: true
 contextmaps:
-- file: ../../assets/schemaorg-current-https.jsonld
+- file: assets/schemaorg-current-https.jsonld
   prefix: https://schema.org/
-- file: ../../assets/schemaorg-current-https.jsonld
+- file: assets/schemaorg-current-https.jsonld
   prefix: http://schema.org/
 sources:
 - sourcetype: sitemap
@@ -128,28 +124,22 @@ sources:
 				if test.ignore {
 					return
 				}
-				proc, options, err := JLDProc(viperVal)
-				if err != nil {
-					assert.Error(t, err)
-				}
+				proc, options, err := GenerateJSONLDProcessor(viperVal)
+				assert.NoError(t, err)
 
-				// proc := ld.NewJsonLdProcessor()
-				// options := ld.NewJsonLdOptions("")
 				// add the processing mode explicitly if you need JSON-LD 1.1 features
 				options.ProcessingMode = ld.JsonLd_1_1
 				options.Format = "application/n-quads"
 				options.Algorithm = "URDNA2015"
 				var myInterface interface{}
 				err = json.Unmarshal([]byte(jsonld), &myInterface)
-				if err != nil {
-					assert.Error(t, err)
-				}
+				assert.NoError(t, err)
 
 				result, err := proc.Normalize(myInterface, options)
+				assert.NoError(t, err)
 
 				valStr := fmt.Sprint(result)
-				//assert.Equal(t, test.expected, valStr)
-				approvals.VerifyString(t, valStr)
+				assert.Equal(t, test.expected, valStr)
 				if test.errorExpected {
 					assert.NotNil(t, err)
 				} else {

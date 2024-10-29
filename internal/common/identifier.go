@@ -107,7 +107,7 @@ func GetIdentiferByPaths(jsonpaths []string, jsonld string) (interface{}, string
 			continue
 		}
 	}
-	return "", "", errors.New("No Match")
+	return "", "", errors.New("no Match")
 }
 
 func GenerateIdentiferString(v1 *viper.Viper, source config.Sources, jsonld string) (Identifier, error) {

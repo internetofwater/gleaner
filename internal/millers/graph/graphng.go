@@ -31,7 +31,7 @@ func GraphNG(mc *minio.Client, prefix string, v1 *viper.Viper) error {
 	defer close(semaphoreChan)
 	wg := sync.WaitGroup{} // a wait group enables the main process a wait for goroutines to finish
 
-	proc, options, err := common.JLDProc(v1) // Make a common proc and options to share with the upcoming go funcs
+	proc, options, err := common.GenerateJSONLDProcessor(v1) // Make a common proc and options to share with the upcoming go funcs
 	if err != nil {
 		return err
 	}

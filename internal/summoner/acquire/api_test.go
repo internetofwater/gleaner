@@ -3,12 +3,13 @@ package acquire
 import (
 	"testing"
 
+	"gleaner/internal/config"
 	configTypes "gleaner/internal/config"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRetrieveAPIEndpoints(t *testing.T) {
+func TestRetrieveSourceAPIEndpoints(t *testing.T) {
 	t.Run("It reads a config for an API indexing source and returns the expected information", func(t *testing.T) {
 		apiSource := configTypes.Sources{
 			Name:         "apiSource",
@@ -37,8 +38,8 @@ func TestRetrieveAPIEndpoints(t *testing.T) {
 			},
 		}
 
-		viper := ConfigSetupHelper(conf)
-		sources, err := RetrieveAPIEndpoints(viper)
+		viper := config.SetupHelper(conf)
+		sources, err := config.RetrieveSourceAPIEndpoints(viper)
 		assert.Equal(t, []configTypes.Sources{apiSource}, sources)
 		assert.Nil(t, err)
 	})

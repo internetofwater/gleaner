@@ -6,6 +6,9 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"path/filepath"
+
+	"gleaner/internal/projectpath"
 
 	"github.com/piprate/json-gold/ld"
 	"github.com/spf13/viper"
@@ -22,31 +25,30 @@ type ContextMapping struct {
 // TODO   we create this all the time..  stupidly..  Generate these pointers
 // and pass them around, don't keep making it over and over
 // Ref:  https://schema.org/docs/howwework.html and https://schema.org/docs/jsonldcontext.json
-func JLDProc(v1 *viper.Viper) (*ld.JsonLdProcessor, *ld.JsonLdOptions, error) {
+func GenerateJSONLDProcessor(v1 *viper.Viper) (*ld.JsonLdProcessor, *ld.JsonLdOptions, error) {
 	proc := ld.NewJsonLdProcessor()
 	options := ld.NewJsonLdOptions("")
 
-	mcfg := v1.GetStringMapString("context")
+	contextConfig := v1.GetStringMapString("context")
 
 	// if the user wants to cache the context, use a caching document loader
-	if mcfg["cache"] == "true" {
+	if contextConfig["cache"] == "true" {
 		client := &http.Client{}
 		nl := ld.NewDefaultDocumentLoader(client)
 
-		var s []ContextMapping
-		err := v1.UnmarshalKey("contextmaps", &s)
+		var contexts []ContextMapping
+		err := v1.UnmarshalKey("contextmaps", &contexts)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		m := make(map[string]string)
 
-		for i := range s {
-			if fileExists(s[i].File) {
-				m[s[i].Prefix] = s[i].File
-
+		for i := range contexts {
+			if FileExistsRelativeToRoot(contexts[i].File) {
+				m[contexts[i].Prefix] = contexts[i].File
 			} else {
-				return nil, nil, errors.New("context file location " + s[i].File + " does not exist")
+				return nil, nil, errors.New("context file location " + contexts[i].File + " does not exist")
 			}
 		}
 
@@ -61,7 +63,9 @@ func JLDProc(v1 *viper.Viper) (*ld.JsonLdProcessor, *ld.JsonLdOptions, error) {
 	return proc, options, nil
 }
 
-func fileExists(filename string) bool {
+func FileExistsRelativeToRoot(filename string) bool {
+	filename = filepath.Join(projectpath.Root, filename)
+
 	info, err := os.Stat(filename)
 	if err != nil {
 		return false

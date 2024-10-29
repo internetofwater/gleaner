@@ -68,7 +68,7 @@ func isGraphArray(v1 *viper.Viper, jsonld string) (bool, []string, error) {
 
 // Return true if the string is valid JSON-LD
 func isValid(v1 *viper.Viper, jsonld string) (bool, error) {
-	proc, options, err := common.JLDProc(v1)
+	proc, options, err := common.GenerateJSONLDProcessor(v1)
 	if err != nil {
 		return false, err
 	}

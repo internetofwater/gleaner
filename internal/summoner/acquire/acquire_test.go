@@ -7,18 +7,11 @@ import (
 	"net/http"
 	"testing"
 
+	config "gleaner/internal/config"
+
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
-
-func ConfigSetupHelper(conf map[string]interface{}) *viper.Viper {
-	var viper = viper.New()
-	for key, value := range conf {
-		viper.Set(key, value)
-	}
-	return viper
-}
 
 func TestGetConfig(t *testing.T) {
 	t.Run("It reads a config for an indexing source and returns the expected information", func(t *testing.T) {
@@ -28,7 +21,7 @@ func TestGetConfig(t *testing.T) {
 			"sources":  []map[string]interface{}{{"name": "testSource"}},
 		}
 
-		viper := ConfigSetupHelper(conf)
+		viper := config.SetupHelper(conf)
 		bucketName, tc, delay, _, _, _, err := getConfig(viper, "testSource")
 		assert.Equal(t, "test", bucketName)
 		assert.Equal(t, 5, tc)
@@ -43,7 +36,7 @@ func TestGetConfig(t *testing.T) {
 			"sources":  []map[string]interface{}{{"name": "testSource"}},
 		}
 
-		viper := ConfigSetupHelper(conf)
+		viper := config.SetupHelper(conf)
 		bucketName, tc, delay, _, _, _, err := getConfig(viper, "testSource")
 		assert.Equal(t, "test", bucketName)
 		assert.Equal(t, 1, tc)
@@ -58,7 +51,7 @@ func TestGetConfig(t *testing.T) {
 			"sources":  []map[string]interface{}{{"name": "testSource"}},
 		}
 
-		viper := ConfigSetupHelper(conf)
+		viper := config.SetupHelper(conf)
 		bucketName, tc, delay, _, _, _, err := getConfig(viper, "testSource")
 		assert.Equal(t, "test", bucketName)
 		assert.Equal(t, 5, tc)
@@ -73,7 +66,7 @@ func TestGetConfig(t *testing.T) {
 			"sources":  []map[string]interface{}{{"name": "testSource", "delay": 100}},
 		}
 
-		viper := ConfigSetupHelper(conf)
+		viper := config.SetupHelper(conf)
 		bucketName, tc, delay, _, _, _, err := getConfig(viper, "testSource")
 		assert.Equal(t, "test", bucketName)
 		assert.Equal(t, 1, tc)
@@ -88,7 +81,7 @@ func TestGetConfig(t *testing.T) {
 			"sources":  []map[string]interface{}{{"name": "testSource", "delay": 10}},
 		}
 
-		viper := ConfigSetupHelper(conf)
+		viper := config.SetupHelper(conf)
 		bucketName, tc, delay, _, _, _, err := getConfig(viper, "testSource")
 		assert.Equal(t, "test", bucketName)
 		assert.Equal(t, 1, tc)
@@ -101,7 +94,7 @@ func TestFindJSONInResponse(t *testing.T) {
 	conf := map[string]interface{}{
 		"contextmaps": map[string]interface{}{},
 	}
-	viper := ConfigSetupHelper(conf)
+	viper := config.SetupHelper(conf)
 	logger := log.New()
 	const JSONContentType = "application/ld+json"
 	testJson := `{

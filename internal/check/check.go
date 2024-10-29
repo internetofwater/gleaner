@@ -30,7 +30,7 @@ func isExists(bucketName string, buckets []minio.BucketInfo) (exists bool) {
 }
 
 // Buckets checks the setup
-func Buckets(mc *minio.Client, bucket string) error {
+func buckets(mc *minio.Client, bucket string) error {
 	var err error
 
 	buckets, err := mc.ListBuckets(context.Background())
@@ -119,7 +119,7 @@ func PreflightChecks(mc *minio.Client, v1 *viper.Viper) error {
 		return err
 	}
 	//Check our bucket is ready
-	err = Buckets(mc, bucketName)
+	err = buckets(mc, bucketName)
 	if err != nil {
 		log.Error("Can not find bucket.", err)
 		return err

@@ -11,20 +11,18 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Normalize a jsonld string and return the MD5 hash
 func GetNormMD5(jsonld string, v1 *viper.Viper) (string, error) {
-	proc, options, err := JLDProc(v1)
+	proc, options, err := GenerateJSONLDProcessor(v1)
 	if err != nil {
 		return "", err
 	}
 
-	// proc := ld.NewJsonLdProcessor()
-	// options := ld.NewJsonLdOptions("")
-	// add the processing mode explicitly if you need JSON-LD 1.1 features
 	options.ProcessingMode = ld.JsonLd_1_1
 	options.Format = "application/n-quads"
 	options.Algorithm = "URDNA2015"
 
-	// JSON-LD   this needs to be an interface, otherwise it thinks it is a URL to get
+	// this needs to be an interface, otherwise it thinks it is a URL to get
 	var myInterface interface{}
 	err = json.Unmarshal([]byte(jsonld), &myInterface)
 	if err != nil {
@@ -43,8 +41,6 @@ func GetNormMD5(jsonld string, v1 *viper.Viper) (string, error) {
 		return "", err
 	}
 
-	// h := sha1.New()
-	// h.Write([]byte(fmt.Sprint(normalizedTriples.(string))))
 	hs := h.Sum(nil)
 	return fmt.Sprintf("%x", hs), nil
 }

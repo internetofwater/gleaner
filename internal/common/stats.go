@@ -59,14 +59,16 @@ func (c *RepoStats) setEndTime() {
 	c.End = time.Now()
 }
 
-const Count string = "SitemapCount"
-const HttpError string = "SitemapHttpError"
-const Issues string = "SitemapIssues"
-const Summoned string = "SitemapSummoned"
-const EmptyDoc string = "SitemapEmptyDoc"
-const Stored string = "SitemapStored"
-const StoreError string = "SitemapStoredError"
-const HeadlessError string = "HeadlessServerError"
+const (
+	Count       = "SitemapCount"
+	HttpError   = "SitemapHttpError"
+	Issues      = "SitemapIssues"
+	Summoned    = "SitemapSummoned"
+	EmptyDoc    = "SitemapEmptyDoc"
+	Stored      = "SitemapStored"
+	StoreError  = "SitemapStoredError"
+	HeadlessErr = "HeadlessServerError"
+)
 
 // Inc increments the counter for the given key.
 func (c *RepoStats) Inc(key string) {

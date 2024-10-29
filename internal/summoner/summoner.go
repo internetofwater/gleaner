@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gleaner/internal/common"
+	"gleaner/internal/config"
 
 	"github.com/minio/minio-go/v7"
 	log "github.com/sirupsen/logrus"
@@ -40,8 +41,7 @@ func Summoner(mc *minio.Client, v1 *viper.Viper) {
 	log.Info("Summoner start time:", st) // Log the time at start for the record
 	runStats := common.NewRunStats()
 
-	// Retrieve API urls
-	apiSources, err := acquire.RetrieveAPIEndpoints(v1)
+	apiSources, err := config.RetrieveSourceAPIEndpoints(v1)
 	if err != nil {
 		log.Error("Error getting API endpoint sources:", err)
 	} else if len(apiSources) > 0 {

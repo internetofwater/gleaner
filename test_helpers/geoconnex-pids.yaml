@@ -12,7 +12,8 @@ gleaner:
 context:
   cache: true
 contextmaps:
-- file: ../assets/schemaorg-current-http.jsonld
+# this is a filepath relative to the root of the project
+- file: assets/schemaorg-current-http.jsonld
   prefix: https://schema.org/
 summoner:
   after: ""      # "21 May 20 10:00 UTC"   

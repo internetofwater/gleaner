@@ -13,21 +13,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Read the config and get API endpoint template strings
-func RetrieveAPIEndpoints(v1 *viper.Viper) ([]configTypes.Sources, error) {
-
-	// Get our API sources
-	sources, err := configTypes.GetSources(v1)
-	if err != nil {
-		log.Error("Error getting sources to summon: ", err)
-		return []configTypes.Sources{}, err
-	}
-
-	return configTypes.FilterSourcesByType(sources, "api"), nil
-
-}
-
-// given a paged API url template, iterate through the pages until we get
+// given a paged API url template, concurrently iterate through the pages until we get
 // all the results we want.
 func RetrieveAPIData(apiSources []configTypes.Sources, mc *minio.Client, runStats *common.RunStats, v1 *viper.Viper) {
 	wg := sync.WaitGroup{}
@@ -52,6 +38,7 @@ func RetrieveAPIData(apiSources []configTypes.Sources, mc *minio.Client, runStat
 	wg.Wait()
 }
 
+// Download a single API source
 func getAPISource(v1 *viper.Viper, mc *minio.Client, source configTypes.Sources, wg *sync.WaitGroup, repologger *log.Logger, repoStats *common.RepoStats) {
 
 	bucketName, tc, delay, _, acceptContent, jsonProfile, err := getConfig(v1, source.Name) // _ is headless wait
@@ -89,7 +76,6 @@ func getAPISource(v1 *viper.Viper, mc *minio.Client, source configTypes.Sources,
 				log.Error(i, err, urlloc)
 			}
 			req.Header.Set("User-Agent", EarthCubeAgent)
-			//req.Header.Set("Accept", "application/ld+json, text/html")
 			req.Header.Set("Accept", acceptContent)
 			response, err := client.Do(req)
 

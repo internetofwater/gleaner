@@ -32,11 +32,6 @@ func ReadSummmonerConfig(viperSubtree *viper.Viper) (Summoner, error) {
 	for key, value := range SummonerTemplate {
 		viperSubtree.SetDefault(key, value)
 	}
-	viperSubtree.BindEnv("headless", "GLEANER_HEADLESS_ENDPOINT")
-	viperSubtree.BindEnv("threads", "GLEANER_THREADS")
-	viperSubtree.BindEnv("mode", "GLEANER_MODE")
-
-	viperSubtree.AutomaticEnv()
 	// config already read. substree passed
 	err := viperSubtree.Unmarshal(&summoner)
 	if err != nil {

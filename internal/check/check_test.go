@@ -23,24 +23,15 @@ func TestConnCheck(t *testing.T) {
 			log.Printf("failed to terminate container: %s", err)
 		}
 	}()
-	if err != nil {
-		t.Fatalf("failed to start container: %s", err)
-	}
+	assert.NoError(t, err)
 	url, err := minioContainer.ConnectionString(ctx)
-	if err != nil {
-		t.Fatalf("failed to get connection string: %s", err)
-	}
+	assert.NoError(t, err)
 	mc, err := minioClient.New(url, &minioClient.Options{
 		Creds:  credentials.NewStaticV4(minioContainer.Username, minioContainer.Password, ""),
 		Secure: false,
 	})
-	if err != nil {
-		t.Fatalf("Failed to create MinIO client: %v", err)
-	}
-
+	assert.NoError(t, err)
 	buckets, err := mc.ListBuckets(context.Background())
-	if err != nil {
-		t.Fatalf("List buckets failed: %v", err)
-	}
+	assert.NoError(t, err)
 	assert.Empty(t, buckets)
 }

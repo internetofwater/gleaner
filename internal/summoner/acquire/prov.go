@@ -7,8 +7,7 @@ import (
 	"text/template"
 	"time"
 
-	"gleaner/internal/config"
-	configTypes "gleaner/internal/config"
+	config "gleaner/internal/config"
 
 	log "github.com/sirupsen/logrus"
 
@@ -33,7 +32,7 @@ type ProvData struct {
 
 func StoreProvNamedGraph(v1 *viper.Viper, mc *minio.Client, domainName, sha, urlloc, objprefix string) error {
 	// read config file to get the bucket name
-	bucketName, err := configTypes.GetBucketName(v1)
+	bucketName, err := config.GetBucketName(v1)
 	if err != nil {
 		return err
 	}

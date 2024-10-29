@@ -152,6 +152,10 @@ func PageRenderAndUpload(v1 *viper.Viper, mc *minio.Client, timeout time.Duratio
 	//miniocfg := v1.GetStringMapString("minio")
 	//bucketName := miniocfg["bucket"] //   get the top level bucket for all of gleaner operations from config file
 	bucketName, err := configTypes.GetBucketName(v1)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
 
 	//mcfg := v1.GetStringMapString("summoner")
 	//mcfg, err := configTypes.ReadSummmonerConfig(v1.Sub("summoner"))
@@ -179,11 +183,20 @@ func PageRenderAndUpload(v1 *viper.Viper, mc *minio.Client, timeout time.Duratio
 	return err
 }
 
+// render a page in headless chrome
 func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologger *log.Logger, repoStats *common.RepoStats) ([]string, error) {
 	repologger.WithFields(log.Fields{"url": url}).Trace("PageRender")
 	retries := 3
 	sources, err := configTypes.GetSources(v1)
+	if err != nil {
+		log.Error(err)
+		return []string{}, err
+	}
 	source, err := configTypes.GetSourceByName(sources, k)
+	if err != nil {
+		log.Error(err)
+		return []string{}, err
+	}
 	headlessWait := source.HeadlessWait
 	if headlessWait < 0 {
 		log.Info("Headless wait on a headless configured to less that zero. Setting to 0")
@@ -199,6 +212,10 @@ func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologge
 	response := []string{}
 	// read config file
 	mcfg, err := configTypes.ReadSummmonerConfig(v1.Sub("summoner"))
+	if err != nil {
+		log.Error(err)
+		return response, err
+	}
 
 	// Use the DevTools HTTP/JSON API to manage targets (e.g. pages, webworkers).
 	//devt := devtool.New(mcfg["headless"])
@@ -210,7 +227,7 @@ func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologge
 		if err != nil {
 			log.WithFields(log.Fields{"url": url, "issue": "Not REPO FAULT. Devtools... Is Headless Container running?"}).Error(err)
 			repologger.WithFields(log.Fields{"url": url}).Error("Not REPO FAULT. Devtools... Is Headless Container running?")
-			repoStats.Inc(common.HeadlessError)
+			repoStats.Inc(common.HeadlessErr)
 			return response, err
 		}
 	}
@@ -220,7 +237,7 @@ func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologge
 	if err != nil {
 		log.WithFields(log.Fields{"url": url, "issue": "Not REPO FAULT. Devtools... Is Headless Container running?"}).Error(err)
 		repologger.WithFields(log.Fields{"url": url}).Error("Not REPO FAULT. Devtools... Is Headless Container running?")
-		repoStats.Inc(common.HeadlessError)
+		repoStats.Inc(common.HeadlessErr)
 		return response, err
 	}
 	defer conn.Close() // Leaving connections open will leak memory.
@@ -233,7 +250,7 @@ func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologge
 	if err != nil {
 		log.WithFields(log.Fields{"url": url, "issue": "Not REPO FAULT. Devtools... Is Headless Container running?"}).Error(err)
 		repologger.WithFields(log.Fields{"url": url}).Error("Not REPO FAULT. Devtools... Is Headless Container running?")
-		repoStats.Inc(common.HeadlessError)
+		repoStats.Inc(common.HeadlessErr)
 		return response, err
 	}
 
@@ -242,7 +259,7 @@ func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologge
 	if err != nil {
 		log.WithFields(log.Fields{"url": url, "issue": "Not REPO FAULT. Devtools... Is Headless Container running?"}).Error(err)
 		repologger.WithFields(log.Fields{"url": url}).Error("Not REPO FAULT. Devtools... Is Headless Container running?")
-		repoStats.Inc(common.HeadlessError)
+		repoStats.Inc(common.HeadlessErr)
 		return response, err
 	}
 	defer domContent.Close()
@@ -252,7 +269,7 @@ func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologge
 	if err != nil {
 		log.WithFields(log.Fields{"url": url, "issue": "Not REPO FAULT. Devtools... Is Headless Container running?"}).Error(err)
 		repologger.WithFields(log.Fields{"url": url}).Error("Not REPO FAULT. Devtools... Is Headless Container running?")
-		repoStats.Inc(common.HeadlessError)
+		repoStats.Inc(common.HeadlessErr)
 		return response, err
 	}
 	defer loadEventFired.Close()
@@ -263,7 +280,7 @@ func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologge
 	if err != nil {
 		log.WithFields(log.Fields{"url": url, "issue": "Navigate To Headless"}).Error(err)
 		repologger.WithFields(log.Fields{"url": url, "issue": "Navigate To Headless"}).Error(err)
-		repoStats.Inc(common.HeadlessError)
+		repoStats.Inc(common.HeadlessErr)
 		return response, err
 	}
 
@@ -277,7 +294,7 @@ func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologge
 	if _, err = domContent.Recv(); err != nil {
 		log.WithFields(log.Fields{"url": url, "issue": "Dom Error"}).Error(err)
 		repologger.WithFields(log.Fields{"url": url, "issue": "Dom Error"}).Error(err)
-		repoStats.Inc(common.HeadlessError)
+		repoStats.Inc(common.HeadlessErr)
 		return response, err
 	}
 

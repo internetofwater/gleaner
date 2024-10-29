@@ -370,9 +370,9 @@ func testGenerateJsonPathIdentifier(tests []jsonexpectations, t *testing.T) {
 context:
   cache: true
 contextmaps:
-- file: ../../assets/schemaorg-current-https.jsonld
+- file: assets/schemaorg-current-https.jsonld
   prefix: https://schema.org/
-- file: ../../assets/schemaorg-current-https.jsonld
+- file: assets/schemaorg-current-https.jsonld
   prefix: http://schema.org/
 sources:
 - sourcetype: sitemap
@@ -434,9 +434,9 @@ func testGenerateFileShaIdentifier(tests []jsonexpectations, t *testing.T) {
 context:
   cache: true
 contextmaps:
-- file: ../../assets/schemaorg-current-https.jsonld
+- file: assets/schemaorg-current-https.jsonld
   prefix: https://schema.org/
-- file: ../../assets/schemaorg-current-https.jsonld
+- file: assets/schemaorg-current-https.jsonld
   prefix: http://schema.org/
 sources:
 - sourcetype: sitemap

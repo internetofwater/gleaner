@@ -15,3 +15,5 @@ configs/local/
 
 /configs/wifire/
 ui_port.txt
+
+*TestNormalizeTriple*

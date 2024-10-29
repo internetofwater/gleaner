@@ -53,7 +53,7 @@ func BuildGraph(mc *minio.Client, v1 *viper.Viper) error {
 		log.Error(err)
 		return err
 	}
-	jsonldProcessor, options, err := common.JLDProc(v1)
+	jsonldProcessor, options, err := common.GenerateJSONLDProcessor(v1)
 	if err != nil {
 		return err
 	}

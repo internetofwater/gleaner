@@ -39,9 +39,6 @@ func InitLogging() {
 	mw := io.MultiWriter(os.Stdout, logFile)
 	log.SetOutput(mw)
 }
-func SetLogLevel(v1 *viper.Viper) {
-	log.SetLevel(log.InfoLevel)
-}
 
 // this is a fixed file format for outputing to a file.
 // Error... Generally what we want
@@ -68,6 +65,9 @@ func LogIssues(v1 *viper.Viper, source string) (*log.Logger, error) {
 	logger.SetFormatter(&log.TextFormatter{DisableTimestamp: true}) // Log as JSON instead of the default ASCII formatter.
 	logger.SetReportCaller(false)                                   // disable include file name and line number
 	logFile, err := os.OpenFile(os.DevNull, os.O_APPEND|os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return nil, err
+	}
 	logger.SetOutput(logFile)
 	logger.SetLevel(log.TraceLevel) // this effects the lumberjacks
 
