@@ -9,9 +9,13 @@ import (
 
 	"gleaner/test_helpers"
 
+	sitemaps "gleaner/internal/summoner/sitemaps"
+
 	minioClient "github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/testcontainers/testcontainers-go"
 )
 
@@ -24,8 +28,10 @@ func TestRootE2E(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start container: %s", err)
 	}
+	require.NoError(t, err)
+
 	url, ui, err := test_helpers.ConnectionStrings(ctx, minioContainer)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	uiFile, _ := os.Create("ui_port.txt")
 	_, _ = uiFile.WriteString(ui)
@@ -36,8 +42,8 @@ func TestRootE2E(t *testing.T) {
 		SecretKey:    minioContainer.Password,
 		Address:      strings.Split(url, ":")[0],
 		Port:         strings.Split(url, ":")[1],
-		Source:       "ref_hu02_hu02__0",
-		Config:       "../test_helpers/gleanerconfig.yaml",
+		Source:       "mainstems",
+		Config:       "../test_helpers/just_mainstems.yaml",
 		SetupBuckets: true,
 	}
 
@@ -46,7 +52,7 @@ func TestRootE2E(t *testing.T) {
 			t.Errorf("failed to terminate container: %s", err)
 		}
 	}()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	if err := Gleaner(gleanerCliArgs); err != nil {
 		t.Fatal(err)
@@ -56,32 +62,29 @@ func TestRootE2E(t *testing.T) {
 		Creds:  credentials.NewStaticV4(minioContainer.Username, minioContainer.Password, ""),
 		Secure: false,
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	buckets, err := mc.ListBuckets(context.Background())
-	assert.NoError(t, err)
-	assert.Equal(t, buckets[0].Name, "gleanerbucket")
+	require.NoError(t, err)
+	require.Equal(t, buckets[0].Name, "gleanerbucket")
 
 	// After the first run, only one org metadata should be present
 	orgsInfo, orgs, err := test_helpers.GetGleanerBucketObjects(mc, "orgs/")
-	orgNames := []string{}
-	for _, o := range orgsInfo {
-		orgNames = append(orgNames, o.Key)
-	}
 
-	assert.NoError(t, err)
-	assert.Equal(t, 1, len(orgs)) // should only have one org since we only crawled one site
-	assert.Equal(t, 1, len(orgsInfo))
+	require.NoError(t, err)
+	require.Equal(t, 1, len(orgs)) // should only have one org since we only crawled one site
+	require.Equal(t, 1, len(orgsInfo))
 	orgDataBytes, err := io.ReadAll(orgs[0])
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	orgData1 := string(orgDataBytes)
 
 	// After first run, we should have as many objects as sites in the sitemap
 	sumInfo, summoned, err := test_helpers.GetGleanerBucketObjects(mc, "summoned/")
-	assert.NoError(t, err)
-	const numberOfSitesInref_hu02_hu02__0Sitemap = 22
-	assert.Equal(t, numberOfSitesInref_hu02_hu02__0Sitemap, len(summoned))
-	assert.Equal(t, numberOfSitesInref_hu02_hu02__0Sitemap, len(sumInfo))
+	require.NoError(t, err)
+	sitesOnWebpage, err := sitemaps.ParseSitemap("https://pids.geoconnex.dev/sitemap/ref/mainstems/mainstems__0.xml")
+	require.NoError(t, err)
+	require.Equal(t, len(sitesOnWebpage.URL), len(summoned))
+	require.Equal(t, len(sitesOnWebpage.URL), len(sumInfo))
 
 	// Run it again
 	if err := Gleaner(gleanerCliArgs); err != nil {
@@ -90,19 +93,19 @@ func TestRootE2E(t *testing.T) {
 
 	// Check that after the second run, the org metadata should be unchanged since it is with the same data
 	orgsInfo2, orgs2, err := test_helpers.GetGleanerBucketObjects(mc, "orgs/")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, len(orgsInfo2), len(orgsInfo))
 	assert.Equal(t, len(orgs2), len(orgsInfo))
 	orgDataBytes2, err := io.ReadAll(orgs2[0])
 	orgData2 := string(orgDataBytes2)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, orgData1, orgData2)
 
-	// Check that the we have twice as many sites in the sitemap
+	// Check that the we have exactly as many sites in the sitemap
 	sumInfo2, summoned2, err := test_helpers.GetGleanerBucketObjects(mc, "summoned/")
-	assert.NoError(t, err)
-	assert.Equal(t, (2*numberOfSitesInref_hu02_hu02__0Sitemap)-4, len(summoned2))
-	assert.Equal(t, (2*numberOfSitesInref_hu02_hu02__0Sitemap)-4, len(sumInfo2))
+	require.NoError(t, err)
+	assert.Equal(t, len(sitesOnWebpage.URL), len(summoned2))
+	assert.Equal(t, len(sitesOnWebpage.URL), len(sumInfo2))
 }
 
 func TestGeoconnexPids(t *testing.T) {
@@ -113,7 +116,7 @@ func TestGeoconnexPids(t *testing.T) {
 		t.Fatalf("failed to start container: %s", err)
 	}
 	url, ui, err := test_helpers.ConnectionStrings(ctx, minioContainer)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	uiFile, _ := os.Create("ui_port.txt")
 	_, _ = uiFile.WriteString(ui)
@@ -133,7 +136,7 @@ func TestGeoconnexPids(t *testing.T) {
 			t.Errorf("failed to terminate container: %s", err)
 		}
 	}()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	if err := Gleaner(gleanerCliArgs); err != nil {
 		t.Fatal(err)
@@ -142,7 +145,7 @@ func TestGeoconnexPids(t *testing.T) {
 		Creds:  credentials.NewStaticV4(minioContainer.Username, minioContainer.Password, ""),
 		Secure: false,
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	assertions := func() {
 		test_helpers.AssertObjectCount(t, mc, "orgs/", 5)

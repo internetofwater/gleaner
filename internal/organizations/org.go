@@ -41,11 +41,14 @@ type Qset struct {
 	Graph     string `parquet:"name=Graph,  type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
 }
 
-// Make a graph from the Gleaner config file source and
-// load this to a /sources bucket
+// For each source in the gleaner config, build the JSONLD for the org,
+// convert that to nq, and upload to minio
 func BuildGraph(mc *minio.Client, v1 *viper.Viper) error {
-	// read config file
-	bucketName, _ := configTypes.GetBucketName(v1)
+
+	bucketName, err := configTypes.GetBucketName(v1)
+	if err != nil {
+		return err
+	}
 
 	log.Info("Building organization graph.")
 	domains, err := config.GetSources(v1)
@@ -58,9 +61,9 @@ func BuildGraph(mc *minio.Client, v1 *viper.Viper) error {
 		return err
 	}
 
-	for domainIndex := range domains {
+	for _, domain := range domains {
 
-		jsonld, err := buildOrgJSONLD(domains[domainIndex])
+		jsonld, err := buildOrgJSONLD(domain)
 		if err != nil {
 			return err
 		}
@@ -72,7 +75,7 @@ func BuildGraph(mc *minio.Client, v1 *viper.Viper) error {
 
 		rdfBuffer := bytes.NewBufferString(rdfRepresentation)
 
-		objectName := fmt.Sprintf("orgs/%s.nq", domains[domainIndex].Name)
+		objectName := fmt.Sprintf("orgs/%s.nq", domain.Name)
 
 		if _, err := mc.PutObject(context.Background(), bucketName, objectName, rdfBuffer, int64(rdfBuffer.Len()), minio.PutObjectOptions{ContentType: "application/ld+json"}); err != nil {
 			return err
@@ -82,7 +85,7 @@ func BuildGraph(mc *minio.Client, v1 *viper.Viper) error {
 	return nil
 }
 
-// build the JSONLD document that associated the crawl with its organizational data
+// build the provenance ontology JSONLD document that associates the crawl with its organizational data
 func buildOrgJSONLD(src config.Sources) (string, error) {
 	var doc bytes.Buffer
 

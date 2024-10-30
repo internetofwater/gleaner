@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TEST_BuildGraph makes a graph from the Gleaner config file source
+// makes a graph from the Gleaner config file source
 // load this to a /sources bucket (change this to sources naming convention?)
 func TestBuildGraphMem(t *testing.T) {
 

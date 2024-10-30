@@ -33,7 +33,7 @@ type URL struct {
 	Priority   float32 `xml:"priority"`
 }
 
-func GetSitemap(sitemapURL string) (Sitemap, error) {
+func ParseSitemap(sitemapURL string) (Sitemap, error) {
 	// result := make([]string, 0)
 	serializedSitemap := Sitemap{}
 

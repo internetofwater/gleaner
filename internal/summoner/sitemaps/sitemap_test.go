@@ -13,7 +13,7 @@ func TestGeoconnexSitemapParse(t *testing.T) {
 	for _, url := range sitemapUrls {
 		assert.NotEmpty(t, url)
 
-		sitemap, err := GetSitemap(url)
+		sitemap, err := ParseSitemap(url)
 		assert.NoError(t, err)
 		if len(sitemap.URL) == 0 {
 			emptyMaps = append(emptyMaps, url)
@@ -22,3 +22,4 @@ func TestGeoconnexSitemapParse(t *testing.T) {
 	// currently there is one website down in the sitemap. Otherwise, it is empty. Everything otherwise is expected
 	assert.Equal(t, []string{"https://geoconnex.us/sitemap/CUAHSI/CUAHSI_HIS_Isábena_ids__0.xml"}, emptyMaps)
 }
+
