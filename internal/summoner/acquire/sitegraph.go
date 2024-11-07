@@ -2,7 +2,7 @@ package acquire
 
 import (
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -17,6 +17,8 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/spf13/viper"
 )
+
+type Sources = configTypes.Source
 
 // Downloads pre-built site graphs
 func LoadSiteSitegraphsIfExist(mc *minio.Client, v1 *viper.Viper) (string, error) {
@@ -122,7 +124,7 @@ func getJSON(urlloc string) (string, error) {
 		return "", fmt.Errorf("status error: %v", resp.StatusCode)
 	}
 
-	data, err := io.ReadAll(resp.Body)
+	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("read body: %v", err)
 	}

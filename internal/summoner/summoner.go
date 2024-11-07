@@ -35,7 +35,7 @@ func RunStatsOutput(runStats *common.RunStats) {
 
 // Summoner pulls the resources from the data facilities
 // func Summoner(mc *minio.Client, cs utils.Config) {
-func Summoner(mc *minio.Client, v1 *viper.Viper) {
+func SummonSitemaps(mc *minio.Client, v1 *viper.Viper) {
 
 	st := time.Now()
 	log.Info("Summoner start time:", st) // Log the time at start for the record
@@ -83,7 +83,6 @@ func Summoner(mc *minio.Client, v1 *viper.Viper) {
 	// Time report
 	et := time.Now()
 	diff := et.Sub(st)
-	log.Info("Summoner end time:", et)
 	log.Info("Summoner run time:", diff.Minutes())
 	runStats.StopReason = "Complete"
 	RunStatsOutput(runStats)

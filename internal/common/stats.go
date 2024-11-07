@@ -53,7 +53,6 @@ func NewRepoStats(name string) *RepoStats {
 	return &r
 }
 func (c *RepoStats) setEndTime() {
-	// Lock so only one goroutine at a time can access the map c.v.
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.End = time.Now()
@@ -73,8 +72,6 @@ const (
 // Inc increments the counter for the given key.
 func (c *RepoStats) Inc(key string) {
 	c.mu.Lock()
-	// Lock so only one goroutine at a time can access the map c.v.
-	//_, ok := c.counts[key]
 	c.counts[key]++
 	c.mu.Unlock()
 }
@@ -82,7 +79,6 @@ func (c *RepoStats) Inc(key string) {
 // Inc sets a value for the given key.
 func (c *RepoStats) Set(key string, value int) {
 	c.mu.Lock()
-	// Lock so only one goroutine at a time can access the map c.v.
 	c.counts[key] = value
 	c.mu.Unlock()
 }
@@ -90,7 +86,6 @@ func (c *RepoStats) Set(key string, value int) {
 // Value returns the current value of the counter for the given key.
 func (c *RepoStats) Value(key string) int {
 	c.mu.Lock()
-	// Lock so only one goroutine at a time can access the map c.v.
 	defer c.mu.Unlock()
 	return c.counts[key]
 }

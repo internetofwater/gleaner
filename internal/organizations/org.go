@@ -7,7 +7,6 @@ import (
 	"text/template"
 
 	"gleaner/internal/config"
-	configTypes "gleaner/internal/config"
 
 	log "github.com/sirupsen/logrus"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Represents the JSONLD file that will be converted into an nq for each org in the org/ bucket
 const orgJSONLDTemplate = `{
 		"@context": {
 			"@vocab": "https://schema.org/"
@@ -38,7 +38,7 @@ const orgJSONLDTemplate = `{
 // convert that to nq, and upload to minio
 func BuildOrgNqsAndUpload(mc *minio.Client, v1 *viper.Viper) error {
 
-	bucketName, err := configTypes.GetBucketName(v1)
+	bucketName, err := config.GetBucketName(v1)
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func BuildOrgNqsAndUpload(mc *minio.Client, v1 *viper.Viper) error {
 	return nil
 }
 
-// build the provenance ontology JSONLD document that associates the crawl with its organizational data
+// Create a provenance ontology JSONLD string that associates the crawl with its organizational data
 func BuildOrgJSONLD(src config.Source) (string, error) {
 
 	// Make sure there are no empty string values for fields that would be

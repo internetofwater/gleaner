@@ -18,22 +18,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Sources Holds the metadata associated with the sites to harvest
-//
-//	type Sources struct {
-//		Name       string
-//		Logo       string
-//		URL        string
-//		Headless   bool
-//		PID        string
-//		ProperName string
-//		Domain     string
-//		// SitemapFormat string
-//		// Active        bool
-//	}
-//
-// type Sources = configTypes.Sources
-
 // Gets the resource URLs for a domain.  The results is a
 // map with domain name as key and []string of the URLs to process.
 func ResourceURLs(v1 *viper.Viper, mc *minio.Client, headless bool) (map[string][]string, error) {

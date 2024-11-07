@@ -36,6 +36,6 @@ func TestGetRobotsTxt(t *testing.T) {
 	t.Run("It returns nil if there is no robots.txt at that url", func(t *testing.T) {
 		robots, err := getRobotsTxt(testServer.URL + "/404.txt")
 		assert.Nil(t, robots)
-		assert.NotNil(t, err)
+		assert.Error(t, err)
 	})
 }

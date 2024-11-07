@@ -12,7 +12,6 @@ import (
 	"gleaner/internal/millers"
 	"gleaner/internal/organizations"
 	"gleaner/internal/summoner"
-	"gleaner/internal/summoner/acquire"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -62,7 +61,7 @@ func Gleaner(cli *GleanerCliArgs) error {
 			return fmt.Errorf("no matching source, did your --source VALUE match a sources.name value in %s", cli.Config)
 		}
 
-		// Replace the soures in the config with the one we specified
+		// Replace the soures in the config with the subset we specified
 		configMap := v1.AllSettings()
 		delete(configMap, "sources")
 		v1.Set("sources", requestedSources)
@@ -129,13 +128,12 @@ func Gleaner(cli *GleanerCliArgs) error {
 
 	// If configured, summon sources
 	if mcfg["summon"] == "true" {
-		fn, err := acquire.LoadSiteSitegraphsIfExist(mc, v1)
-		if err != nil {
-			log.Error(err)
-		}
-		log.Info(fn)
-		// summon sitemaps
-		summoner.Summoner(mc, v1)
+
+		// fn, err := acquire.LoadSiteSitegraphsIfExist(mc, v1)
+		// if err != nil {
+		// 	log.Error(err)
+		// }
+		summoner.SummonSitemaps(mc, v1)
 	}
 
 	// if configured, process summoned sources fronm JSON-LD to RDF (nq)

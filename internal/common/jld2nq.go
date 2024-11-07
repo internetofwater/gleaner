@@ -2,6 +2,7 @@ package common
 
 import (
 	"encoding/json"
+	"fmt"
 
 	log "github.com/sirupsen/logrus"
 
@@ -10,25 +11,23 @@ import (
 
 // JLD2nq converts JSON-LD documents to NQuads
 func JLD2nq(jsonld string, proc *ld.JsonLdProcessor, options *ld.JsonLdOptions) (string, error) {
-	var myInterface interface{}
-	err := json.Unmarshal([]byte(jsonld), &myInterface)
+	var arbitraryJSONLD interface{}
+	err := json.Unmarshal([]byte(jsonld), &arbitraryJSONLD)
 	if err != nil {
 		log.Error(err)
 		return "", err
 	}
 
-	nq, err := proc.ToRDF(myInterface, options)
+	nQuads, err := proc.ToRDF(arbitraryJSONLD, options)
 	if err != nil {
 		log.Error(err)
-
 		return "", err
 	}
 
-	switch nq := nq.(type) {
+	switch nQuads := nQuads.(type) {
 	case string:
-		return nq, err
+		return nQuads, err
 	default:
-		// handle the case where nq is not a string
-		return "", err
+		return "", fmt.Errorf("nq is not a string, instead it is a %T with value %v", nQuads, nQuads)
 	}
 }
