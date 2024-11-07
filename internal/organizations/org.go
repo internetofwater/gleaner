@@ -79,7 +79,7 @@ func BuildGraph(mc *minio.Client, v1 *viper.Viper) error {
 }
 
 // build the provenance ontology JSONLD document that associates the crawl with its organizational data
-func buildOrgJSONLD(src config.Sources) (string, error) {
+func buildOrgJSONLD(src config.Source) (string, error) {
 	var doc bytes.Buffer
 
 	template, err := template.New("prov").Parse(orgTemplate)

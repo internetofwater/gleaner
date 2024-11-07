@@ -15,7 +15,7 @@ import (
 
 // given a paged API url template, concurrently iterate through the pages until we get
 // all the results we want.
-func RetrieveAPIData(apiSources []configTypes.Sources, mc *minio.Client, runStats *common.RunStats, v1 *viper.Viper) {
+func RetrieveAPIData(apiSources []configTypes.Source, mc *minio.Client, runStats *common.RunStats, v1 *viper.Viper) {
 	wg := sync.WaitGroup{}
 
 	for _, source := range apiSources {
@@ -39,7 +39,7 @@ func RetrieveAPIData(apiSources []configTypes.Sources, mc *minio.Client, runStat
 }
 
 // Download a single API source
-func getAPISource(v1 *viper.Viper, mc *minio.Client, source configTypes.Sources, wg *sync.WaitGroup, repologger *log.Logger, repoStats *common.RepoStats) {
+func getAPISource(v1 *viper.Viper, mc *minio.Client, source configTypes.Source, wg *sync.WaitGroup, repologger *log.Logger, repoStats *common.RepoStats) {
 
 	bucketName, tc, delay, _, acceptContent, jsonProfile, err := getConfig(v1, source.Name) // _ is headless wait
 	if err != nil {

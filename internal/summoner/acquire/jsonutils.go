@@ -295,7 +295,7 @@ func getOptions(ctxOption config.ContextOption) (config.ContextOption, string) {
 
 // ##### end contxt fixes
 func ProcessJson(v1 *viper.Viper,
-	source *config.Sources, urlloc string, jsonld string) (string, common.Identifier, error) {
+	source *config.Source, urlloc string, jsonld string) (string, common.Identifier, error) {
 	mcfg := v1.GetStringMapString("context")
 	var err error
 	//sources, err := config.GetSources(v1)

@@ -18,8 +18,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-type Sources = configTypes.Sources
-
 // Downloads pre-built site graphs
 func LoadSiteSitegraphsIfExist(mc *minio.Client, v1 *viper.Viper) (string, error) {
 

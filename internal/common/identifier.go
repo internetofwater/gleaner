@@ -32,7 +32,7 @@ type Identifier struct {
 
 var jsonPathsDefault = []string{"$['@graph'][?(@['@type']=='schema:Dataset')]['@id']", "$.identifier[?(@.propertyID=='https://registry.identifiers.org/registry/doi')].value", "$.identifier.value", "$.identifier", "$['@id']", "$.url"}
 
-func GenerateIdentifier(v1 *viper.Viper, source config.Sources, jsonld string) (Identifier, error) {
+func GenerateIdentifier(v1 *viper.Viper, source config.Source, jsonld string) (Identifier, error) {
 
 	// Generate calls also do the casecading aka if IdentifierSha is [] it calls JsonSha
 	switch source.IdentifierType {
@@ -110,7 +110,7 @@ func GetIdentiferByPaths(jsonpaths []string, jsonld string) (interface{}, string
 	return "", "", errors.New("no Match")
 }
 
-func GenerateIdentiferString(v1 *viper.Viper, source config.Sources, jsonld string) (Identifier, error) {
+func GenerateIdentiferString(v1 *viper.Viper, source config.Source, jsonld string) (Identifier, error) {
 	uniqueid, err := GenerateIdentifierSha(v1, source, jsonld)
 
 	if err != nil {
@@ -124,7 +124,7 @@ func GenerateIdentiferString(v1 *viper.Viper, source config.Sources, jsonld stri
 	return uniqueid, err
 }
 
-func GenerateIdentifierSha(v1 *viper.Viper, source config.Sources, jsonld string) (Identifier, error) {
+func GenerateIdentifierSha(v1 *viper.Viper, source config.Source, jsonld string) (Identifier, error) {
 	// need a copy of the arrays, or it will get munged in a multithreaded env
 	var jsonpath = make([]string, len(jsonPathsDefault))
 	copy(jsonpath, jsonPathsDefault)

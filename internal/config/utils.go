@@ -18,13 +18,13 @@ func SetupHelper(conf map[string]interface{}) *viper.Viper {
 }
 
 // Read the config and get API endpoint template strings
-func RetrieveSourceAPIEndpoints(v1 *viper.Viper) ([]Sources, error) {
+func RetrieveSourceAPIEndpoints(v1 *viper.Viper) ([]Source, error) {
 
 	// Get our API sources
 	sources, err := GetSources(v1)
 	if err != nil {
 		log.Error("Error getting sources to summon: ", err)
-		return []Sources{}, err
+		return []Source{}, err
 	}
 
 	return FilterSourcesByType(sources, "api"), nil

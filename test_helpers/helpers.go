@@ -83,7 +83,7 @@ func ConnectionStrings(ctx context.Context, c *minio.MinioContainer) (string, st
 
 	uiString := fmt.Sprintf("%s:%s", host, ui.Port())
 	// write this to disk so the user can see it during the test even if verbose logging is off
-	uiFile, _ := os.CreateTemp(".", "ui_port.txt")
+	uiFile, _ := os.Create("ui_port.txt")
 	_, _ = uiFile.WriteString(uiString)
 	uiFile.Close()
 

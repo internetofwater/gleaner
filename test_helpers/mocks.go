@@ -7,7 +7,7 @@ import (
 )
 
 // Spin up a simple file server for serving sitemaps or other static files
-func ServerForStaticFile() (*http.Server, net.Listener, error) {
+func ServeSampleConfigDir() (*http.Server, net.Listener, error) {
 
 	http.Handle("/", http.FileServer(http.Dir("./sample_configs")))
 

@@ -43,9 +43,9 @@ func Gleaner(cli *GleanerCliArgs) error {
 	}
 
 	if cli.Source != "" {
-		requestedSources := []config.Sources{} // tmp slice to hold our desired source
+		requestedSources := []config.Source{} // tmp slice to hold our desired source
 
-		var domains []config.Sources
+		var domains []config.Source
 		err := v1.UnmarshalKey("sources", &domains)
 		if err != nil {
 			log.Warn(err)
