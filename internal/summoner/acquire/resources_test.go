@@ -68,7 +68,8 @@ func TestOverrideCrawlDelayFromRobots(t *testing.T) {
 	group := robots.FindGroup(EarthCubeAgent)
 
 	t.Run("It does nothing if given a nil robots object", func(t *testing.T) {
-		overrideCrawlDelayFromRobots(viper, "test", 0, nil)
+		err := overrideCrawlDelayFromRobots(viper, "test", 0, nil)
+		assert.Error(t, err) // should error and not change the viper pointer that was passed in
 		sources, err := configTypes.GetSources(viper)
 		assert.NoError(t, err)
 		source, err := configTypes.GetSourceByName(sources, "test")
@@ -82,7 +83,8 @@ func TestOverrideCrawlDelayFromRobots(t *testing.T) {
 	})
 
 	t.Run("It overrides the crawl delay if it is more than our default delay", func(t *testing.T) {
-		overrideCrawlDelayFromRobots(viper, "test", 9999, group)
+		err := overrideCrawlDelayFromRobots(viper, "test", 9999, group)
+		assert.NoError(t, err)
 		sources, err := configTypes.GetSources(viper)
 		assert.NoError(t, err)
 		source, err := configTypes.GetSourceByName(sources, "test")
@@ -90,8 +92,9 @@ func TestOverrideCrawlDelayFromRobots(t *testing.T) {
 		assert.Equal(t, int64(10000), source.Delay)
 	})
 
-	t.Run("It does not override the crawl delay if it is less than our default delay", func(t *testing.T) {
-		overrideCrawlDelayFromRobots(viper, "test", 10001, group)
+	t.Run("It does not go above the default delay", func(t *testing.T) {
+		err := overrideCrawlDelayFromRobots(viper, "test", 10001, group)
+		assert.NoError(t, err)
 		sources, err := configTypes.GetSources(viper)
 		assert.NoError(t, err)
 		source, err := configTypes.GetSourceByName(sources, "test")

@@ -2,7 +2,7 @@ package acquire
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -124,7 +124,7 @@ func getJSON(urlloc string) (string, error) {
 		return "", fmt.Errorf("status error: %v", resp.StatusCode)
 	}
 
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("read body: %v", err)
 	}

@@ -18,7 +18,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func RunStatsOutput(runStats *common.RunStats) {
+func RunStatsToFile(runStats *common.RunStats) {
 	fmt.Print(runStats.Output())
 	const layout = "2006-01-02-15-04-05"
 	t := time.Now()
@@ -56,7 +56,7 @@ func SummonSitemaps(mc *minio.Client, v1 *viper.Viper) {
 	go func() {
 		<-c
 		runStats.StopReason = "User Interrupt or Fatal Error"
-		RunStatsOutput(runStats)
+		runStats.OutputToFile()
 		os.Exit(1)
 	}()
 
@@ -85,7 +85,7 @@ func SummonSitemaps(mc *minio.Client, v1 *viper.Viper) {
 	diff := et.Sub(st)
 	log.Info("Summoner run time:", diff.Minutes())
 	runStats.StopReason = "Complete"
-	RunStatsOutput(runStats)
+	runStats.OutputToFile()
 	// What do I need to the "run" prov
 	// the URLs indexed  []string
 	// the graph generated?  "version" the graph by the build date

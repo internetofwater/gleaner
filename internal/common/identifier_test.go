@@ -363,9 +363,9 @@ func TestValidJsonPathsInput(t *testing.T) {
 
 func testGenerateJsonPathIdentifier(tests []jsonexpectations, t *testing.T) {
 
-	//mock configre file
+	//mock config file
 	// paths are relative to the code
-	var vipercontext = []byte(`
+	var mockConfig = []byte(`
 context:
   cache: true
 contextmaps:
@@ -396,7 +396,10 @@ sources:
 			// otherwise changing the sources information in a multi-threaded ent has issues
 			viperVal := viper.New()
 			viperVal.SetConfigType("yaml")
-			viperVal.ReadConfig(bytes.NewBuffer(vipercontext))
+			config := bytes.NewBuffer(mockConfig)
+			err := viperVal.ReadConfig(config)
+			assert.NoError(t, err)
+
 			sources, err := configTypes.GetSources(viperVal)
 
 			if err != nil {

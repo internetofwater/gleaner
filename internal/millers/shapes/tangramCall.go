@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"strings"
@@ -85,7 +84,7 @@ func shaclTestNG(v1 *viper.Viper, bucket, prefix string, mc *minio.Client, objec
 
 	// TODO
 	// resolve how call
-	rdfubn, err := shaclCallNG(mcfg["url"], string(b.Bytes()), string(sb.Bytes()))
+	rdfubn, err := shaclCallNG(mcfg["url"], b.String(), sb.String())
 	if err != nil {
 		log.Error(err)
 	}
@@ -230,7 +229,7 @@ func shaclTest(urlval, dg, sgkey, sg string, gb *common.Buffer) int {
 	}
 	defer resp.Body.Close()
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Error(err)
 	}

@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 
@@ -67,7 +67,7 @@ func loadShapeFiles(mc *minio.Client, v1 *viper.Viper) error {
 		} else { // see if it's a file
 			log.Trace("Load file...")
 
-			dat, err := ioutil.ReadFile(s[x].Ref)
+			dat, err := os.ReadFile(s[x].Ref)
 			if err != nil {
 				log.Error("Error loading file", s[x].Ref, err)
 			}
@@ -135,11 +135,9 @@ func multiCall(e []common.Entry, bucketname string, mc *minio.Client, v1 *viper.
 
 func rdf2rdf(r string) (string, error) {
 	// Decode the existing triples
-	var inFormat rdf.Format
-	inFormat = rdf.Turtle
+	var inFormat rdf.Format = rdf.Turtle
 
-	var outFormat rdf.Format
-	outFormat = rdf.NTriples
+	var outFormat rdf.Format = rdf.NTriples
 
 	var s string
 	buf := bytes.NewBufferString(s)

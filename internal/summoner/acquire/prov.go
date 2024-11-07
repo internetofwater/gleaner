@@ -30,6 +30,56 @@ type ProvData struct {
 	DOMAIN string
 }
 
+var provTemplate = `{
+	"@context": {
+	  "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+	  "prov": "http://www.w3.org/ns/prov#",
+	  "rdfs": "http://www.w3.org/2000/01/rdf-schema#"
+	},
+	"@graph": [
+	  {
+		"@id": "{{.PID}}",
+		"@type": "prov:Organization",
+		"rdf:name": "{{.PNAME}}",
+		"rdfs:seeAlso": "{{.DOMAIN}}"
+	  },
+	  {
+		"@id": "{{.RESID}}",
+		"@type": "prov:Entity",
+		"prov:wasAttributedTo": {
+		  "@id": "{{.PID}}"
+		},
+		"prov:value": "{{.RESID}}"
+	  },
+	  {
+		"@id": "https://gleaner.io/id/collection/{{.SHA256}}",
+		"@type": "prov:Collection",
+		"prov:hadMember": {
+		  "@id": "{{.RESID}}"
+		}
+	  },
+	  {
+		"@id": "{{.URN}}",
+		"@type": "prov:Entity",
+		"prov:value": "{{.SHA256}}.jsonld"
+	  },
+	  {
+		"@id": "https://gleaner.io/id/run/{{.SHA256}}",
+		"@type": "prov:Activity",
+		"prov:endedAtTime": {
+		  "@value": "{{.DATE}}",
+		  "@type": "http://www.w3.org/2001/XMLSchema#dateTime"
+		},
+		"prov:generated": {
+		  "@id": "{{.URN}}"
+		},
+		"prov:used": {
+		  "@id": "https://gleaner.io/id/collection/{{.SHA256}}"
+		}
+	  }
+	]
+  }`
+
 func StoreProvNamedGraph(v1 *viper.Viper, mc *minio.Client, domainName, sha, urlloc, objprefix string) error {
 	// read config file to get the bucket name
 	bucketName, err := config.GetBucketName(v1)
@@ -110,7 +160,7 @@ func provOGraph(v1 *viper.Viper, domainName, sha, urlloc, objprefix string) (str
 		DOMAIN: domain}
 
 	var doc bytes.Buffer
-	t, err := template.New("prov").Parse(provTemplate())
+	t, err := template.New("prov").Parse(provTemplate)
 	if err != nil {
 		log.Error("Prov Failure: Cannot parse or read template")
 		return "", err
@@ -122,59 +172,4 @@ func provOGraph(v1 *viper.Viper, domainName, sha, urlloc, objprefix string) (str
 	}
 
 	return doc.String(), err
-}
-
-func provTemplate() string {
-
-	t := `{
-		"@context": {
-		  "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-		  "prov": "http://www.w3.org/ns/prov#",
-		  "rdfs": "http://www.w3.org/2000/01/rdf-schema#"
-		},
-		"@graph": [
-		  {
-			"@id": "{{.PID}}",
-			"@type": "prov:Organization",
-			"rdf:name": "{{.PNAME}}",
-			"rdfs:seeAlso": "{{.DOMAIN}}"
-		  },
-		  {
-			"@id": "{{.RESID}}",
-			"@type": "prov:Entity",
-			"prov:wasAttributedTo": {
-			  "@id": "{{.PID}}"
-			},
-			"prov:value": "{{.RESID}}"
-		  },
-		  {
-			"@id": "https://gleaner.io/id/collection/{{.SHA256}}",
-			"@type": "prov:Collection",
-			"prov:hadMember": {
-			  "@id": "{{.RESID}}"
-			}
-		  },
-		  {
-			"@id": "{{.URN}}",
-			"@type": "prov:Entity",
-			"prov:value": "{{.SHA256}}.jsonld"
-		  },
-		  {
-			"@id": "https://gleaner.io/id/run/{{.SHA256}}",
-			"@type": "prov:Activity",
-			"prov:endedAtTime": {
-			  "@value": "{{.DATE}}",
-			  "@type": "http://www.w3.org/2001/XMLSchema#dateTime"
-			},
-			"prov:generated": {
-			  "@id": "{{.URN}}"
-			},
-			"prov:used": {
-			  "@id": "https://gleaner.io/id/collection/{{.SHA256}}"
-			}
-		  }
-		]
-	  }`
-
-	return t
 }

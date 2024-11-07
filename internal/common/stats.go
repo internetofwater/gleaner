@@ -34,6 +34,21 @@ func (c *RunStats) Add(repo string) *RepoStats {
 	return r
 }
 
+func (c *RunStats) OutputToFile() {
+	fmt.Print(c.Output())
+	const layout = "2006-01-02-15-04-05"
+	t := time.Now()
+	lf := fmt.Sprintf("%s/gleaner-runstats-%s.log", Logpath, t.Format(layout))
+
+	LogFile := lf // log to custom file
+	logFile, err := os.OpenFile(LogFile, os.O_APPEND|os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	logFile.WriteString(c.Output())
+	logFile.Close()
+}
+
 type RepoStats struct {
 	mu    sync.Mutex
 	Name  string
