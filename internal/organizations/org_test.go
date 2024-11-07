@@ -40,14 +40,12 @@ func TestOrgNQsInMinio(t *testing.T) {
 	assert.NoError(t, err)
 
 	minioHelper, err := test_helpers.NewMinioHandle("minio/minio:latest")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	err = check.MakeBuckets(minioHelper.Client, "gleanerbucket")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	defer testcontainers.TerminateContainer(minioHelper.Container)
-
-	assert.NoError(t, err)
 
 	err = BuildOrgNqsAndUpload(minioHelper.Client, v1)
 	assert.NoError(t, err)
