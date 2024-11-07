@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	minioClient "github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/stretchr/testify/assert"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/minio"
@@ -66,34 +67,61 @@ func GetGleanerBucketObjects(mc *minioClient.Client, subDir string) ([]minioClie
 	return metadata, objects, nil
 }
 
-// Return both the host and the UI port for minio
-func ConnectionStrings(ctx context.Context, c *minio.MinioContainer) (string, string, error) {
-	host, err := c.Host(ctx)
+// Wrapper class over the testcontainer for a cleaner API
+type MinioHelper struct {
+	Container minio.MinioContainer
+	Client    *minioClient.Client
+	ctx       context.Context
+}
+
+func getAPIURL(container *minio.MinioContainer, ctx context.Context) (string, error) {
+	host, err := container.Host(ctx)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
-	api, err := c.MappedPort(ctx, "9000/tcp")
+
+	api, err := container.MappedPort(ctx, "9000/tcp")
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
-	ui, err := c.MappedPort(ctx, "9001/tcp")
+	return fmt.Sprintf("%s:%s", host, api.Port()), nil
+}
+
+func getUIURL(container *minio.MinioContainer, ctx context.Context) (string, error) {
+	host, err := container.Host(ctx)
+	if err != nil {
+		return "", err
+	}
+	ui, err := container.MappedPort(ctx, "9001/tcp")
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s:%s", host, ui.Port()), nil
+}
+
+// Return the connection strings for the minio API and the minio UI, in that order
+func (m *MinioHelper) ConnectionStrings() (string, string, error) {
+
+	apiString, err := getAPIURL(&m.Container, m.ctx)
 	if err != nil {
 		return "", "", err
 	}
 
-	uiString := fmt.Sprintf("%s:%s", host, ui.Port())
+	uiString, err := getUIURL(&m.Container, m.ctx)
+	if err != nil {
+		return "", "", err
+	}
 	// write this to disk so the user can see it during the test even if verbose logging is off
 	uiFile, _ := os.Create("ui_port.txt")
 	_, _ = uiFile.WriteString(uiString)
 	uiFile.Close()
 
-	apiString := fmt.Sprintf("%s:%s", host, api.Port())
-
 	return apiString, uiString, nil
 }
 
-// Run creates an instance of the Minio container type
-func MinioRun(ctx context.Context, img string, opts ...testcontainers.ContainerCustomizer) (*minio.MinioContainer, error) {
+// Create a handle to a struct which allows for easy handling of the minio container
+func NewMinioHandle(img string, opts ...testcontainers.ContainerCustomizer) (*MinioHelper, error) {
+	ctx := context.Background()
 	const (
 		defaultUser     = "minioadmin"
 		defaultPassword = "minioadmin"
@@ -128,17 +156,32 @@ func MinioRun(ctx context.Context, img string, opts ...testcontainers.ContainerC
 		return nil, fmt.Errorf("username or password has not been set")
 	}
 
-	container, err := testcontainers.GenericContainer(ctx, genericContainerReq)
-	var c *minio.MinioContainer
-	if container != nil {
-		c = &minio.MinioContainer{Container: container, Username: username, Password: password}
+	genericContainer, err := testcontainers.GenericContainer(ctx, genericContainerReq)
+	if err != nil {
+		return &MinioHelper{}, fmt.Errorf("generic container: %w", err)
 	}
+
+	minioContainer := minio.MinioContainer{Container: genericContainer, Username: username, Password: password}
+
+	url, err := getAPIURL(&minioContainer, ctx)
 
 	if err != nil {
-		return c, fmt.Errorf("generic container: %w", err)
+		return nil, fmt.Errorf("get api url: %w", err)
 	}
 
-	return c, nil
+	mc, err := minioClient.New(url, &minioClient.Options{
+		Creds:  credentials.NewStaticV4(username, password, ""),
+		Secure: false,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("minio client: %w", err)
+	}
+
+	return &MinioHelper{
+		Container: minioContainer,
+		Client:    mc,
+		ctx:       ctx,
+	}, nil
 }
 
 func CreateTempGleanerConfig() (string, error) {

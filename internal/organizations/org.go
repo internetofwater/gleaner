@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const orgTemplate = `{
+const orgJSONLDTemplate = `{
 		"@context": {
 			"@vocab": "https://schema.org/"
 		},
@@ -56,7 +56,7 @@ func BuildGraph(mc *minio.Client, v1 *viper.Viper) error {
 
 	for _, domain := range domains {
 
-		jsonld, err := buildOrgJSONLD(domain)
+		jsonld, err := BuildOrgJSONLD(domain)
 		if err != nil {
 			return err
 		}
@@ -79,17 +79,32 @@ func BuildGraph(mc *minio.Client, v1 *viper.Viper) error {
 }
 
 // build the provenance ontology JSONLD document that associates the crawl with its organizational data
-func buildOrgJSONLD(src config.Source) (string, error) {
-	var doc bytes.Buffer
+func BuildOrgJSONLD(src config.Source) (string, error) {
 
-	template, err := template.New("prov").Parse(orgTemplate)
+	// Make sure there are no empty string values for fields that would be
+	// inserted into the jsonld template
+	for _, field := range []struct {
+		name string
+		val  string
+	}{
+		{"PID", src.PID},
+		{"Name", src.Name},
+		{"URL", src.URL},
+	} {
+		if field.val == "" {
+			return "", fmt.Errorf("source %s is missing required field %s", src.Name, field.name)
+		}
+	}
+
+	template, err := template.New("prov").Option("missingkey=error").Parse(orgJSONLDTemplate)
 	if err != nil {
 		return "", err
 	}
+	var jsonldBuffer bytes.Buffer
 
-	if err := template.Execute(&doc, src); err != nil {
+	if err := template.Execute(&jsonldBuffer, src); err != nil {
 		return "", err
 	}
 
-	return doc.String(), err
+	return jsonldBuffer.String(), err
 }

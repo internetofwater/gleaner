@@ -10,8 +10,6 @@ import (
 
 	sitemaps "gleaner/internal/summoner/sitemaps"
 
-	minioClient "github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -21,17 +19,15 @@ import (
 // Test gleaner when run on a fresh s3 bucket
 func TestRootE2E(t *testing.T) {
 
-	ctx := context.Background()
-
-	minioContainer, err := test_helpers.MinioRun(ctx, "minio/minio:latest")
+	minioHelper, err := test_helpers.NewMinioHandle("minio/minio:latest")
 	require.NoError(t, err)
-
-	url, _, err := test_helpers.ConnectionStrings(ctx, minioContainer)
+	client := minioHelper.Client
+	url, _, err := minioHelper.ConnectionStrings()
 	require.NoError(t, err)
 
 	gleanerCliArgs := &GleanerCliArgs{
-		AccessKey:    minioContainer.Username,
-		SecretKey:    minioContainer.Password,
+		AccessKey:    minioHelper.Container.Username,
+		SecretKey:    minioHelper.Container.Password,
 		Address:      strings.Split(url, ":")[0],
 		Port:         strings.Split(url, ":")[1],
 		Source:       "mainstems",
@@ -39,24 +35,18 @@ func TestRootE2E(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	defer testcontainers.TerminateContainer(minioContainer)
+	defer testcontainers.TerminateContainer(minioHelper.Container)
 
 	if err := Gleaner(gleanerCliArgs); err != nil {
 		t.Fatal(err)
 	}
 
-	mc, err := minioClient.New(url, &minioClient.Options{
-		Creds:  credentials.NewStaticV4(minioContainer.Username, minioContainer.Password, ""),
-		Secure: false,
-	})
-	require.NoError(t, err)
-
-	buckets, err := mc.ListBuckets(context.Background())
+	buckets, err := minioHelper.Client.ListBuckets(context.Background())
 	require.NoError(t, err)
 	require.Equal(t, buckets[0].Name, "gleanerbucket")
 
 	// After the first run, only one org metadata should be present
-	orgsInfo, orgs, err := test_helpers.GetGleanerBucketObjects(mc, "orgs/")
+	orgsInfo, orgs, err := test_helpers.GetGleanerBucketObjects(client, "orgs/")
 
 	require.NoError(t, err)
 	require.Equal(t, 1, len(orgs)) // should only have one org since we only crawled one site
@@ -66,7 +56,7 @@ func TestRootE2E(t *testing.T) {
 	orgData1 := string(orgDataBytes)
 
 	// After first run, we should have as many objects as sites in the sitemap
-	sumInfo, summoned, err := test_helpers.GetGleanerBucketObjects(mc, "summoned/")
+	sumInfo, summoned, err := test_helpers.GetGleanerBucketObjects(client, "summoned/")
 	require.NoError(t, err)
 	sitesOnWebpage, err := sitemaps.ParseSitemap("https://pids.geoconnex.dev/sitemap/ref/mainstems/mainstems__0.xml")
 	require.NoError(t, err)
@@ -79,7 +69,7 @@ func TestRootE2E(t *testing.T) {
 	}
 
 	// Check that after the second run, the org metadata should be unchanged since it is with the same data
-	orgsInfo2, orgs2, err := test_helpers.GetGleanerBucketObjects(mc, "orgs/")
+	orgsInfo2, orgs2, err := test_helpers.GetGleanerBucketObjects(client, "orgs/")
 	require.NoError(t, err)
 	assert.Equal(t, len(orgsInfo2), len(orgsInfo))
 	assert.Equal(t, len(orgs2), len(orgsInfo))
@@ -90,41 +80,38 @@ func TestRootE2E(t *testing.T) {
 	assert.True(t, result)
 
 	// Check that the we have exactly as many sites in the sitemap
-	sumInfo2, summoned2, err := test_helpers.GetGleanerBucketObjects(mc, "summoned/")
+	sumInfo2, summoned2, err := test_helpers.GetGleanerBucketObjects(client, "summoned/")
 	require.NoError(t, err)
 	assert.Equal(t, len(sitesOnWebpage.URL), len(summoned2))
 	assert.Equal(t, len(sitesOnWebpage.URL), len(sumInfo2))
 }
 
 func TestGeoconnexPids(t *testing.T) {
-	ctx := context.Background()
 
-	minioContainer, err := test_helpers.MinioRun(ctx, "minio/minio:latest")
-	if err != nil {
-		t.Fatalf("failed to start container: %s", err)
-	}
-	url, _, err := test_helpers.ConnectionStrings(ctx, minioContainer)
+	minioHandle, err := test_helpers.NewMinioHandle("minio/minio:latest")
+	require.NoError(t, err)
+
+	url, _, err := minioHandle.ConnectionStrings()
 	require.NoError(t, err)
 
 	gleanerCliArgs := &GleanerCliArgs{
-		AccessKey:    minioContainer.Username,
-		SecretKey:    minioContainer.Password,
+		AccessKey:    minioHandle.Container.Username,
+		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
 		Port:         strings.Split(url, ":")[1],
 		Config:       "../test_helpers/sample_configs/geoconnex-pids.yaml",
 		SetupBuckets: true,
 	}
 
-	defer testcontainers.TerminateContainer(minioContainer)
+	defer testcontainers.TerminateContainer(minioHandle.Container)
 
 	if err := Gleaner(gleanerCliArgs); err != nil {
 		t.Fatal(err)
 	}
-	mc, err := minioClient.New(url, &minioClient.Options{
-		Creds:  credentials.NewStaticV4(minioContainer.Username, minioContainer.Password, ""),
-		Secure: false,
-	})
+
 	require.NoError(t, err)
+
+	mc := minioHandle.Client
 
 	assertions := func() {
 		test_helpers.AssertObjectCount(t, mc, "orgs/", 5)
@@ -151,17 +138,15 @@ func TestGeoconnexPids(t *testing.T) {
 
 func TestSitemapWithDeadLink(t *testing.T) {
 
-	ctx := context.Background()
-
-	minioContainer, err := test_helpers.MinioRun(ctx, "minio/minio:latest")
+	minioHandle, err := test_helpers.NewMinioHandle("minio/minio:latest")
 	require.NoError(t, err)
 
-	url, _, err := test_helpers.ConnectionStrings(ctx, minioContainer)
+	url, _, err := minioHandle.ConnectionStrings()
 	require.NoError(t, err)
 
 	gleanerCliArgs := &GleanerCliArgs{
-		AccessKey:    minioContainer.Username,
-		SecretKey:    minioContainer.Password,
+		AccessKey:    minioHandle.Container.Username,
+		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
 		Port:         strings.Split(url, ":")[1],
 		Source:       "DUMMY",
@@ -169,20 +154,14 @@ func TestSitemapWithDeadLink(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	defer testcontainers.TerminateContainer(minioContainer)
+	defer testcontainers.TerminateContainer(minioHandle.Container)
 
 	if err := Gleaner(gleanerCliArgs); err != nil {
 		t.Fatal(err)
 	}
 
-	mc, err := minioClient.New(url, &minioClient.Options{
-		Creds:  credentials.NewStaticV4(minioContainer.Username, minioContainer.Password, ""),
-		Secure: false,
-	})
-	require.NoError(t, err)
-
 	// After the first run, only one org metadata should be present
-	orgsInfo, orgs, err := test_helpers.GetGleanerBucketObjects(mc, "orgs/")
+	orgsInfo, orgs, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "orgs/")
 
 	require.NoError(t, err)
 	require.Equal(t, 1, len(orgs))
@@ -190,7 +169,7 @@ func TestSitemapWithDeadLink(t *testing.T) {
 	require.NoError(t, err)
 
 	const prefixToGetAllItems = ""
-	_, allItems, err := test_helpers.GetGleanerBucketObjects(mc, prefixToGetAllItems)
+	_, allItems, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, prefixToGetAllItems)
 	require.NoError(t, err)
 	require.Equal(t, 1, len(allItems)) // should only have one org since we only crawled one site
 }

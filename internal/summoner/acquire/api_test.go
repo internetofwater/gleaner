@@ -11,7 +11,7 @@ import (
 
 func TestRetrieveSourceAPIEndpoints(t *testing.T) {
 	t.Run("It reads a config for an API indexing source and returns the expected information", func(t *testing.T) {
-		apiSource := configTypes.Sources{
+		apiSource := configTypes.Source{
 			Name:         "apiSource",
 			SourceType:   "api",
 			Active:       true,
@@ -40,7 +40,7 @@ func TestRetrieveSourceAPIEndpoints(t *testing.T) {
 
 		viper := config.SetupHelper(conf)
 		sources, err := config.RetrieveSourceAPIEndpoints(viper)
-		assert.Equal(t, []configTypes.Sources{apiSource}, sources)
+		assert.Equal(t, []configTypes.Source{apiSource}, sources)
 		assert.Nil(t, err)
 	})
 }

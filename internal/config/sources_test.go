@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var sources = []Sources{
+var sources = []Source{
 	{
 		Name:           "test1",
 		Headless:       true,
@@ -35,11 +35,11 @@ var sources = []Sources{
 	},
 }
 
-var empty = []Sources{}
+var empty = []Source{}
 
 func TestGetSourceByType(t *testing.T) {
 	t.Run("It gets sources of the given type", func(t *testing.T) {
-		expected := []Sources{
+		expected := []Source{
 			{
 				Name:           "test1",
 				Headless:       true,
@@ -78,7 +78,7 @@ func TestGetSourceByType(t *testing.T) {
 
 func TestGetActiveSourceByType(t *testing.T) {
 	t.Run("It gets active sources of the given type", func(t *testing.T) {
-		expected := []Sources{
+		expected := []Source{
 			{
 				Name:             "test1",
 				Headless:         true,
@@ -116,7 +116,7 @@ func TestGetActiveSourceByType(t *testing.T) {
 
 func TestGetActiveSourceByHeadless(t *testing.T) {
 	t.Run("It gets active sources of the given type", func(t *testing.T) {
-		expectedTrue := []Sources{
+		expectedTrue := []Source{
 			{
 				Name:             "test1",
 				Headless:         true,
@@ -140,7 +140,7 @@ func TestGetActiveSourceByHeadless(t *testing.T) {
 		results := FilterSourcesByHeadless(sources, true)
 		assert.ElementsMatch(t, expectedTrue, results)
 
-		expectedFalse := []Sources{
+		expectedFalse := []Source{
 			{
 				Name:             "test2",
 				Headless:         false,
@@ -166,7 +166,7 @@ func TestGetActiveSourceByHeadless(t *testing.T) {
 	})
 
 	t.Run("It returns an empty slice if there are no such sources", func(t *testing.T) {
-		test := []Sources{
+		test := []Source{
 			{
 				Name:       "test1",
 				Headless:   true,
@@ -198,7 +198,7 @@ func TestGetActiveSourceByHeadless(t *testing.T) {
 
 func TestGetSourceByName(t *testing.T) {
 	t.Run("It gets sources of the given name", func(t *testing.T) {
-		expected := Sources{
+		expected := Source{
 			Name:             "test1",
 			Headless:         true,
 			Active:           true,
