@@ -1,16 +1,15 @@
 package organizations
 
 import (
-	"context"
 	"testing"
 
-	"gleaner/internal/common"
+	"gleaner/internal/check"
 	config "gleaner/internal/config"
 	"gleaner/test_helpers"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/testcontainers/testcontainers-go"
 )
 
 func TestBuildJSONLDFromSource(t *testing.T) {
@@ -33,32 +32,28 @@ func TestBuildJSONLDFromSource(t *testing.T) {
 }
 
 // makes a graph from the Gleaner config file source
-// load this to a /sources bucket (change this to sources naming convention?)
-func TestBuildGraphMem(t *testing.T) {
+// and upload it to minio as n-quads
+func TestOrgNQsInMinio(t *testing.T) {
 
 	// read config file
-	v1, err := config.ReadGleanerConfig("gleanerconfig.yaml", "../../test_helpers/sample_configs")
+	v1, err := config.ReadGleanerConfig("just_mainstems.yaml", "../../test_helpers/sample_configs")
 	assert.NoError(t, err)
 
-	assert.NoError(t, err)
-	bucketName, err := config.GetBucketName(v1)
-	assert.NoError(t, err)
-	assert.Equal(t, "gleanerbucket", bucketName)
-
-	log.Info("Building organization graph from config file")
-
-	domains, err := config.GetSources(v1)
+	minioHelper, err := test_helpers.NewMinioHandle("minio/minio:latest")
 	assert.NoError(t, err)
 
-	assert.Greater(t, len(domains), 0)
-
-	_, _, err = common.GenerateJSONLDProcessor(v1)
+	err = check.MakeBuckets(minioHelper.Client, "gleanerbucket")
 	assert.NoError(t, err)
 
-	ctx := context.Background()
+	defer testcontainers.TerminateContainer(minioHelper.Container)
 
-	minioContainer, err := test_helpers.MinioRun(ctx, "minio/minio:latest")
+	assert.NoError(t, err)
 
-	BuildGraph(minioContainer.Client, v1)
+	err = BuildOrgNqsAndUpload(minioHelper.Client, v1)
+	assert.NoError(t, err)
+
+	sources, err := config.GetSources(v1)
+	assert.NoError(t, err)
+	test_helpers.AssertObjectCount(t, minioHelper.Client, "orgs/", len(sources))
 
 }

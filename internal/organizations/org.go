@@ -36,7 +36,7 @@ const orgJSONLDTemplate = `{
 
 // For each source in the gleaner config, build the JSONLD for the org,
 // convert that to nq, and upload to minio
-func BuildGraph(mc *minio.Client, v1 *viper.Viper) error {
+func BuildOrgNqsAndUpload(mc *minio.Client, v1 *viper.Viper) error {
 
 	bucketName, err := configTypes.GetBucketName(v1)
 	if err != nil {
@@ -70,7 +70,7 @@ func BuildGraph(mc *minio.Client, v1 *viper.Viper) error {
 
 		objectName := fmt.Sprintf("orgs/%s.nq", domain.Name)
 
-		if _, err := mc.PutObject(context.Background(), bucketName, objectName, rdfBuffer, int64(rdfBuffer.Len()), minio.PutObjectOptions{ContentType: "application/ld+json"}); err != nil {
+		if _, err := mc.PutObject(context.Background(), bucketName, objectName, rdfBuffer, int64(rdfBuffer.Len()), minio.PutObjectOptions{ContentType: "application/n-quads"}); err != nil {
 			return err
 		}
 	}

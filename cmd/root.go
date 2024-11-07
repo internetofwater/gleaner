@@ -123,7 +123,7 @@ func Gleaner(cli *GleanerCliArgs) error {
 		return errors.New("the 'gleaner' section in " + cli.Config + " is missing")
 	}
 
-	if err := organizations.BuildGraph(mc, v1); err != nil {
+	if err := organizations.BuildOrgNqsAndUpload(mc, v1); err != nil {
 		return err
 	}
 
