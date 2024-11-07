@@ -34,13 +34,6 @@ const t = `{
 		}
 	}`
 
-type Qset struct {
-	Subject   string `parquet:"name=Subject,  type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	Predicate string `parquet:"name=Predicate,  type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	Object    string `parquet:"name=Object,  type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-	Graph     string `parquet:"name=Graph,  type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
-}
-
 // For each source in the gleaner config, build the JSONLD for the org,
 // convert that to nq, and upload to minio
 func BuildGraph(mc *minio.Client, v1 *viper.Viper) error {

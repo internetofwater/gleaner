@@ -3,7 +3,7 @@ package acquire
 import (
 	"bytes"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 
@@ -130,7 +130,7 @@ func TestFindJSONInResponse(t *testing.T) {
 	t.Run("It finds JSON-LD in HTML document responses", func(t *testing.T) {
 		html := "<html><body>yay<script type='application/ld+json'>" + testJson + "</script></body></html>"
 
-		response.Body = ioutil.NopCloser(bytes.NewBufferString(html))
+		response.Body = io.NopCloser(bytes.NewBufferString(html))
 		response.ContentLength = int64(len(html))
 		var expected []string
 
@@ -140,7 +140,7 @@ func TestFindJSONInResponse(t *testing.T) {
 	})
 
 	t.Run("It finds JSON-LD in JSON document responses", func(t *testing.T) {
-		response.Body = ioutil.NopCloser(bytes.NewBufferString(testJson))
+		response.Body = io.NopCloser(bytes.NewBufferString(testJson))
 		response.ContentLength = int64(len(testJson))
 		var expected []string
 
@@ -150,7 +150,7 @@ func TestFindJSONInResponse(t *testing.T) {
 	})
 
 	t.Run("It finds JSON-LD in http responses with a JSON-LD content type", func(t *testing.T) {
-		response.Body = ioutil.NopCloser(bytes.NewBufferString(testJson))
+		response.Body = io.NopCloser(bytes.NewBufferString(testJson))
 		response.ContentLength = int64(len(testJson))
 		response.Header.Add("Content-Type", JSONContentType)
 		var expected []string
@@ -161,7 +161,7 @@ func TestFindJSONInResponse(t *testing.T) {
 	})
 
 	t.Run("It finds JSON-LD in http responses with a JSON content type", func(t *testing.T) {
-		response.Body = ioutil.NopCloser(bytes.NewBufferString(testJson))
+		response.Body = io.NopCloser(bytes.NewBufferString(testJson))
 		response.ContentLength = int64(len(testJson))
 		response.Header.Add("Content-Type", "application/json; charset=utf-8")
 		var expected []string

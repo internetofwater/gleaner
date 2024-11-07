@@ -27,7 +27,7 @@ type GleanerCliArgs struct {
 	Mode         string
 	SecretKey    string // secret key for minio
 	AccessKey    string // access key for minio
-	SSL          bool   // use SSL
+	SSL          bool   // use SSL for HTTP requests
 	SetupBuckets bool   // setup buckets before crawling
 	Rude         bool   // ignore robots.txt
 }
@@ -180,7 +180,7 @@ func init() {
 	akey := os.Getenv("MINIO_ACCESS_KEY")
 	skey := os.Getenv("MINIO_SECRET_KEY")
 	if skey != "" || akey != "" {
-		fmt.Println(" MINIO_ACCESS_KEY or  MINIO_SECRET_KEY are set")
+		fmt.Println(" MINIO_ACCESS_KEY or MINIO_SECRET_KEY are set.")
 		fmt.Println("if this is not intentional, please unset")
 	}
 	// Persistent flags defined here will be global for the entire application.

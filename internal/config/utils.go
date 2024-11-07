@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Construct a viper config from a map; useful for testing
 func SetupHelper(conf map[string]interface{}) *viper.Viper {
 	var viper = viper.New()
 	for key, value := range conf {

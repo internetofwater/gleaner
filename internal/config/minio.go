@@ -8,7 +8,6 @@ import (
 )
 
 // auth fails if a region is set in minioclient...
-// frig frig... do not use lowercase... those are private variables
 type Minio struct {
 	Address   string // `mapstructure:"MINIO_ADDRESS"`
 	Port      int    //`mapstructure:"MINIO_PORT"`

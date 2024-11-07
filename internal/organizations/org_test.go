@@ -15,7 +15,7 @@ import (
 func TestBuildGraphMem(t *testing.T) {
 
 	// read config file
-	v1, err := config.ReadGleanerConfig("gleanerconfig.yaml", "../../test_helpers")
+	v1, err := config.ReadGleanerConfig("gleanerconfig.yaml", "../../test_helpers/sample_configs")
 	assert.NoError(t, err)
 
 	assert.NoError(t, err)

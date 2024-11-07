@@ -3,6 +3,8 @@ package test_helpers
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 	"testing"
 
 	minioClient "github.com/minio/minio-go/v7"
@@ -12,6 +14,33 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
+// Checks if every line in actual is present in expected, disregarding the order of lines.
+// Useful for checking equivalence of nq files where line order doesn't matter
+func AssertLinesMatchDisregardingOrder(expected string, actual string) bool {
+	expectedLines := strings.Split(expected, "\n")
+	actualLines := strings.Split(actual, "\n")
+
+	// Create a hashmap to store the lines in expectedLines
+	expectedMap := make(map[string]bool)
+	for _, line := range expectedLines {
+		expectedMap[line] = true
+	}
+
+	// Check if each line in actualLines is present in the hashmap
+	// if it is remove it, so we can see if the hashmap is empty
+	// at the end or if there are additional lines
+	for _, line := range actualLines {
+		if _, found := expectedMap[line]; found {
+			delete(expectedMap, line)
+		} else {
+			return false
+		}
+	}
+
+	return len(expectedMap) == 0
+}
+
+// Assert the number of objects in a minio subdir is expected
 func AssertObjectCount(t *testing.T, mc *minioClient.Client, subDir string, expected int) {
 
 	_, summoned, err := GetGleanerBucketObjects(mc, subDir)
@@ -37,12 +66,13 @@ func GetGleanerBucketObjects(mc *minioClient.Client, subDir string) ([]minioClie
 	return metadata, objects, nil
 }
 
+// Return both the host and the UI port for minio
 func ConnectionStrings(ctx context.Context, c *minio.MinioContainer) (string, string, error) {
 	host, err := c.Host(ctx)
 	if err != nil {
 		return "", "", err
 	}
-	port, err := c.MappedPort(ctx, "9000/tcp")
+	api, err := c.MappedPort(ctx, "9000/tcp")
 	if err != nil {
 		return "", "", err
 	}
@@ -50,7 +80,16 @@ func ConnectionStrings(ctx context.Context, c *minio.MinioContainer) (string, st
 	if err != nil {
 		return "", "", err
 	}
-	return fmt.Sprintf("%s:%s", host, port.Port()), fmt.Sprintf("%s:%s", host, ui.Port()), nil
+
+	uiString := fmt.Sprintf("%s:%s", host, ui.Port())
+	// write this to disk so the user can see it during the test even if verbose logging is off
+	uiFile, _ := os.CreateTemp(".", "ui_port.txt")
+	_, _ = uiFile.WriteString(uiString)
+	uiFile.Close()
+
+	apiString := fmt.Sprintf("%s:%s", host, api.Port())
+
+	return apiString, uiString, nil
 }
 
 // Run creates an instance of the Minio container type
@@ -68,6 +107,7 @@ func MinioRun(ctx context.Context, img string, opts ...testcontainers.ContainerC
 			"MINIO_ROOT_USER":     defaultUser,
 			"MINIO_ROOT_PASSWORD": defaultPassword,
 		},
+		// We need to expose the console at 9001 to access the UI
 		Cmd: []string{"server", "/data", "--console-address", ":9001"},
 	}
 
@@ -99,4 +139,15 @@ func MinioRun(ctx context.Context, img string, opts ...testcontainers.ContainerC
 	}
 
 	return c, nil
+}
+
+func CreateTempGleanerConfig() (string, error) {
+	// create a temp config file
+	f, err := os.CreateTemp("", "gleanerconfig")
+	if err != nil {
+		return "", err
+	}
+
+	_, err = f.WriteString("gleanerconfig")
+	return f.Name(), err
 }
