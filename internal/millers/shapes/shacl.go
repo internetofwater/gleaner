@@ -3,6 +3,7 @@ package shapes
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -175,7 +176,7 @@ func getBody(url string) ([]byte, error) {
 
 	var bodyBytes []byte
 	if resp.StatusCode == http.StatusOK {
-		bodyBytes, err = ioutil.ReadAll(resp.Body)
+		bodyBytes, err = io.ReadAll(resp.Body)
 		if err != nil {
 			log.Error(err)
 			return nil, err

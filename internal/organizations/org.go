@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const t = `{
+const orgTemplate = `{
 		"@context": {
 			"@vocab": "https://schema.org/"
 		},
@@ -82,7 +82,7 @@ func BuildGraph(mc *minio.Client, v1 *viper.Viper) error {
 func buildOrgJSONLD(src config.Sources) (string, error) {
 	var doc bytes.Buffer
 
-	template, err := template.New("prov").Parse(t)
+	template, err := template.New("prov").Parse(orgTemplate)
 	if err != nil {
 		return "", err
 	}

@@ -12,6 +12,7 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 /*
@@ -37,8 +38,6 @@ There are four implementations... so you can see if one might be a little quirky
 // gets rid of the extpectations part, and would match the entire returned identifier object.
 
 // should record a table of the file sha and normalize triple sha for each file
-
-var empty = []configTypes.Sources{}
 
 type jsonexpectations struct {
 	name            string
@@ -461,7 +460,9 @@ sources:
 			// otherwise changing the sources information in a multi-threaded ent has issues
 			viperVal := viper.New()
 			viperVal.SetConfigType("yaml")
-			viperVal.ReadConfig(bytes.NewBuffer(vipercontext))
+			err := viperVal.ReadConfig(bytes.NewBuffer(vipercontext))
+
+			require.NoError(t, err)
 			sources, err := configTypes.GetSources(viperVal)
 
 			if err != nil {

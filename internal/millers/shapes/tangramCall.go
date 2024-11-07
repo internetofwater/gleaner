@@ -169,7 +169,7 @@ func shaclCallNG(url, dg, sg string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}

@@ -146,7 +146,7 @@ func GetActiveSources(g1 *viper.Viper) ([]Sources, error) {
 		return nil, err
 	}
 	for _, s := range sources {
-		if s.Active == true {
+		if s.Active {
 			activeSources = append(activeSources, s)
 		}
 	}

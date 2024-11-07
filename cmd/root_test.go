@@ -35,7 +35,7 @@ func TestRootE2E(t *testing.T) {
 		Address:      strings.Split(url, ":")[0],
 		Port:         strings.Split(url, ":")[1],
 		Source:       "mainstems",
-		Config:       "../test_helpers/just_mainstems.yaml",
+		Config:       "../test_helpers/sample_configs/just_mainstems.yaml",
 		SetupBuckets: true,
 	}
 
@@ -111,7 +111,7 @@ func TestGeoconnexPids(t *testing.T) {
 		SecretKey:    minioContainer.Password,
 		Address:      strings.Split(url, ":")[0],
 		Port:         strings.Split(url, ":")[1],
-		Config:       "../test_helpers/geoconnex-pids.yaml",
+		Config:       "../test_helpers/sample_configs/geoconnex-pids.yaml",
 		SetupBuckets: true,
 	}
 
