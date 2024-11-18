@@ -35,7 +35,7 @@ func RunStatsToFile(runStats *common.RunStats) {
 
 // Summoner pulls the resources from the data facilities
 // func Summoner(mc *minio.Client, cs utils.Config) {
-func SummonSitemaps(mc *minio.Client, v1 *viper.Viper) {
+func SummonSitemaps(mc *minio.Client, v1 *viper.Viper) error {
 
 	st := time.Now()
 	log.Info("Summoner start time:", st) // Log the time at start for the record
@@ -61,13 +61,13 @@ func SummonSitemaps(mc *minio.Client, v1 *viper.Viper) {
 	}()
 
 	// Get a list of resource URLs that do and don't require headless processing
-	urls, err := acquire.ResourceURLs(v1, mc, false)
+	domainToUrls, err := acquire.ResourceURLs(v1, mc, false)
 	if err != nil {
 		log.Info("Error getting urls that do not require headless processing:", err)
 	}
 	// just report the error, and then run gathered urls
-	if len(urls) > 0 {
-		acquire.ResRetrieve(v1, mc, urls, runStats) // TODO  These can be go funcs that run all at the same time..
+	if len(domainToUrls) > 0 {
+		acquire.ResRetrieve(v1, mc, domainToUrls, runStats) // TODO  These can be go funcs that run all at the same time..
 	}
 
 	hru, err := acquire.ResourceURLs(v1, mc, true)
@@ -91,5 +91,5 @@ func SummonSitemaps(mc *minio.Client, v1 *viper.Viper) {
 	// the graph generated?  "version" the graph by the build date
 	// pass ru, hru, and v1 to a run prov function.
 	//	RunFeed(v1, mc, et, ru, hru)  // DEV:   hook for building feed  (best place for it?)
-
+	return err
 }

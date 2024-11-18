@@ -117,8 +117,8 @@ func Gleaner(cli *GleanerCliArgs) error {
 		return fmt.Errorf("minio access check failed. Make sure the server is running. Full error was: '%v'", err)
 	}
 
-	mcfg := v1.GetStringMapString("gleaner")
-	if mcfg == nil {
+	gleanerCfgSection := v1.GetStringMapString("gleaner")
+	if gleanerCfgSection == nil {
 		return errors.New("the 'gleaner' section in " + cli.Config + " is missing")
 	}
 
@@ -126,18 +126,17 @@ func Gleaner(cli *GleanerCliArgs) error {
 		return err
 	}
 
-	// If configured, summon sources
-	if mcfg["summon"] == "true" {
+	if gleanerCfgSection["summon"] == "true" {
 
-		// fn, err := acquire.LoadSiteSitegraphsIfExist(mc, v1)
-		// if err != nil {
-		// 	log.Error(err)
-		// }
-		summoner.SummonSitemaps(mc, v1)
+		err := summoner.SummonSitemaps(mc, v1)
+
+		if err != nil {
+			return fmt.Errorf("error summoning sitemaps: %v", err)
+		}
 	}
 
 	// if configured, process summoned sources fronm JSON-LD to RDF (nq)
-	if mcfg["mill"] == "true" {
+	if gleanerCfgSection["mill"] == "true" {
 		millers.Millers(mc, v1) // need to remove rundir and then fix the compile
 	}
 	return err
@@ -187,7 +186,7 @@ func init() {
 	rootCmd.PersistentFlags().String("mode", "local", "Set the mode (full | diff) to index all or just diffs")
 	rootCmd.PersistentFlags().String("address", "localhost", "FQDN for server")
 	rootCmd.PersistentFlags().String("port", "9000", "Port for minio server")
-	rootCmd.PersistentFlags().String("bucket", "gleaner", "The configuration bucket")
+	rootCmd.PersistentFlags().String("bucket", "gleaner", "The bucket in which to place gleaner objects")
 	rootCmd.PersistentFlags().String("accesskey", "", "Minio access key")
 	rootCmd.PersistentFlags().String("secretkey", "", "Minio secret key")
 	rootCmd.PersistentFlags().Bool("ssl", false, "Use SSL when connecting to minio")

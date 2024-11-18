@@ -1,5 +1,6 @@
 # Gleaner Internals
 
+## Walkthrough of the e2e path
 
 1. Read in CLI arguments with Viper
 2. Construct `org/` nquad files 
@@ -13,3 +14,7 @@
 4. Summon the sitemaps
     1. Get all the sources in the gleaner config of type API
         *       
+    2. Run ResRetrieve to pull down the data graphs at resources
+    3. For each url associated with a given domain, spawn a go routine with getDomain
+
+## Properties

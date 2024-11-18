@@ -21,20 +21,20 @@ import (
 const EarthCubeAgent = "EarthCube_DataBot/1.0"
 const JSONContentType = "application/ld+json"
 
-// ResRetrieve is a function to pull down the data graphs at resources
-func ResRetrieve(v1 *viper.Viper, mc *minio.Client, m map[string][]string, runStats *common.RunStats) {
+// ResRetrieve iterates through every domain and spawns a go routine to get the data from all the associated URLs for each
+func ResRetrieve(v1 *viper.Viper, mc *minio.Client, domainToUrls map[string][]string, runStats *common.RunStats) {
 	wg := sync.WaitGroup{}
 
 	// Why do I pass the wg pointer?   Just make a new one
 	// for each domain in getDomain and us this one here with a semaphore
 	// to control the loop?
-	for domain, urls := range m {
+	for domain, urls := range domainToUrls {
 		r := runStats.Add(domain)
 		r.Set(common.Count, len(urls))
 		r.Set(common.HttpError, 0)
 		r.Set(common.Issues, 0)
 		r.Set(common.Summoned, 0)
-		log.Info("Queuing URLs for ", domain)
+		log.Infof("Queuing %d URLs for domain: '%s'", len(urls), domain)
 
 		repologger, err := common.LogIssues(v1, domain)
 		if err != nil {
@@ -44,44 +44,57 @@ func ResRetrieve(v1 *viper.Viper, mc *minio.Client, m map[string][]string, runSt
 			repologger.Info("URL Count ", len(urls))
 		}
 		wg.Add(1)
-		//go getDomain(v1, mc, urls, domain, &wg, db)
 		go getDomain(v1, mc, urls, domain, &wg, repologger, r)
 	}
 
 	wg.Wait()
+	log.Infof("Completed acquire for %d domains", len(domainToUrls))
 }
 
-func getConfig(v1 *viper.Viper, sourceName string) (string, int, int64, int, string, string, error) {
+// all the configuration values that are relevant for retrieving JSON-LD for a specific URL
+type retrievalConfig struct {
+	BucketName    string
+	ThreadCount   int
+	Delay         int64
+	HeadlessWait  int
+	AcceptContent string
+	JsonProfile   string
+}
+
+func getConfig(v1 *viper.Viper, sourceName string) (retrievalConfig, error) {
 	bucketName, err := config.GetBucketName(v1)
 	if err != nil {
-		return bucketName, 0, 0, 0, config.AccceptContentType, "", err
+		return retrievalConfig{}, err
 	}
 
 	var mcfg config.Summoner
 	mcfg, err = config.ReadSummmonerConfig(v1.Sub("summoner"))
 
 	if err != nil {
-		return bucketName, 0, 0, 0, config.AccceptContentType, "", err
+		return retrievalConfig{}, err
 	}
 	// Set default thread counts and global delay
 	tc := mcfg.Threads
 	delay := mcfg.Delay
 
-	if delay != 0 {
+	if delay != 0 || tc == 0 {
 		tc = 1
 	}
 
 	// look for a domain specific override crawl delay
 	sources, err := config.GetSources(v1)
 	if err != nil {
-		return bucketName, tc, delay, 0, config.AccceptContentType, "", err
+		return retrievalConfig{}, err
 	}
 	source, err := config.GetSourceByName(sources, sourceName)
 	acceptContent := source.AcceptContentType
+	if acceptContent == "" {
+		acceptContent = JSONContentType
+	}
 	jsonProfile := source.JsonProfile
 	hw := source.HeadlessWait
 	if err != nil {
-		return bucketName, tc, delay, hw, acceptContent, jsonProfile, err
+		return retrievalConfig{}, err
 	}
 
 	if source.Delay != 0 && source.Delay > delay {
@@ -91,22 +104,29 @@ func getConfig(v1 *viper.Viper, sourceName string) (string, int, int64, int, str
 	}
 	log.Info("Thread count ", tc, " delay ", delay)
 
-	return bucketName, tc, delay, hw, acceptContent, jsonProfile, nil
+	return retrievalConfig{
+		BucketName:    bucketName,
+		ThreadCount:   tc,
+		Delay:         delay,
+		HeadlessWait:  hw,
+		AcceptContent: acceptContent,
+		JsonProfile:   jsonProfile,
+	}, nil
 }
 
 func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName string,
 	wg *sync.WaitGroup, repologger *log.Logger, repoStats *common.RepoStats) {
 
-	bucketName, tc, delay, headlessWait, acceptContent, jsonProfile, err := getConfig(v1, sourceName)
+	cfg, err := getConfig(v1, sourceName)
 	if err != nil {
-		// trying to read a source, so let's not kill everything with a panic/fatal
+		// trying to read a source, so let'ss not kill everything with a panic/fatal
 		log.Error("Error reading config file ", err)
 		repologger.Error("Error reading config file ", err)
 	}
 
 	var client http.Client
 
-	semaphoreChan := make(chan struct{}, tc) // a blocking channel to keep concurrency under control
+	semaphoreChan := make(chan struct{}, cfg.ThreadCount) // a blocking channel to keep concurrency under control
 	lwg := sync.WaitGroup{}
 
 	defer func() {
@@ -137,7 +157,7 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 				log.Error(i, err, urlloc)
 			}
 			req.Header.Set("User-Agent", EarthCubeAgent)
-			req.Header.Set("Accept", acceptContent)
+			req.Header.Set("Accept", cfg.AcceptContent)
 
 			resp, err := client.Do(req)
 			if err != nil {
@@ -149,7 +169,8 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 			}
 			defer resp.Body.Close()
 
-			jsonlds, err := FindJSONInResponse(v1, urlloc, jsonProfile, repologger, resp)
+			log.Infof("Got statuscode %d when fetching URL: '%s'", resp.StatusCode, urlloc)
+			jsonlds, err := FindJSONInResponse(v1, urlloc, cfg.JsonProfile, repologger, resp)
 			// there was an issue with sitemaps... but now this code
 			//if contains(contentTypeHeader, JSONContentType) || contains(contentTypeHeader, "application/json") {
 			//
@@ -190,7 +211,7 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 			// even is no JSON-LD packages found, record the event of checking this URL
 			if len(jsonlds) < 1 {
 				// TODO is her where I then try headless, and scope the following for into an else?
-				if headlessWait >= 0 {
+				if cfg.HeadlessWait >= 0 {
 					log.WithFields(log.Fields{"url": urlloc, "contentType": "Direct access failed, trying headless']"}).Info("Direct access failed, trying headless for ", urlloc)
 					repologger.WithFields(log.Fields{"url": urlloc, "contentType": "Direct access failed, trying headless']"}).Error() // this needs to go into the issues file
 					err := PageRenderAndUpload(v1, mc, 60*time.Second, urlloc, sourceName, repologger, repoStats)                      // TODO make delay configurable
@@ -206,11 +227,11 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 				repoStats.Inc(common.Summoned)
 			}
 
-			UploadWithLogsAndMetadata(v1, mc, bucketName, sourceName, urlloc, repologger, repoStats, jsonlds)
+			UploadWithLogsAndMetadata(v1, mc, cfg.BucketName, sourceName, urlloc, repologger, repoStats, jsonlds)
 
-			bar.Add(1)                                          // bar.Incr()
-			log.Trace("#", i, "thread for", urlloc)             // print an message containing the index (won't keep order)
-			time.Sleep(time.Duration(delay) * time.Millisecond) // sleep a bit if directed to by the provider
+			bar.Add(1)                                              // bar.Incr()
+			log.Trace("#", i, "thread for", urlloc)                 // print an message containing the index (won't keep order)
+			time.Sleep(time.Duration(cfg.Delay) * time.Millisecond) // sleep a bit if directed to by the provider
 
 			lwg.Done()
 

@@ -69,10 +69,7 @@ func MakeBuckets(mc *minio.Client, bucket string) error {
 	return err
 }
 
-/*
-*
-Setup Gleaner buckets
-*/
+// Setup Gleaner buckets
 func Setup(mc *minio.Client, v1 *viper.Viper) error {
 	ms := v1.Sub("minio")
 	m1, err := config.ReadMinioConfig(ms)

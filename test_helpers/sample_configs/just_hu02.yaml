@@ -1,0 +1,36 @@
+context:
+  cache: true
+  strict: true
+contextmaps:
+# this is a filepath relative to the root of the project
+- file: assets/schemaorg-current-http.jsonld
+  prefix: https://schema.org/
+gleaner:
+  mill: false
+  runid: gleanerbucket
+  summon: true
+summoner:
+  after: ""      # "21 May 20 10:00 UTC"   
+  mode: full  # full || diff:  If diff compare what we have currently in gleaner to sitemap, get only new, delete missing
+  threads: 5
+  delay:  # milliseconds (1000 = 1 second) to delay between calls (will FORCE threads to 1) 
+  headless: http://localhost:9222  # URL for headless see docs/headless
+millers:
+  graph: true
+minio:
+  accessKey: minioadmin
+  address: localhost
+  bucket: gleanerbucket
+  port: 9000
+  region: us
+  secretKey: minioadmin
+  ssl: false
+sources:
+- active: 'true'
+  domain: https://geoconnex.us
+  headless: 'false'
+  name: ref_hu02_hu02__0
+  pid: https://gleaner.io/genid/geoconnex
+  propername: ref_hu02_hu02__0
+  sourcetype: sitemap
+  url: https://pids.geoconnex.dev/sitemap/ref/hu02/hu02__0.xml

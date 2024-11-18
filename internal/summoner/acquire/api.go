@@ -41,7 +41,7 @@ func RetrieveAPIData(apiSources []configTypes.Source, mc *minio.Client, runStats
 // Download a single API source
 func getAPISource(v1 *viper.Viper, mc *minio.Client, source configTypes.Source, wg *sync.WaitGroup, repologger *log.Logger, repoStats *common.RepoStats) {
 
-	bucketName, tc, delay, _, acceptContent, jsonProfile, err := getConfig(v1, source.Name) // _ is headless wait
+	cfg, err := getConfig(v1, source.Name) // _ is headless wait
 	if err != nil {
 		// trying to read a source, so let's not kill everything with a panic/fatal
 		log.Error("Error reading config file ", err)
@@ -50,7 +50,7 @@ func getAPISource(v1 *viper.Viper, mc *minio.Client, source configTypes.Source, 
 
 	var client http.Client
 
-	responseStatusChan := make(chan int, tc) // a blocking channel to keep concurrency under control
+	responseStatusChan := make(chan int, cfg.ThreadCount) // a blocking channel to keep concurrency under control
 	lwg := sync.WaitGroup{}
 
 	defer func() {
@@ -76,7 +76,7 @@ func getAPISource(v1 *viper.Viper, mc *minio.Client, source configTypes.Source, 
 				log.Error(i, err, urlloc)
 			}
 			req.Header.Set("User-Agent", EarthCubeAgent)
-			req.Header.Set("Accept", acceptContent)
+			req.Header.Set("Accept", cfg.AcceptContent)
 			response, err := client.Do(req)
 
 			if err != nil {
@@ -99,7 +99,7 @@ func getAPISource(v1 *viper.Viper, mc *minio.Client, source configTypes.Source, 
 			log.Trace("Response status ", response.StatusCode, " from ", urlloc)
 			responseStatusChan <- response.StatusCode
 
-			jsonlds, err := FindJSONInResponse(v1, urlloc, jsonProfile, repologger, response)
+			jsonlds, err := FindJSONInResponse(v1, urlloc, cfg.JsonProfile, repologger, response)
 
 			if err != nil {
 				log.Error("#", i, " error on ", urlloc, err) // print an message containing the index (won't keep order)
@@ -120,10 +120,10 @@ func getAPISource(v1 *viper.Viper, mc *minio.Client, source configTypes.Source, 
 				repoStats.Inc(common.Summoned)
 			}
 
-			UploadWithLogsAndMetadata(v1, mc, bucketName, sourceName, urlloc, repologger, repoStats, jsonlds)
+			UploadWithLogsAndMetadata(v1, mc, cfg.BucketName, sourceName, urlloc, repologger, repoStats, jsonlds)
 
-			log.Trace("#", i, "thread for", urlloc)             // print an message containing the index (won't keep order)
-			time.Sleep(time.Duration(delay) * time.Millisecond) // sleep a bit if directed to by the provider
+			log.Trace("#", i, "thread for", urlloc)                 // print an message containing the index (won't keep order)
+			time.Sleep(time.Duration(cfg.Delay) * time.Millisecond) // sleep a bit if directed to by the provider
 
 			lwg.Done()
 		}(i, source.Name)

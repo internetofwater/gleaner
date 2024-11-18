@@ -6,10 +6,12 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	minioClient "github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/minio"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -48,6 +50,26 @@ func AssertObjectCount(t *testing.T, mc *minioClient.Client, subDir string, expe
 	assert.NoError(t, err)
 	assert.Equal(t, expected, len(summoned))
 
+}
+
+func RequireFilenameExists(t *testing.T, arr []minioClient.ObjectInfo, filename string) {
+	for _, obj := range arr {
+		if obj.Key == filename {
+			return
+		}
+	}
+	require.Fail(t, "filename not found")
+}
+
+func RequireFileWasModified(t *testing.T, newObjects []minioClient.ObjectInfo, oldFilename string, oldDate time.Time) {
+
+	for _, obj := range newObjects {
+		if obj.Key == oldFilename {
+			require.Greater(t, obj.LastModified, oldDate)
+			return
+		}
+	}
+	require.Fail(t, "filename not found")
 }
 
 func GetGleanerBucketObjects(mc *minioClient.Client, subDir string) ([]minioClient.ObjectInfo, []*minioClient.Object, error) {

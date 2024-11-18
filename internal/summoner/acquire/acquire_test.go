@@ -22,10 +22,10 @@ func TestGetConfig(t *testing.T) {
 		}
 
 		viper := config.SetupHelper(conf)
-		bucketName, tc, delay, _, _, _, err := getConfig(viper, "testSource")
-		assert.Equal(t, "test", bucketName)
-		assert.Equal(t, 5, tc)
-		assert.Equal(t, int64(0), delay)
+		cfg, err := getConfig(viper, "testSource")
+		assert.Equal(t, "test", cfg.BucketName)
+		assert.Equal(t, 5, cfg.ThreadCount)
+		assert.Equal(t, int64(0), cfg.Delay)
 		assert.Nil(t, err)
 	})
 
@@ -37,10 +37,10 @@ func TestGetConfig(t *testing.T) {
 		}
 
 		viper := config.SetupHelper(conf)
-		bucketName, tc, delay, _, _, _, err := getConfig(viper, "testSource")
-		assert.Equal(t, "test", bucketName)
-		assert.Equal(t, 1, tc)
-		assert.Equal(t, int64(1000), delay)
+		cfg, err := getConfig(viper, "testSource")
+		assert.Equal(t, "test", cfg.BucketName)
+		assert.Equal(t, 1, cfg.ThreadCount)
+		assert.Equal(t, int64(1000), cfg.Delay)
 		assert.Nil(t, err)
 	})
 
@@ -52,10 +52,10 @@ func TestGetConfig(t *testing.T) {
 		}
 
 		viper := config.SetupHelper(conf)
-		bucketName, tc, delay, _, _, _, err := getConfig(viper, "testSource")
-		assert.Equal(t, "test", bucketName)
-		assert.Equal(t, 5, tc)
-		assert.Equal(t, int64(0), delay)
+		cfg, err := getConfig(viper, "testSource")
+		assert.Equal(t, "test", cfg.BucketName)
+		assert.Equal(t, 5, cfg.ThreadCount)
+		assert.Equal(t, int64(0), cfg.Delay)
 		assert.Nil(t, err)
 	})
 
@@ -67,10 +67,10 @@ func TestGetConfig(t *testing.T) {
 		}
 
 		viper := config.SetupHelper(conf)
-		bucketName, tc, delay, _, _, _, err := getConfig(viper, "testSource")
-		assert.Equal(t, "test", bucketName)
-		assert.Equal(t, 1, tc)
-		assert.Equal(t, int64(100), delay)
+		cfg, err := getConfig(viper, "testSource")
+		assert.Equal(t, "test", cfg.BucketName)
+		assert.Equal(t, 1, cfg.ThreadCount)
+		assert.Equal(t, int64(100), cfg.Delay)
 		assert.Nil(t, err)
 	})
 
@@ -82,10 +82,10 @@ func TestGetConfig(t *testing.T) {
 		}
 
 		viper := config.SetupHelper(conf)
-		bucketName, tc, delay, _, _, _, err := getConfig(viper, "testSource")
-		assert.Equal(t, "test", bucketName)
-		assert.Equal(t, 1, tc)
-		assert.Equal(t, int64(50), delay)
+		cfg, err := getConfig(viper, "testSource")
+		assert.Equal(t, "test", cfg.BucketName)
+		assert.Equal(t, 1, cfg.ThreadCount)
+		assert.Equal(t, int64(50), cfg.Delay)
 		assert.Nil(t, err)
 	})
 }

@@ -127,12 +127,13 @@ func getSitemapURLList(domainURL string, robots *robotstxt.Group) ([]string, err
 	}
 
 	if len(idxr) < 1 {
-		log.Info(domainURL, " is not a sitemap index, checking to see if it is a sitemap")
 		us, err = sitemaps.ParseSitemap(domainURL)
 		if err != nil {
-			log.Error("Error parsing sitemap index at ", domainURL, err)
+			log.Error(domainURL, " could not be parsed as either a sitemap index or a sitemap", err)
 			return s, err
 		}
+		log.Info(domainURL, " was parsed as a sitemap")
+
 	} else {
 		log.Info("Walking the sitemap index for sitemaps")
 		for _, idxv := range idxr {
