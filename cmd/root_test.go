@@ -1,3 +1,7 @@
+//go:build e2e
+// +build e2e
+
+// run go test -tags=e2e ./... to run e2e tests
 package cmd
 
 import (
@@ -301,7 +305,7 @@ func TestConfigValidThenInvalid(t *testing.T) {
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
 		Port:         strings.Split(url, ":")[1],
-		Config:       "../test_helpers/sample_configs/justmainstemsInvalid.yaml",
+		Config:       "../test_helpers/sample_configs/justMainstemsInvalid.yaml",
 		SetupBuckets: true,
 	}
 
