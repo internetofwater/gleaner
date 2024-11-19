@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"text/template"
 
 	"gleaner/internal/projectpath"
 	sitemaps "gleaner/internal/summoner/sitemaps"
@@ -436,4 +437,100 @@ func TestFullThenAbbreviated(t *testing.T) {
 	res, msg = test_helpers.SameObjects(t, sumInfo1, sumInfo3, dateChecks, sizeChecks)
 	require.True(t, res, msg)
 
+}
+
+// If there is an error in the jsonld nothing is summoned into the s3 bucket. This seems to be an issue
+// TODO: Make gleaner error handling better so the sitemap issues are not just logged
+// but returned to the callee as an error
+func TestIncorrectJsonLd(t *testing.T) {
+	minioHandle, err := test_helpers.NewMinioHandle("minio/minio:latest")
+	require.NoError(t, err)
+
+	url, _, err := minioHandle.ConnectionStrings()
+	require.NoError(t, err)
+
+	sampleConfDir := filepath.Join(projectpath.Root, "test_helpers", "sample_configs")
+
+	// spin up the file server for our sitemap with incorrect jsonld
+	server, listener, err := test_helpers.ServeSampleConfigDir()
+	assert.NoError(t, err)
+	defer func() {
+		server.Close()
+		listener.Close()
+	}()
+
+	const sitemapTemplate = `<?xml version="1.0" encoding="UTF-8"?>
+							<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+							<url>
+								<loc>https://pids.geoconnex.dev/ref/mainstems/29559</loc>
+								<lastmod>2021-12-01T09:16:01Z</lastmod>
+							</url><url>
+								<loc>http://{{.ListenerAddr}}/{{.BrokenJsonLd}}</loc>
+								<lastmod>2021-12-01T09:16:01Z</lastmod>
+							</url></urlset>`
+
+	// create a new sitemap with incorrect jsonld
+	sitemapWithBadJsonLd := "sitemapWithBadJsonLd.xml"
+	tmpl, err := template.New("sitemap").Parse(sitemapTemplate)
+	require.NoError(t, err)
+
+	data := map[string]string{
+		"ListenerAddr": listener.Addr().String(),
+		"BrokenJsonLd": "badjsonld.jsonld",
+	}
+
+	sitemapPath := filepath.Join(sampleConfDir, sitemapWithBadJsonLd)
+	file, err := os.Create(sitemapPath)
+	require.NoError(t, err)
+	defer file.Close()
+
+	err = tmpl.Execute(file, data)
+	require.NoError(t, err)
+
+	require.FileExists(t, sitemapPath)
+	defer os.Remove(sitemapPath)
+
+	// try getting it with http get
+	sitemapEndpoint := fmt.Sprintf("http://%s/%s", listener.Addr().String(), sitemapWithBadJsonLd)
+	// assert you can ping the endpoint
+	resp, err := http.Get(sitemapEndpoint)
+	require.NoError(t, err, "Could not get %s", sitemapEndpoint)
+	require.Equal(t, 200, resp.StatusCode, "Wrong error code for %s", sitemapEndpoint)
+
+	// assert you can ping the bad jsonld
+	badJsonLdEndpoint := fmt.Sprintf("http://%s/badjsonld.jsonld", listener.Addr().String())
+	// assert you can ping the endpoint
+	resp, err = http.Get(badJsonLdEndpoint)
+	require.NoError(t, err, "Could not get %s", badJsonLdEndpoint)
+	require.Equal(t, 200, resp.StatusCode, "Wrong error code for %s", badJsonLdEndpoint)
+
+	confToAppendTo := "justMainstemsLocalEndpoint.yaml"
+	// create the config that gleaner will use to find the proper sitemap
+	newConfig, err := test_helpers.NewTempConfig(confToAppendTo, sampleConfDir)
+	require.NoError(t, err)
+	defer os.Remove(newConfig)
+
+	test_helpers.MutateConfigSourceUrl(newConfig, 0, sitemapEndpoint)
+
+	gleanerCliArgs := &GleanerCliArgs{
+		AccessKey:    minioHandle.Container.Username,
+		SecretKey:    minioHandle.Container.Password,
+		Address:      strings.Split(url, ":")[0],
+		Port:         strings.Split(url, ":")[1],
+		Config:       newConfig,
+		SetupBuckets: true,
+	}
+
+	err = Gleaner(gleanerCliArgs)
+	require.NoError(t, err)
+
+	_, orgs1, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "orgs/")
+	require.NoError(t, err)
+	require.Equal(t, 1, len(orgs1))
+
+	// Although there are two sites in the sitemap, only one is
+	// summoned since the second site has an incorrect jsonld
+	_, summoned1, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	require.NoError(t, err)
+	require.Equal(t, 1, len(summoned1))
 }
