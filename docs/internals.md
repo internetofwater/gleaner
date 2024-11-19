@@ -1,5 +1,7 @@
 # Gleaner Internals
 
+This document describes the internal workings of Gleaner. The rest of the old documentation has been moved into the [`archive`](./archive/) folder given the fact that some was outdated.
+
 ## Walkthrough of the e2e path
 
 1. Read in CLI arguments with Viper
@@ -14,7 +16,9 @@
 4. Summon the sitemaps
     1. Get all the sources in the gleaner config of type API
     2. Run ResRetrieve to pull down the data graphs at resources
-        - For each url associated with a given domain, spawn a go routine with getDomain
+        - For each url associated with a given domain, spawn a go routine with `getDomain`
+
+TODO: There is more code after this that can be further documented, but these may be refactored as the codebase matures and is in goroutines making in slightly harder to reason about. 
 
 ## Properties
 
