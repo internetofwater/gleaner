@@ -13,8 +13,12 @@
     2. For every site in the sitegraph list
 4. Summon the sitemaps
     1. Get all the sources in the gleaner config of type API
-        *       
     2. Run ResRetrieve to pull down the data graphs at resources
-    3. For each url associated with a given domain, spawn a go routine with getDomain
+        - For each url associated with a given domain, spawn a go routine with getDomain
 
 ## Properties
+
+Every time gleaner is ran, the amount of items in the s3 bucket is the same or greater
+- There is nowhere in the gleaner codebase that removes objects in the minio store
+
+Confusingly, even though there is a ladmod tag in the sitemap XML, it appears that gleaner ignores this. If the site is already in the bucket then it is not recrawled, regardless of if the lastmod date is different. 

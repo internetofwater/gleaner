@@ -1,15 +1,21 @@
 package test_helpers
 
 import (
-	"log"
+	"gleaner/internal/config"
+	"gleaner/internal/projectpath"
 	"net"
 	"net/http"
+	"path/filepath"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Spin up a simple file server for serving sitemaps or other static files
 func ServeSampleConfigDir() (*http.Server, net.Listener, error) {
 
-	http.Handle("/", http.FileServer(http.Dir("./sample_configs")))
+	dir := filepath.Join(projectpath.Root, "test_helpers", "sample_configs")
+
+	http.Handle("/", http.FileServer(http.Dir(dir)))
 
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
@@ -29,4 +35,54 @@ func ServeSampleConfigDir() (*http.Server, net.Listener, error) {
 	}()
 
 	return server, listener, nil
+}
+
+// Create a config file with a specific url in the sources array replaced with a dynamic url value at runtime
+func NewTempConfig(fileName, configDir string) (string, error) {
+	conf, err := config.ReadGleanerConfig(fileName, configDir)
+	if err != nil {
+		return "", err
+	}
+
+	// Generate a temporary file path
+	tempConfigPath := filepath.Join(configDir, "mockedGleanerConfig.yaml")
+
+	// Write the modified configuration to the temporary file
+	err = conf.WriteConfigAs(tempConfigPath)
+	if err != nil {
+		return "", err
+	}
+
+	return tempConfigPath, nil
+}
+
+// Update the value of the url in the sources array
+func MutateConfigSourceUrl(configPath string, index int, url string) error {
+	base := filepath.Base(configPath)
+	dir := filepath.Dir(configPath)
+
+	conf, err := config.ReadGleanerConfig(base, dir)
+	if err != nil {
+		return err
+	}
+
+	// Get the sources array
+	// Retrieve the sources array
+	var sources []map[string]interface{}
+	if err := conf.UnmarshalKey("sources", &sources); err != nil {
+		return err
+	}
+
+	// Update the url in the sources array
+	sources[index]["url"] = url
+
+	conf.Set("sources", sources)
+
+	// Write the modified configuration to the temporary file
+	err = conf.WriteConfigAs(configPath)
+	if err != nil {
+		return err
+	}
+	return nil
+
 }

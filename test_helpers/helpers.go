@@ -52,6 +52,53 @@ func AssertObjectCount(t *testing.T, mc *minioClient.Client, subDir string, expe
 
 }
 
+// Minio does not guarantee order of objects, so we need to check that every object in arr1 is present in arr2
+func SameObjects(t *testing.T, arr1, arr2 []minioClient.ObjectInfo, requireSameModDate, requireSameSize bool) (bool, string) {
+	if len(arr1) != len(arr2) {
+		return false, "different number of objects"
+	}
+
+	for _, obj1 := range arr1 {
+		found := false
+		for _, obj2 := range arr2 {
+			if obj1.Key == obj2.Key {
+				if requireSameModDate && obj1.LastModified != obj2.LastModified {
+					return false, fmt.Sprintf("object %s has different mod date", obj1.Key)
+				}
+				if requireSameSize && obj1.Size != obj2.Size {
+					return false, fmt.Sprintf("object %s has different size", obj1.Key)
+				}
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false, fmt.Sprintf("object %s not found", obj1.Key)
+		}
+	}
+	return true, ""
+}
+
+func SameDates(arr1 []minioClient.ObjectInfo, arr2 []minioClient.ObjectInfo) bool {
+	if len(arr1) != len(arr2) {
+		return false
+	}
+
+	keyMap := make(map[string]time.Time)
+
+	for _, obj1 := range arr1 {
+		keyMap[obj1.Key] = obj1.LastModified
+	}
+
+	for _, obj2 := range arr2 {
+		if lastModified, found := keyMap[obj2.Key]; !found || lastModified != obj2.LastModified {
+			return false
+		}
+	}
+
+	return true
+}
+
 func RequireFilenameExists(t *testing.T, arr []minioClient.ObjectInfo, filename string) {
 	for _, obj := range arr {
 		if obj.Key == filename {

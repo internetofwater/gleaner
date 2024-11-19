@@ -38,7 +38,7 @@ func TestBuildJSONLDFromSource(t *testing.T) {
 // and upload it to minio as n-quads
 func TestOrgNQsInMinio(t *testing.T) {
 
-	v1, err := config.ReadGleanerConfig("just_mainstems.yaml", "../../test_helpers/sample_configs")
+	v1, err := config.ReadGleanerConfig("justMainstems.yaml", "../../test_helpers/sample_configs")
 	assert.NoError(t, err)
 
 	minioHelper, err := test_helpers.NewMinioHandle("minio/minio:latest")

@@ -1,0 +1,36 @@
+context:
+  cache: true
+  strict: true
+contextmaps:
+# this is a filepath relative to the root of the project
+- file: assets/schemaorg-current-http.jsonld
+  prefix: https://schema.org/
+gleaner:
+  mill: false
+  runid: gleanerbucket
+  summon: true
+millers:
+  graph: true
+minio:
+  accessKey: minioadmin
+  address: localhost
+  bucket: gleanerbucket
+  port: 9000
+  region: us
+  secretKey: minioadmin
+  ssl: false
+sources:
+- active: 'true'
+  domain: https://pids.geoconnex.dev
+  headless: 'false'
+  name: mainstems
+  pid: https://gleaner.io/genid/geoconnex
+  propername: mainstems
+  sourcetype: sitemap
+  url: https://pids.geoconnex.dev/sitemap/ref/mainstems/FILETHATDOESNTEXIST.XML
+summoner:
+  after: ''
+  delay: null
+  headless: null
+  mode: full
+  threads: 5
