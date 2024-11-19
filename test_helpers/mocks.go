@@ -10,21 +10,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Spin up a simple file server for serving sitemaps or other static files
 func ServeSampleConfigDir() (*http.Server, net.Listener, error) {
-
 	dir := filepath.Join(projectpath.Root, "test_helpers", "sample_configs")
 
-	http.Handle("/", http.FileServer(http.Dir(dir)))
+	fileServer := http.FileServer(http.Dir(dir))
+	mux := http.NewServeMux()
+	mux.Handle("/", fileServer)
 
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Start the server
 	server := &http.Server{
-		Handler: http.DefaultServeMux,
+		Handler: mux,
 	}
 
 	go func() {
