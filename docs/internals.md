@@ -20,5 +20,8 @@
 
 Every time gleaner is ran, the amount of items in the s3 bucket is the same or greater
 - There is nowhere in the gleaner codebase that removes objects in the minio store
+- Gleaner runs are additive. If you run with one config and then run again with the same config, 
 
-Confusingly, even though there is a ladmod tag in the sitemap XML, it appears that gleaner ignores this. If the site is already in the bucket then it is not recrawled, regardless of if the lastmod date is different. 
+Confusingly, even though there is a `lastmod` tag in the sitemap XML, it appears that gleaner ignores this. If the site is already in the bucket then it is not recrawled, regardless of if the lastmod date is different. 
+
+If the source's jsonld is incorrect, gleaner fall back automatically to trying to use headless chrome to render the page. If that fails then it is logged and nothing is added to the bucket. 
