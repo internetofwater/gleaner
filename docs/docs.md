@@ -108,14 +108,18 @@ sources:
 
 ## Controls how gleaner actually puts the data in the s3 bucket
 summoner:
+  # Doesn't appear to be implemented. Intended to allow for crawling only after a certain time
   after: ''
+  # milliseconds (1000 = 1 second) to delay between calls (will FORCE threads to 1)
   delay: null
-  headless: null
+  # URL for headless chrome that gleaner can use to connect to
+  headless: 127.0.0.1:9222
 
   ## Supposed to be full || diff:  If diff compare what we have currently in gleaner to sitemap, get only new, delete missing
   ## CUrrently only full is supported
   mode: full
 
+  ## Controls how many concurrent URLs gleaner can crawl at once (and thus how many goroutines are spawned at once). 
   ## If this is not specified or is 0 then gleaner will hang and never run
   threads: 5
 ```
