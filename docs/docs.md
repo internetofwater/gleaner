@@ -4,6 +4,13 @@ This document describes the internal workings of Gleaner. It is written after th
 
 There is a significant amount of behavior in Gleaner that is still in development or is unused. This document does not cover parts like these that are not needed in Geoconnex. 
 
+## Testing 
+
+All behavior in this repo is covered by tests that run in CI
+
+- unit tests: `go test ./...`
+- e2e tests: `go test -tags 'e2e' ./...` (runs [root_test.go](../cmd/root_test.go))
+
 ## Walkthrough of the e2e path
 
 1. Read in CLI arguments with Viper
