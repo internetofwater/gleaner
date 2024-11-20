@@ -112,8 +112,8 @@ summoner:
   delay: null
   headless: null
 
-  ## Unclear if this is implemented
   ## Supposed to be full || diff:  If diff compare what we have currently in gleaner to sitemap, get only new, delete missing
+  ## CUrrently only full is supported
   mode: full
 
   ## If this is not specified or is 0 then gleaner will hang and never run
