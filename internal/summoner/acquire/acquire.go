@@ -1,6 +1,7 @@
 package acquire
 
 import (
+	"fmt"
 	"gleaner/internal/common"
 	"net/http"
 	"net/url"
@@ -229,7 +230,10 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 
 			UploadWithLogsAndMetadata(v1, mc, cfg.BucketName, sourceName, urlloc, repologger, repoStats, jsonlds)
 
-			bar.Add(1)                                              // bar.Incr()
+			err = bar.Add(1) // bar.Incr()
+			if err != nil {
+				log.Error(err) // print an message containing the index (won't keep order)
+			}
 			log.Trace("#", i, "thread for", urlloc)                 // print an message containing the index (won't keep order)
 			time.Sleep(time.Duration(cfg.Delay) * time.Millisecond) // sleep a bit if directed to by the provider
 
@@ -244,7 +248,12 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 
 func FindJSONInResponse(v1 *viper.Viper, urlloc string, jsonProfile string, repologger *log.Logger, response *http.Response) ([]string, error) {
 	// NewDocumentResponse is deprecated but the alternative doesn't seem to work
-	doc, err := goquery.NewDocumentFromResponse(response)
+	body := response.Body
+	if body == nil {
+		return nil, fmt.Errorf("body not found on response")
+	}
+
+	doc, err := goquery.NewDocumentFromReader(response.Body)
 	if err != nil {
 		return nil, err
 	}

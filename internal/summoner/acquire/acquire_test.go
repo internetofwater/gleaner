@@ -2,7 +2,6 @@ package acquire
 
 import (
 	"bytes"
-	"errors"
 	"io"
 	"net/http"
 	"testing"
@@ -122,9 +121,10 @@ func TestFindJSONInResponse(t *testing.T) {
 	}
 
 	t.Run("It returns an error if the response document cannot be parsed", func(t *testing.T) {
-		result, err := FindJSONInResponse(viper, urlloc, JSONContentType, logger, nil)
+		// create dummy response object
+		result, err := FindJSONInResponse(viper, urlloc, JSONContentType, logger, &http.Response{})
 		assert.Nil(t, result)
-		assert.Equal(t, errors.New("Response is nil"), err)
+		assert.Error(t, err)
 	})
 
 	t.Run("It finds JSON-LD in HTML document responses", func(t *testing.T) {

@@ -43,7 +43,7 @@ func TestHeadlessNG(t *testing.T) {
 		url          string
 		jsonldcount  int
 		headlessWait int
-		expectedFail bool "default:false"
+		expectedFail bool
 	}{
 		{name: "r2r_wait_5_works_returns_2_jsonld",
 			url:          "https://dev.rvdata.us/search/fileset/100135",

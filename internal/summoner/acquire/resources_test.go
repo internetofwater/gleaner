@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/temoto/robotstxt"
@@ -23,7 +24,10 @@ func TestGetRobotsForDomain(t *testing.T) {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
-		w.Write([]byte(robots))
+		_, err := w.Write([]byte(robots))
+		if err != nil {
+			log.Error(err)
+		}
 	})
 	// generate a test server so we can capture and inspect the request
 	testServer := httptest.NewServer(mux)

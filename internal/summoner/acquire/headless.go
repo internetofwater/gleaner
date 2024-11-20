@@ -397,9 +397,7 @@ func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologge
 			repoStats.Inc(common.Issues)
 		} else if valid && jsonld != "" { // traps out the root domain...   should do this different
 			response = append(response, jsonld)
-			err = nil
 			// need to just return a list
-
 		} else {
 			// there could be one bad jsonld, and one good. We want to process the jsonld
 			// so, do not set an err

@@ -67,7 +67,10 @@ func GraphNG(mc *minio.Client, prefix string, v1 *viper.Viper) error {
 			wg.Done() // tell the wait group that we be done
 			log.Debug("Doc:", object.Key, "error:", err)
 
-			bar.Add(1) //bar1.Incr()
+			err = bar.Add(1) //bar1.Incr()
+			if err != nil {
+				log.Error(err)
+			}
 			<-semaphoreChan
 		}(object)
 	}

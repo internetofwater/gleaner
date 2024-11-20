@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var invalidJson = `This isn't JSON at all:".`
@@ -24,36 +25,39 @@ var validJson = `{
         }
     ]
 }`
-var arrayJsonCtx = `{
-    "@graph":[
-        {
-            "@context": [
-					"https://schema.org/",
-					
-				  ],
-            "@type":"bar",
-            "SO:name":"Some type in a graph"
-        }
-    ]
-}`
 
-// this has no @vocab or schema namespace defined, and is an object
-var mangledJsonCtx = `{
-    "@graph":[
-        {
-            "@context": [
-					"https://schema.org/",
-					{
-					  "gsqtime": "https://vocabs.gsq.digital/object?uri=http://linked.data.gov.au/def/trs",
-					  "time": "http://www.w3.org/2006/time#",
-					  "xsd": "https://www.w3.org/TR/2004/REC-xmlschema-2-20041028/datatypes.html"
-					}
-				  ],
-            "@type":"bar",
-            "SO:name":"Some type in a graph"
-        }
-    ]
-}`
+// unused for now
+// var arrayJsonCtx = `{
+//     "@graph":[
+//         {
+//             "@context": [
+// 					"https://schema.org/",
+
+// 				  ],
+//             "@type":"bar",
+//             "SO:name":"Some type in a graph"
+//         }
+//     ]
+// }`
+
+// // this has no @vocab or schema namespace defined, and is an object
+//
+//	var mangledJsonCtx = `{
+//	    "@graph":[
+//	        {
+//	            "@context": [
+//						"https://schema.org/",
+//						{
+//						  "gsqtime": "https://vocabs.gsq.digital/object?uri=http://linked.data.gov.au/def/trs",
+//						  "time": "http://www.w3.org/2006/time#",
+//						  "xsd": "https://www.w3.org/TR/2004/REC-xmlschema-2-20041028/datatypes.html"
+//						}
+//					  ],
+//	            "@type":"bar",
+//	            "SO:name":"Some type in a graph"
+//	        }
+//	    ]
+//	}`
 var contextObjectGraphJson = `{
 		"@context": {
 		"rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
@@ -277,6 +281,7 @@ func TestContextUrlFix(t *testing.T) {
 			t.Fatal("error reading source file:", err)
 		}
 		result, err := fixContextUrl(string(source), httpsContext)
+		require.NoError(t, err)
 		pathex := filepath.Join("testdata", "jsonutils", "expectedContextObjGraph.json")
 		assert.FileExistsf(t, pathex, "Datafile Missing: {path}")
 		expected, err := os.ReadFile(pathex)

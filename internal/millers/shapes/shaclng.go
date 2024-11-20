@@ -24,8 +24,16 @@ func ShapeNG(mc *minio.Client, prefix string, v1 *viper.Viper) error {
 	//miniocfg := v1.GetStringMapString("minio")
 	//bucketName := miniocfg["bucket"] //   get the top level bucket for all of gleaner operations from config file
 	bucketName, err := configTypes.GetBucketName(v1)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
 
-	loadShapeFiles(mc, v1) // TODO, this should be done in main
+	err = loadShapeFiles(mc, v1) // TODO, this should be done in main
+	if err != nil {
+		log.Error(err)
+		return err
+	}
 
 	// My go func controller vars
 	semaphoreChan := make(chan struct{}, 30) // a blocking channel to keep concurrency under control (1 == single thread)

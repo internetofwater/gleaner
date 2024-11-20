@@ -31,8 +31,6 @@ http://jsonpath.herokuapp.com/
 There are four implementations... so you can see if one might be a little quirky
 */
 
-// jsonexpectations is in test_common_structs
-
 // testdata is in internal/common/testdata/identifier
 // thoughts are that these many be migrated to  an Approval Test approach.
 // gets rid of the extpectations part, and would match the entire returned identifier object.
@@ -42,12 +40,12 @@ There are four implementations... so you can see if one might be a little quirky
 type jsonexpectations struct {
 	name            string
 	json            map[string]string
-	IdentifierType  string `default:JsonSha`
+	IdentifierType  string
 	IdentifierPaths string
 	expected        string
 	expectedPath    string
-	errorExpected   bool `default:false`
-	ignore          bool `default:false`
+	errorExpected   bool
+	ignore          bool
 }
 
 // using idenfiters as a stand in for array of identifiers.

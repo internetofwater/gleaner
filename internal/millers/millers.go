@@ -56,6 +56,8 @@ func Millers(mc *minio.Client, v1 *viper.Viper) {
 		log.Info("Adding bucket to prov building list:", m)
 	}
 
+	log.Infof("Prov buckets: %v", provBuckets)
+
 	mcfg := v1.GetStringMapString("millers") // get the millers we want to run from the config file
 
 	// Graph is the miller to convert from JSON-LD to nquads with validation of well formed

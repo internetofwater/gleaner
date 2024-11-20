@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +20,10 @@ func TestGetRobotsTxt(t *testing.T) {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
-		w.Write([]byte(robotsHeader))
+		_, err := w.Write([]byte(robotsHeader))
+		if err != nil {
+			log.Error(err)
+		}
 	})
 
 	// generate a test server so we can capture and inspect the request

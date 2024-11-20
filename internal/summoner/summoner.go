@@ -29,7 +29,10 @@ func RunStatsToFile(runStats *common.RunStats) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	logFile.WriteString(runStats.Output())
+	_, err = logFile.WriteString(runStats.Output())
+	if err != nil {
+		log.Fatal(err)
+	}
 	logFile.Close()
 }
 

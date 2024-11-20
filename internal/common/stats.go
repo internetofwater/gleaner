@@ -45,7 +45,10 @@ func (c *RunStats) OutputToFile() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	logFile.WriteString(c.Output())
+	_, err = logFile.WriteString(c.Output())
+	if err != nil {
+		log.Fatal(err)
+	}
 	logFile.Close()
 }
 
@@ -148,6 +151,9 @@ func RunRepoStatsOutput(repoStats *RepoStats, source string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	logFile.WriteString(repoStats.Output())
+	_, err = logFile.WriteString(repoStats.Output())
+	if err != nil {
+		log.Fatal(err)
+	}
 	logFile.Close()
 }

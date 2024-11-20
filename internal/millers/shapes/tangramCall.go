@@ -130,7 +130,10 @@ func shaclCallNG(url, dg, sg string) (string, error) {
 	writer := multipart.NewWriter(body)
 	// writer.WriteField("datagraph", urlval)
 	// writer.WriteField("shapegraph", sgkey)
-	writer.WriteField("fmt", "nt")
+	err := writer.WriteField("fmt", "nt")
+	if err != nil {
+		return "", err
+	}
 
 	//part, err := writer.CreateFormFile("datagraph", "datagraph")
 	part, err := writer.CreateFormFile("dg", "datagraph")

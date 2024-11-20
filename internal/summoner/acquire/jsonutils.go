@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"reflect"
 	"strings"
 
 	"gleaner/internal/config"
@@ -92,28 +91,29 @@ func isValid(v1 *viper.Viper, jsonld string) (bool, error) {
 const httpContext = "http://schema.org/"
 const httpsContext = "https://schema.org/"
 
-func fixContext(jsonld string, option config.ContextOption) (string, error) {
-	var err error
+// this is unused
+// func fixContext(jsonld string, option config.ContextOption) (string, error) {
+// 	var err error
 
-	if option == config.Strict {
-		return jsonld, nil
-	}
-	jsonContext := gjson.Get(jsonld, "@context")
+// 	if option == config.Strict {
+// 		return jsonld, nil
+// 	}
+// 	jsonContext := gjson.Get(jsonld, "@context")
 
-	var ctxSchemaOrg = httpsContext
-	if option == config.Http {
-		ctxSchemaOrg = httpContext
-	}
+// 	var ctxSchemaOrg = httpsContext
+// 	if option == config.Http {
+// 		ctxSchemaOrg = httpContext
+// 	}
 
-	switch reflect.ValueOf(jsonContext).Kind() {
-	case reflect.String:
-		jsonld, err = fixContextString(jsonld, config.Https)
-	case reflect.Slice:
-		jsonld, err = fixContextArray(jsonld, config.Https)
-	}
-	jsonld, err = fixContextUrl(jsonld, ctxSchemaOrg)
-	return jsonld, err
-}
+// 	switch reflect.ValueOf(jsonContext).Kind() {
+// 	case reflect.String:
+// 		jsonld, err = fixContextString(jsonld, config.Https)
+// 	case reflect.Slice:
+// 		jsonld, err = fixContextArray(jsonld, config.Https)
+// 	}
+// 	jsonld, err = fixContextUrl(jsonld, ctxSchemaOrg)
+// 	return jsonld, err
+// }
 
 // Our first json fixup in existence.
 // If the top-level JSON-LD context is a string instead of an object,
@@ -171,7 +171,7 @@ func fixContextArray(jsonld string, option config.ContextOption) (string, error)
 	case []interface{}: // array
 		jsonld, err = standardizeContext(jsonld, config.StandardizedHttps)
 	case map[string]interface{}: // array
-		jsonld = jsonld
+		// jsonld = jsonld ineffectual assignment commented out
 	}
 	return jsonld, err
 }
@@ -276,17 +276,14 @@ func standardizeContext(jsonld string, option config.ContextOption) (string, err
 
 // there is a cleaner way to handle this...
 func getOptions(ctxOption config.ContextOption) (config.ContextOption, string) {
-	fixTpye := config.Https
 	ctxString := httpsContext
 	if ctxOption != config.Strict {
 		if ctxOption == config.Https || ctxOption == config.StandardizedHttps {
-			fixTpye = config.Https
 			ctxString = httpsContext
 		} else {
-			fixTpye = config.Http
 			ctxString = httpContext
 		}
-		return fixTpye, ctxString
+		return config.Https, ctxString
 	} else {
 		return config.Strict, ctxString
 	}
