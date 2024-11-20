@@ -10,7 +10,6 @@ import (
 
 	minioClient "github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/minio"
@@ -47,8 +46,8 @@ func AssertLinesMatchDisregardingOrder(expected string, actual string) bool {
 func AssertObjectCount(t *testing.T, mc *minioClient.Client, subDir string, expected int) {
 
 	_, summoned, err := GetGleanerBucketObjects(mc, subDir)
-	assert.NoError(t, err)
-	assert.Equal(t, expected, len(summoned))
+	require.NoError(t, err)
+	require.Equal(t, expected, len(summoned))
 
 }
 

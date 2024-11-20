@@ -276,8 +276,8 @@ func standardizeContext(jsonld string, option config.ContextOption) (string, err
 
 // there is a cleaner way to handle this...
 func getOptions(ctxOption config.ContextOption) (config.ContextOption, string) {
-	var fixTpye = config.Https
-	var ctxString = httpsContext
+	fixTpye := config.Https
+	ctxString := httpsContext
 	if ctxOption != config.Strict {
 		if ctxOption == config.Https || ctxOption == config.StandardizedHttps {
 			fixTpye = config.Https

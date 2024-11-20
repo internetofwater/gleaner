@@ -28,6 +28,9 @@ func shaclTestNG(v1 *viper.Viper, bucket, prefix string, mc *minio.Client, objec
 	//miniocfg := v1.GetStringMapString("minio")
 	//bucketName := miniocfg["bucket"] //   get the top level bucket for all of gleaner operations from config file
 	bucketName, err := configTypes.GetBucketName(v1)
+	if err != nil {
+		return "", err
+	}
 
 	key := object.Key // replace if new function idea works..
 
@@ -189,8 +192,14 @@ func shaclTest(urlval, dg, sgkey, sg string, gb *common.Buffer) int {
 	url := "http://localhost:8080/uploader" // TODO this should be set in the config file
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	writer.WriteField("datagraph", urlval)
-	writer.WriteField("shapegraph", sgkey)
+	err := writer.WriteField("datagraph", urlval)
+	if err != nil {
+		log.Error(err)
+	}
+	err = writer.WriteField("shapegraph", sgkey)
+	if err != nil {
+		log.Error(err)
+	}
 
 	part, err := writer.CreateFormFile("datagraph", "datagraph")
 	if err != nil {

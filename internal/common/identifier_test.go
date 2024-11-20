@@ -423,7 +423,7 @@ sources:
 				assert.Equal(t, test.expected, result.UniqueId, "uuid faild")
 				assert.Equal(t, test.expectedPath, result.MatchedPath, "matched path failed")
 				assert.Equal(t, test.IdentifierType, result.IdentifierType, "identifier failed")
-				assert.Nil(t, err)
+				assert.NoError(t, err)
 			})
 		}
 	}

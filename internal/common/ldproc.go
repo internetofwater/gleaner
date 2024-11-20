@@ -46,6 +46,10 @@ func GenerateJSONLDProcessor(v1 *viper.Viper) (*ld.JsonLdProcessor, *ld.JsonLdOp
 
 		for i := range contexts {
 			if FileExistsRelativeToRoot(contexts[i].File) {
+				// make the path absolute to the Root so we 
+				// don't need to deal with relative paths
+				// affecting behavior different in prod vs testing
+				contexts[i].File = filepath.Join(projectpath.Root, contexts[i].File)
 				m[contexts[i].Prefix] = contexts[i].File
 			} else {
 				return nil, nil, errors.New("context file location " + contexts[i].File + " does not exist")
@@ -54,7 +58,10 @@ func GenerateJSONLDProcessor(v1 *viper.Viper) (*ld.JsonLdProcessor, *ld.JsonLdOp
 
 		// Read mapping from config file
 		cdl := ld.NewCachingDocumentLoader(nl)
-		cdl.PreloadWithMapping(m)
+		err = cdl.PreloadWithMapping(m)
+		if err != nil {
+			return nil, nil, err
+		}
 		options.DocumentLoader = cdl
 	}
 

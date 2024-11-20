@@ -39,7 +39,7 @@ func TestBuildJSONLDFromSource(t *testing.T) {
 func TestOrgNQsInMinio(t *testing.T) {
 
 	v1, err := config.ReadGleanerConfig("justMainstems.yaml", "../../test_helpers/sample_configs")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	minioHelper, err := test_helpers.NewMinioHandle("minio/minio:latest")
 	require.NoError(t, err)
@@ -47,13 +47,16 @@ func TestOrgNQsInMinio(t *testing.T) {
 	err = check.MakeBuckets(minioHelper.Client, "gleanerbucket")
 	require.NoError(t, err)
 
-	defer testcontainers.TerminateContainer(minioHelper.Container)
+	defer func() {
+		err = testcontainers.TerminateContainer(minioHelper.Container)
+		assert.NoError(t, err)
+	}()
 
 	err = BuildOrgNqsAndUpload(minioHelper.Client, v1)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	sources, err := config.GetSources(v1)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	test_helpers.AssertObjectCount(t, minioHelper.Client, "orgs/", len(sources))
 
 }

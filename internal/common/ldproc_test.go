@@ -10,10 +10,14 @@ import (
 	"github.com/piprate/json-gold/ld"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFileExistsRelativeToRoot(t *testing.T) {
 	exists := FileExistsRelativeToRoot("./assets/schemaorg-current-https.jsonld")
+	assert.True(t, exists)
+
+	exists = FileExistsRelativeToRoot("assets/schemaorg-current-https.jsonld")
 	assert.True(t, exists)
 
 	exists = FileExistsRelativeToRoot("/assets/schemaorg-current-https.jsonld")
@@ -116,7 +120,8 @@ sources:
 `)
 	viperVal := viper.New()
 	viperVal.SetConfigType("yaml")
-	viperVal.ReadConfig(bytes.NewBuffer(vipercontext))
+	err := viperVal.ReadConfig(bytes.NewBuffer(vipercontext))
+	require.NoError(t, err)
 
 	for _, test := range tests {
 		for i, jsonld := range test.json {

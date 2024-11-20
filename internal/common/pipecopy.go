@@ -45,7 +45,10 @@ func PipeCopyNamedGraph(name, bucket, prefix string, mc *minio.Client) error {
 				log.Error(err)
 			}
 
-			pw.Write(b.Bytes())
+			n, err := pw.Write(b.Bytes())
+			if err != nil {
+				log.Errorf("failed to write %d bytes: %v", n, err)
+			}
 		}
 
 	}()

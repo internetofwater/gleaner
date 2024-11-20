@@ -144,11 +144,18 @@ func rdf2rdf(r string) (string, error) {
 
 	dec := rdf.NewTripleDecoder(strings.NewReader(r), inFormat)
 	tr, err := dec.DecodeAll()
+	if err != nil {
+		return "", err
+	}
 
 	enc := rdf.NewTripleEncoder(buf, outFormat)
 	err = enc.EncodeAll(tr)
 
 	enc.Close()
+
+	if err != nil {
+		return "", err
+	}
 
 	return buf.String(), err
 }

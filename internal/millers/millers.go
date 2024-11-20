@@ -62,7 +62,10 @@ func Millers(mc *minio.Client, v1 *viper.Viper) {
 	// TODO  none of these (graph, shacl, prov) deal with the returned error
 	if mcfg["graph"] == "true" {
 		for d := range activeBuckets {
-			graph.GraphNG(mc, activeBuckets[d], v1)
+			err := graph.GraphNG(mc, activeBuckets[d], v1)
+			if err != nil {
+				log.Error(err)
+			}
 		}
 	}
 
