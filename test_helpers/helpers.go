@@ -10,6 +10,7 @@ import (
 
 	minioClient "github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/minio"
@@ -53,19 +54,18 @@ func AssertObjectCount(t *testing.T, mc *minioClient.Client, subDir string, expe
 
 // Check that every object in arr1 is present in arr2 since Minio does not guarantee order of objects
 func SameObjects(t *testing.T, arr1, arr2 []minioClient.ObjectInfo, requireSameModDate, requireSameSize bool) (bool, string) {
-	if len(arr1) != len(arr2) {
-		return false, "different number of objects"
-	}
+	var modDateFailures int
+	var sizeFailures int
 
 	for _, obj1 := range arr1 {
 		found := false
 		for _, obj2 := range arr2 {
 			if obj1.Key == obj2.Key {
 				if requireSameModDate && obj1.LastModified != obj2.LastModified {
-					return false, fmt.Sprintf("object %s has different mod date", obj1.Key)
+					modDateFailures++
 				}
 				if requireSameSize && obj1.Size != obj2.Size {
-					return false, fmt.Sprintf("object %s has different size", obj1.Key)
+					sizeFailures++
 				}
 				found = true
 				break
@@ -75,6 +75,15 @@ func SameObjects(t *testing.T, arr1, arr2 []minioClient.ObjectInfo, requireSameM
 			return false, fmt.Sprintf("object %s not found", obj1.Key)
 		}
 	}
+
+	if modDateFailures > 0 {
+		return false, fmt.Sprintf("%d objects have different mod date", modDateFailures)
+	}
+
+	if sizeFailures > 0 {
+		return false, fmt.Sprintf("%d objects have different size", sizeFailures)
+	}
+
 	return true, ""
 }
 
@@ -133,6 +142,17 @@ func GetGleanerBucketObjects(mc *minioClient.Client, subDir string) ([]minioClie
 	}
 
 	return metadata, objects, nil
+}
+func DeleteObjects(mc *minioClient.Client, bucket string, objects []minioClient.ObjectInfo) error {
+	ctx := context.Background()
+	for _, obj := range objects {
+		err := mc.RemoveObject(ctx, bucket, obj.Key, minioClient.RemoveObjectOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to delete object %s: %v", obj.Key, err)
+		}
+		log.Printf("Deleted object: %s", obj.Key)
+	}
+	return nil
 }
 
 // Wrapper class over the testcontainer for a cleaner API

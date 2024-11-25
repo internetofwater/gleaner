@@ -624,7 +624,113 @@ func TestSameSitemapWithDifferentJSONLD(t *testing.T) {
 
 	strictCompareDates := true
 	strictCompareSizes := true
-	test_helpers.SameObjects(t, summonedInfo, summonedInfo2, strictCompareDates, strictCompareSizes)
+	same, msg := test_helpers.SameObjects(t, summonedInfo, summonedInfo2, strictCompareDates, strictCompareSizes)
+
+	require.True(t, same, msg)
 }
 
-// TODO check what causes the recrawl (url, modification time, content in the file, something else etc)
+// Check what happens when you change the name of the source in the yaml config but otherwise keep the
+// content of the sitemap and the associated urls the same
+// Test shows that a different source name does not cause the jsonld to be re-downloaded
+// the objects in s3 remain the same with the same content and datemodified
+func TestDifferentSourceNameWithSameSitemapXMLDoesntDownload(t *testing.T) {
+	minioHandle, err := test_helpers.NewMinioHandle("minio/minio:latest")
+	require.NoError(t, err)
+
+	url, _, err := minioHandle.ConnectionStrings()
+	require.NoError(t, err)
+
+	mainstemCliArgs := &GleanerCliArgs{
+		AccessKey:    minioHandle.Container.Username,
+		SecretKey:    minioHandle.Container.Password,
+		Address:      strings.Split(url, ":")[0],
+		Port:         strings.Split(url, ":")[1],
+		Config:       "../test_helpers/sample_configs/justMainstems.yaml",
+		SetupBuckets: true,
+	}
+
+	defer testcontainers.TerminateContainer(minioHandle.Container)
+
+	err = Gleaner(mainstemCliArgs)
+	summInfo, _, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	require.NoError(t, err)
+
+	// read in justMainstems but change the name of the line "name: mainstems"
+	justMainstemsPath := filepath.Join(projectpath.Root, "test_helpers", "sample_configs", "justMainstems.yml")
+	require.FileExists(t, justMainstemsPath)
+	justMainstems, err := os.ReadFile(justMainstemsPath)
+	require.NoError(t, err)
+
+	justMainstemsWithNewName := bytes.Replace(justMainstems, []byte("propername: mainstems"), []byte("name: DUMMY_NAME_TO_CHECK_IF_THIS_RECRAWLS"), 1)
+	justMainstemsWithNewName = bytes.Replace(justMainstemsWithNewName, []byte("name: mainstems"), []byte("name: DUMMY_NAME_TO_CHECK_IF_THIS_RECRAWLS"), 1)
+
+	// write it back as a temp file
+	tempFile, err := os.CreateTemp("", "justMainstems.yml")
+	require.NoError(t, err)
+	defer os.Remove(tempFile.Name())
+	_, err = tempFile.Write(justMainstemsWithNewName)
+	require.NoError(t, err)
+	err = tempFile.Close()
+	require.NoError(t, err)
+
+	mainstemCliArgs = &GleanerCliArgs{
+		AccessKey:    minioHandle.Container.Username,
+		SecretKey:    minioHandle.Container.Password,
+		Address:      strings.Split(url, ":")[0],
+		Port:         strings.Split(url, ":")[1],
+		Config:       tempFile.Name(),
+		SetupBuckets: true,
+	}
+
+	err = Gleaner(mainstemCliArgs)
+	summInfo2, _, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	require.NoError(t, err)
+
+	strictCompareDates := true
+	strictCompareSizes := true
+	same, msg := test_helpers.SameObjects(t, summInfo, summInfo2, strictCompareDates, strictCompareSizes)
+	require.True(t, same, msg)
+}
+
+// Check what happens when you remove files from s3 after a crawl and then recrawl the same source
+// Test shows that gleaner will not recrawl the same source. Files will stay deleted
+func TestWontRecrawlSameSourceAfterRemovingFilesInS3(t *testing.T) {
+	minioHandle, err := test_helpers.NewMinioHandle("minio/minio:latest")
+	require.NoError(t, err)
+
+	url, _, err := minioHandle.ConnectionStrings()
+	require.NoError(t, err)
+
+	mainstemCliArgs := &GleanerCliArgs{
+		AccessKey:    minioHandle.Container.Username,
+		SecretKey:    minioHandle.Container.Password,
+		Address:      strings.Split(url, ":")[0],
+		Port:         strings.Split(url, ":")[1],
+		Config:       "../test_helpers/sample_configs/justMainstems.yaml",
+		SetupBuckets: true,
+	}
+
+	defer testcontainers.TerminateContainer(minioHandle.Container)
+
+	err = Gleaner(mainstemCliArgs)
+	summInfo, _, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	require.NoError(t, err)
+
+	err = test_helpers.DeleteObjects(minioHandle.Client, "gleanerbucket", summInfo[1:])
+	require.NoError(t, err)
+	summAfterDeletingAndBeforeRecrawl, _, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	// make sure the s3 is in a different state
+	same, msg := test_helpers.SameObjects(t, summInfo, summAfterDeletingAndBeforeRecrawl, true, true)
+	require.False(t, same, msg)
+
+	err = Gleaner(mainstemCliArgs)
+	summInfo2, _, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	require.NoError(t, err)
+
+	strictCompareDates := true
+	strictCompareSizes := true
+	same, msg = test_helpers.SameObjects(t, summAfterDeletingAndBeforeRecrawl, summInfo2, strictCompareDates, strictCompareSizes)
+	// there is not distinction between first crawl - the deleted objects and the
+	// second crawl, even though there are no deleted objects the second time
+	require.True(t, same, msg)
+}
