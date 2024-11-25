@@ -97,7 +97,7 @@ func GraphNG(mc *minio.Client, prefix string, v1 *viper.Viper) error {
 	return err
 }
 
-// func uploadObj2RDF(fo io.Reader, key string, mc *minio.Client) (string, int64, error) {
+// Gets an jsonld file from minio, converts it to RDF, and uploads it to minio
 func uploadObj2RDF(bucketName, prefix string, mc *minio.Client, object minio.ObjectInfo, proc *ld.JsonLdProcessor, options *ld.JsonLdOptions) (string, error) {
 	// object is an object reader
 	stat, err := mc.StatObject(context.Background(), bucketName, object.Key, minio.GetObjectOptions{})

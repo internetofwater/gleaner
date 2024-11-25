@@ -271,7 +271,8 @@ func TestCrawlsAreAdditive(t *testing.T) {
 }
 
 // If we crawl a valid sitemap, but it then becomes invalid, the old nq files
-// should still be present in the s3 bucket
+// should still be present in the s3 bucket and nothing new should
+// have been summoned
 func TestConfigValidThenInvalid(t *testing.T) {
 	minioHandle, err := test_helpers.NewMinioHandle("minio/minio:latest")
 	require.NoError(t, err)
@@ -327,6 +328,7 @@ func TestConfigValidThenInvalid(t *testing.T) {
 
 // Check what happens if we crawl an entire sitemap and then
 // the next time we go to the sitemap, it no longer contains some sources
+// Since gleaner is idempotent, it should not add new files or touch old ones
 func TestFullThenAbbreviated(t *testing.T) {
 	minioHandle, err := test_helpers.NewMinioHandle("minio/minio:latest")
 	require.NoError(t, err)
@@ -380,7 +382,8 @@ func TestFullThenAbbreviated(t *testing.T) {
 	require.NoError(t, err, "Could not get %s", newConfigEndpoint)
 	require.Equal(t, 200, resp.StatusCode, "Wrong error code for %s", newConfigEndpoint)
 
-	test_helpers.MutateYamlSourceUrl(newConfig, 0, newConfigEndpoint)
+	err = test_helpers.MutateYamlSourceUrl(newConfig, 0, newConfigEndpoint)
+	require.NoError(t, err)
 
 	gleanerCliArgs = &GleanerCliArgs{
 		AccessKey:    minioHandle.Container.Username,
@@ -416,7 +419,8 @@ func TestFullThenAbbreviated(t *testing.T) {
 	require.NoError(t, err, "Could not get %s", differentDateEndpoint)
 	require.Equal(t, 200, resp.StatusCode, "Wrong error code for %s", differentDateEndpoint)
 
-	test_helpers.MutateYamlSourceUrl(newConfig, 0, differentDateEndpoint)
+	err = test_helpers.MutateYamlSourceUrl(newConfig, 0, differentDateEndpoint)
+	require.NoError(t, err)
 
 	gleanerCliArgs = &GleanerCliArgs{
 		AccessKey:    minioHandle.Container.Username,
@@ -444,7 +448,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 
 }
 
-// If there is an error in the jsonld nothing is summoned into the s3 bucket. This seems to be an issue
+// Test if there is an error in the jsonld nothing is summoned into the s3 bucket.
 // TODO: Make gleaner error handling better so the sitemap issues are not just logged
 // but returned to the callee as an error
 func TestIncorrectJsonLd(t *testing.T) {
@@ -515,7 +519,8 @@ func TestIncorrectJsonLd(t *testing.T) {
 	require.NoError(t, err)
 	defer os.Remove(newConfig)
 
-	test_helpers.MutateYamlSourceUrl(newConfig, 0, sitemapEndpoint)
+	err = test_helpers.MutateYamlSourceUrl(newConfig, 0, sitemapEndpoint)
+	require.NoError(t, err)
 
 	gleanerCliArgs := &GleanerCliArgs{
 		AccessKey:    minioHandle.Container.Username,
@@ -542,7 +547,7 @@ func TestIncorrectJsonLd(t *testing.T) {
 
 // Check what happens when the jsonld at a given source is changed
 // but the sitemap and url which points to it stays the same
-// Test shows that the jsonld is not re-downloaded and the objects in the s3 are the exact same
+// Test shows that if there is new jsonld it will be summoned
 func TestSameSitemapWithDifferentJSONLD(t *testing.T) {
 
 	minioHandle, err := test_helpers.NewMinioHandle("minio/minio:latest")
@@ -572,7 +577,8 @@ func TestSameSitemapWithDifferentJSONLD(t *testing.T) {
 
 	newConfigEndpoint := fmt.Sprintf("http://%s/%s", listener.Addr().String(), abbreviatedSitemap)
 
-	test_helpers.MutateYamlSourceUrl(mockedSitemapConfig, 0, newConfigEndpoint)
+	err = test_helpers.MutateYamlSourceUrl(mockedSitemapConfig, 0, newConfigEndpoint)
+	require.NoError(t, err)
 
 	defer os.Remove(mockedSitemapConfig)
 
@@ -595,16 +601,19 @@ func TestSameSitemapWithDifferentJSONLD(t *testing.T) {
 	abbreviateSitemapFile, err := os.ReadFile(filepath.Join(sampleConfDir, "mainstemSitemapWithoutMost.xml"))
 	require.NoError(t, err)
 	// replace https://pids.geoconnex.dev/ref/mainstems/35394 with the local endpoint
-	abbreviateSitemapFileWithNewJSONLD := bytes.Replace(abbreviateSitemapFile, []byte("https://pids.geoconnex.dev/ref/mainstems/35394"), []byte(newConfigEndpoint), 1)
+	newJSONLDEndpoint := fmt.Sprintf("http://%s/%s", listener.Addr().String(), "mainstem35394ButEdited.jsonld")
+	abbreviateSitemapFileWithNewJSONLD := bytes.Replace(abbreviateSitemapFile, []byte("https://pids.geoconnex.dev/ref/mainstems/35394"), []byte(newJSONLDEndpoint), 1)
 	// write it back as a temp file
-	tempFile, err := os.CreateTemp("", "mainstemSitemapWithoutMost.xml")
+	tempFile, err := os.CreateTemp(sampleConfDir, "mainstemSitemapWithoutMostAndDifferentJSONLD.xml")
 	require.NoError(t, err)
 	defer os.Remove(tempFile.Name())
 	_, err = tempFile.Write(abbreviateSitemapFileWithNewJSONLD)
 	require.NoError(t, err)
 	err = tempFile.Close()
 	require.NoError(t, err)
-	test_helpers.MutateYamlSourceUrl(mockedSitemapConfig, 0, tempFile.Name())
+	mockUrl := fmt.Sprintf("http://%s/%s", listener.Addr().String(), filepath.Base(tempFile.Name()))
+	err = test_helpers.MutateYamlSourceUrl(mockedSitemapConfig, 0, mockUrl)
+	require.NoError(t, err)
 
 	gleanerCliArgs = &GleanerCliArgs{
 		AccessKey:    minioHandle.Container.Username,
@@ -626,7 +635,9 @@ func TestSameSitemapWithDifferentJSONLD(t *testing.T) {
 	strictCompareSizes := true
 	same, msg := test_helpers.SameObjects(t, summonedInfo, summonedInfo2, strictCompareDates, strictCompareSizes)
 
-	require.True(t, same, msg)
+	// there should be new jsonld in s3 since we specified a url with a new jsonld payload that has a different
+	// sha from any of the other jsonld files
+	require.False(t, same, msg)
 }
 
 // Check what happens when you change the name of the source in the yaml config but otherwise keep the
@@ -693,8 +704,8 @@ func TestDifferentSourceNameWithSameSitemapXMLDoesntDownload(t *testing.T) {
 }
 
 // Check what happens when you remove files from s3 after a crawl and then recrawl the same source
-// Test shows that gleaner will not recrawl the same source. Files will stay deleted
-func TestWontRecrawlSameSourceAfterRemovingFilesInS3(t *testing.T) {
+// Test shows that gleaner will recrawl the same source. Files will stay deleted
+func TestRecrawlSameSourceAfterRemovingFilesInS3(t *testing.T) {
 	minioHandle, err := test_helpers.NewMinioHandle("minio/minio:latest")
 	require.NoError(t, err)
 
@@ -730,7 +741,68 @@ func TestWontRecrawlSameSourceAfterRemovingFilesInS3(t *testing.T) {
 	strictCompareDates := true
 	strictCompareSizes := true
 	same, msg = test_helpers.SameObjects(t, summAfterDeletingAndBeforeRecrawl, summInfo2, strictCompareDates, strictCompareSizes)
-	// there is not distinction between first crawl - the deleted objects and the
-	// second crawl, even though there are no deleted objects the second time
+	require.False(t, same, msg)
+}
+
+// Check what happens when you change the name of the source in the yaml config but otherwise keep the
+// content of the sitemap and the associated urls the same
+// Test shows that a different source name does not cause the jsonld to be re-downloaded
+// the objects in s3 remain the same with the same content and datemodified
+func TestDifferentSourceDifferentURLButSameSitemapXMLDoesntChangeS3(t *testing.T) {
+	minioHandle, err := test_helpers.NewMinioHandle("minio/minio:latest")
+	require.NoError(t, err)
+
+	url, _, err := minioHandle.ConnectionStrings()
+	require.NoError(t, err)
+
+	mainstemCliArgs := &GleanerCliArgs{
+		AccessKey:    minioHandle.Container.Username,
+		SecretKey:    minioHandle.Container.Password,
+		Address:      strings.Split(url, ":")[0],
+		Port:         strings.Split(url, ":")[1],
+		Config:       "../test_helpers/sample_configs/justMainstems.yaml",
+		SetupBuckets: true,
+	}
+
+	defer testcontainers.TerminateContainer(minioHandle.Container)
+
+	err = Gleaner(mainstemCliArgs)
+	summInfo, _, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	require.NoError(t, err)
+
+	// read in justMainstems but change the name of the line "name: mainstems"
+	justMainstemsPath := filepath.Join(projectpath.Root, "test_helpers", "sample_configs", "justMainstems.yml")
+	require.FileExists(t, justMainstemsPath)
+	justMainstems, err := os.ReadFile(justMainstemsPath)
+	require.NoError(t, err)
+
+	justMainstemsWithNewName := bytes.Replace(justMainstems, []byte("propername: mainstems"), []byte("name: DUMMY_NAME_TO_CHECK_IF_THIS_RECRAWLS"), 1)
+	justMainstemsWithNewName = bytes.Replace(justMainstemsWithNewName, []byte("name: mainstems"), []byte("name: DUMMY_NAME_TO_CHECK_IF_THIS_RECRAWLS"), 1)
+
+	// write it back as a temp file
+	tempFile, err := os.CreateTemp("", "justMainstems.yml")
+	require.NoError(t, err)
+	defer os.Remove(tempFile.Name())
+	_, err = tempFile.Write(justMainstemsWithNewName)
+	require.NoError(t, err)
+	err = tempFile.Close()
+	require.NoError(t, err)
+
+	mainstemCliArgs = &GleanerCliArgs{
+		AccessKey:    minioHandle.Container.Username,
+		SecretKey:    minioHandle.Container.Password,
+		Address:      strings.Split(url, ":")[0],
+		Port:         strings.Split(url, ":")[1],
+		Config:       tempFile.Name(),
+		SetupBuckets: true,
+	}
+
+	err = Gleaner(mainstemCliArgs)
+	summInfo2, _, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	require.NoError(t, err)
+
+	strictCompareDates := true
+	strictCompareSizes := true
+	same, msg := test_helpers.SameObjects(t, summInfo, summInfo2, strictCompareDates, strictCompareSizes)
 	require.True(t, same, msg)
 }

@@ -17,3 +17,5 @@ configs/local/
 ui_port.txt*
 
 *TestNormalizeTriple*
+mockedGleanerConfig*
+*__debug_bin*

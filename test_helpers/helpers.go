@@ -56,6 +56,9 @@ func AssertObjectCount(t *testing.T, mc *minioClient.Client, subDir string, expe
 func SameObjects(t *testing.T, arr1, arr2 []minioClient.ObjectInfo, requireSameModDate, requireSameSize bool) (bool, string) {
 	var modDateFailures int
 	var sizeFailures int
+	if len(arr1) != len(arr2) {
+		return false, fmt.Sprintf("object count mismatch: %d != %d", len(arr1), len(arr2))
+	}
 
 	for _, obj1 := range arr1 {
 		found := false

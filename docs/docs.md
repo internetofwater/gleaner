@@ -43,12 +43,29 @@ Confusingly, even though there is a `lastmod` tag in the sitemap XML, it appears
 
 If the source's jsonld is incorrect, gleaner fall back automatically to trying to use headless chrome to render the page. If that fails then it is logged and nothing is added to the bucket. 
 
+### Uploading to S3 / Summoning 
+
+During a crawl, gleaner always fetches the jsonld. It then uses the sha of the jsonld to determine if it has already been uploaded. If the sha matches the sha of a file already in the bucket, then it is skipped. Otherwise, it is uploaded. (There are other sha behaviors that can be specified in the gleaner config to change how uploading works. However, in general sha of the file is the only thing that matters when deciding to upload the file. Source name or url does not.)
+
+```go
+if _, err := mc.StatObject(context.Background(), bucketName, objectName, minio.StatObjectOptions{}); err == nil {
+```
+
+This sha comes from the identifier returned from the `ProcessJson` function. 
+
+
+```go
+objectName := fmt.Sprintf("summoned/%s/%s.jsonld", site, sha)
+```
+
+This uses the value of the sha desired in the config. If the sha is not specified, then `GenerateFileSha` is used. Filesha just takes the sha of the bytes in the file.
+
+
 ## Gleaner Config
 
 The gleaner config contains some fields that require extra explanation.
 
 The following is a sample config that is used for Geoconnex. There are more potential fields in a gleaner config but they are not needed for Geoconnex. 
-
 
 ```yaml
 context:

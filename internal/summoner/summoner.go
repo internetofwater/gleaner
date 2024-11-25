@@ -66,7 +66,7 @@ func SummonSitemaps(mc *minio.Client, v1 *viper.Viper) error {
 	// Get a list of resource URLs that do and don't require headless processing
 	domainToUrls, err := acquire.ResourceURLs(v1, mc, false)
 	if err != nil {
-		log.Info("Error getting urls that do not require headless processing:", err)
+		log.Error("Error getting urls that do not require headless processing:", err)
 	}
 	// just report the error, and then run gathered urls
 	if len(domainToUrls) > 0 {
