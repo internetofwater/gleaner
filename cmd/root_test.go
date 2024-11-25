@@ -431,9 +431,9 @@ func TestFullThenAbbreviated(t *testing.T) {
 
 	sumInfo3, summoned3, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
+	
 	// the third summon should not add any new files
 	require.Equal(t, len(summoned1), len(summoned3))
-
 	dateChecks = true
 	sizeChecks = true
 	res, msg = test_helpers.SameObjects(t, sumInfo2, sumInfo3, dateChecks, sizeChecks)

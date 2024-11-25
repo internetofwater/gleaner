@@ -11,14 +11,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Check the connections with a list buckets call
-func ConnCheck(mc *minio.Client) error {
-	buckets, err := mc.ListBuckets(context.Background())
-	log.Trace(buckets)
-
-	return err
-}
-
 func isExists(bucketName string, buckets []minio.BucketInfo) (exists bool) {
 
 	for _, search := range buckets {
@@ -30,7 +22,7 @@ func isExists(bucketName string, buckets []minio.BucketInfo) (exists bool) {
 }
 
 // Buckets checks the setup
-func buckets(mc *minio.Client, bucket string) error {
+func validateBuckets(mc *minio.Client, bucket string) error {
 	var err error
 
 	buckets, err := mc.ListBuckets(context.Background())
@@ -77,9 +69,11 @@ func Setup(mc *minio.Client, v1 *viper.Viper) error {
 		log.Error("Error reading gleaner config", err)
 		return err
 	}
-	// Validate Minio is up  TODO:  validate all expected containers are up
 	log.Info("Validating access to object store")
-	err = ConnCheck(mc)
+
+	// Check if we can connect, don't care about buckets at this point
+	_, err = mc.ListBuckets(context.Background())
+
 	if err != nil {
 		log.Error("Connection issue, make sure the minio server is running and accessible.", err)
 		return err
@@ -110,13 +104,9 @@ func PreflightChecks(mc *minio.Client, v1 *viper.Viper) error {
 		log.Error("missing bucket name.", err)
 		return err
 	}
-	err = ConnCheck(mc)
-	if err != nil {
-		log.Error("Connection issue, make sure the minio server is running and accessible.", err)
-		return err
-	}
+
 	//Check our bucket is ready
-	err = buckets(mc, bucketName)
+	err = validateBuckets(mc, bucketName)
 	if err != nil {
 		log.Error("Can not find bucket.", err)
 		return err
