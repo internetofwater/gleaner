@@ -629,7 +629,7 @@ func TestSameSitemapWithDifferentJSONLD(t *testing.T) {
 
 	summonedInfo2, summoned2, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
-	require.Equal(t, len(summoned), len(summoned2))
+	require.NotEqual(t, len(summoned), len(summoned2))
 
 	strictCompareDates := true
 	strictCompareSizes := true
