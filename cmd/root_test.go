@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -379,7 +380,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 	require.NoError(t, err, "Could not get %s", newConfigEndpoint)
 	require.Equal(t, 200, resp.StatusCode, "Wrong error code for %s", newConfigEndpoint)
 
-	test_helpers.MutateConfigSourceUrl(newConfig, 0, newConfigEndpoint)
+	test_helpers.MutateYamlSourceUrl(newConfig, 0, newConfigEndpoint)
 
 	gleanerCliArgs = &GleanerCliArgs{
 		AccessKey:    minioHandle.Container.Username,
@@ -415,7 +416,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 	require.NoError(t, err, "Could not get %s", differentDateEndpoint)
 	require.Equal(t, 200, resp.StatusCode, "Wrong error code for %s", differentDateEndpoint)
 
-	test_helpers.MutateConfigSourceUrl(newConfig, 0, differentDateEndpoint)
+	test_helpers.MutateYamlSourceUrl(newConfig, 0, differentDateEndpoint)
 
 	gleanerCliArgs = &GleanerCliArgs{
 		AccessKey:    minioHandle.Container.Username,
@@ -431,7 +432,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 
 	sumInfo3, summoned3, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
-	
+
 	// the third summon should not add any new files
 	require.Equal(t, len(summoned1), len(summoned3))
 	dateChecks = true
@@ -514,7 +515,7 @@ func TestIncorrectJsonLd(t *testing.T) {
 	require.NoError(t, err)
 	defer os.Remove(newConfig)
 
-	test_helpers.MutateConfigSourceUrl(newConfig, 0, sitemapEndpoint)
+	test_helpers.MutateYamlSourceUrl(newConfig, 0, sitemapEndpoint)
 
 	gleanerCliArgs := &GleanerCliArgs{
 		AccessKey:    minioHandle.Container.Username,
@@ -538,3 +539,92 @@ func TestIncorrectJsonLd(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, len(summoned1))
 }
+
+// Check what happens when the jsonld at a given source is changed
+// but the sitemap and url which points to it stays the same
+// Test shows that the jsonld is not re-downloaded and the objects in the s3 are the exact same
+func TestSameSitemapWithDifferentJSONLD(t *testing.T) {
+
+	minioHandle, err := test_helpers.NewMinioHandle("minio/minio:latest")
+	require.NoError(t, err)
+
+	url, _, err := minioHandle.ConnectionStrings()
+	require.NoError(t, err)
+
+	defer testcontainers.TerminateContainer(minioHandle.Container)
+
+	sampleConfDir := filepath.Join(projectpath.Root, "test_helpers", "sample_configs")
+	confToAppendTo := "justMainstemsLocalEndpoint.yaml"
+	// create the config that gleaner will use to find the proper sitemap
+	mockedSitemapConfig, err := test_helpers.NewTempConfig(confToAppendTo, sampleConfDir)
+	require.NoError(t, err)
+
+	// spin up the file server for our abbreviated sitemap
+	server, listener, err := test_helpers.ServeSampleConfigDir()
+	assert.NoError(t, err)
+	defer func() {
+		server.Close()
+		listener.Close()
+	}()
+
+	abbreviatedSitemap := "mainstemSitemapWithoutMost.xml"
+	require.FileExists(t, filepath.Join(sampleConfDir, abbreviatedSitemap))
+
+	newConfigEndpoint := fmt.Sprintf("http://%s/%s", listener.Addr().String(), abbreviatedSitemap)
+
+	test_helpers.MutateYamlSourceUrl(mockedSitemapConfig, 0, newConfigEndpoint)
+
+	defer os.Remove(mockedSitemapConfig)
+
+	gleanerCliArgs := &GleanerCliArgs{
+		AccessKey:    minioHandle.Container.Username,
+		SecretKey:    minioHandle.Container.Password,
+		Address:      strings.Split(url, ":")[0],
+		Port:         strings.Split(url, ":")[1],
+		Config:       mockedSitemapConfig,
+		SetupBuckets: true,
+	}
+
+	err = Gleaner(gleanerCliArgs)
+	require.NoError(t, err)
+
+	// get the total amount of objects summoned
+	summonedInfo, summoned, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	require.NoError(t, err)
+
+	abbreviateSitemapFile, err := os.ReadFile(filepath.Join(sampleConfDir, "mainstemSitemapWithoutMost.xml"))
+	require.NoError(t, err)
+	// replace https://pids.geoconnex.dev/ref/mainstems/35394 with the local endpoint
+	abbreviateSitemapFileWithNewJSONLD := bytes.Replace(abbreviateSitemapFile, []byte("https://pids.geoconnex.dev/ref/mainstems/35394"), []byte(newConfigEndpoint), 1)
+	// write it back as a temp file
+	tempFile, err := os.CreateTemp("", "mainstemSitemapWithoutMost.xml")
+	require.NoError(t, err)
+	defer os.Remove(tempFile.Name())
+	_, err = tempFile.Write(abbreviateSitemapFileWithNewJSONLD)
+	require.NoError(t, err)
+	err = tempFile.Close()
+	require.NoError(t, err)
+	test_helpers.MutateYamlSourceUrl(mockedSitemapConfig, 0, tempFile.Name())
+
+	gleanerCliArgs = &GleanerCliArgs{
+		AccessKey:    minioHandle.Container.Username,
+		SecretKey:    minioHandle.Container.Password,
+		Address:      strings.Split(url, ":")[0],
+		Port:         strings.Split(url, ":")[1],
+		Config:       mockedSitemapConfig,
+		SetupBuckets: true,
+	}
+
+	err = Gleaner(gleanerCliArgs)
+	require.NoError(t, err)
+
+	summonedInfo2, summoned2, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	require.NoError(t, err)
+	require.Equal(t, len(summoned), len(summoned2))
+
+	strictCompareDates := true
+	strictCompareSizes := true
+	test_helpers.SameObjects(t, summonedInfo, summonedInfo2, strictCompareDates, strictCompareSizes)
+}
+
+// TODO check what causes the recrawl (url, modification time, content in the file, something else etc)

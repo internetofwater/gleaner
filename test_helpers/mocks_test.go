@@ -45,7 +45,7 @@ func TestMockConfig(t *testing.T) {
 	require.NoError(t, err)
 	defer os.Remove(confName)
 
-	err = MutateConfigSourceUrl(confName, 0, "http://example.com")
+	err = MutateYamlSourceUrl(confName, 0, "http://example.com")
 	require.NoError(t, err)
 
 	// split the config path to get the filename

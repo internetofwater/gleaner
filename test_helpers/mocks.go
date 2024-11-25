@@ -56,7 +56,7 @@ func NewTempConfig(fileName, configDir string) (string, error) {
 }
 
 // Update the value of the url in the sources array
-func MutateConfigSourceUrl(configPath string, index int, url string) error {
+func MutateYamlSourceUrl(configPath string, index int, url string) error {
 	base := filepath.Base(configPath)
 	dir := filepath.Dir(configPath)
 

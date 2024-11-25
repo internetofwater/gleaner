@@ -51,7 +51,7 @@ func AssertObjectCount(t *testing.T, mc *minioClient.Client, subDir string, expe
 
 }
 
-// Minio does not guarantee order of objects, so we need to check that every object in arr1 is present in arr2
+// Check that every object in arr1 is present in arr2 since Minio does not guarantee order of objects
 func SameObjects(t *testing.T, arr1, arr2 []minioClient.ObjectInfo, requireSameModDate, requireSameSize bool) (bool, string) {
 	if len(arr1) != len(arr2) {
 		return false, "different number of objects"
