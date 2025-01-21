@@ -5,7 +5,7 @@ import (
 
 	"gleaner/internal/check"
 	config "gleaner/internal/config"
-	"gleaner/test_helpers"
+	"gleaner/testHelpers"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,10 +38,10 @@ func TestBuildJSONLDFromSource(t *testing.T) {
 // and upload it to minio as n-quads
 func TestOrgNQsInMinio(t *testing.T) {
 
-	v1, err := config.ReadGleanerConfig("justMainstems.yaml", "../../test_helpers/sample_configs")
+	v1, err := config.ReadGleanerConfig("justMainstems.yaml", "../../testHelpers/sampleConfigs")
 	require.NoError(t, err)
 
-	minioHelper, err := test_helpers.NewMinioHandle("minio/minio:latest")
+	minioHelper, err := testHelpers.NewMinioHandle("minio/minio:latest")
 	require.NoError(t, err)
 
 	err = check.MakeBuckets(minioHelper.Client, "gleanerbucket")
@@ -57,6 +57,6 @@ func TestOrgNQsInMinio(t *testing.T) {
 
 	sources, err := config.GetSources(v1)
 	require.NoError(t, err)
-	test_helpers.AssertObjectCount(t, minioHelper.Client, "orgs/", len(sources))
+	testHelpers.AssertObjectCount(t, minioHelper.Client, "orgs/", len(sources))
 
 }

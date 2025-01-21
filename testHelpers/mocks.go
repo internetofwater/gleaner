@@ -1,4 +1,4 @@
-package test_helpers
+package testHelpers
 
 import (
 	"gleaner/internal/config"
@@ -11,7 +11,7 @@ import (
 )
 
 func ServeSampleConfigDir() (*http.Server, net.Listener, error) {
-	dir := filepath.Join(projectpath.Root, "test_helpers", "sample_configs")
+	dir := filepath.Join(projectpath.Root, "testHelpers", "sampleConfigs")
 
 	fileServer := http.FileServer(http.Dir(dir))
 	mux := http.NewServeMux()

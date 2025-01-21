@@ -1,4 +1,4 @@
-package test_helpers
+package testHelpers
 
 import (
 	"context"
@@ -36,7 +36,7 @@ func TestDeleteObjects(t *testing.T) {
 	minioHandle, err := NewMinioHandle("minio/minio:latest")
 	require.NoError(t, err)
 
-	testFile := filepath.Join(projectpath.Root, "test_helpers", "sample_configs", "justMainstems.yml")
+	testFile := filepath.Join(projectpath.Root, "testHelpers", "sampleConfigs", "justMainstems.yml")
 
 	// create the gleanerbucket bucket
 	err = check.MakeBuckets(minioHandle.Client, "gleanerbucket")

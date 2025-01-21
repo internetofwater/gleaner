@@ -10,9 +10,7 @@ toolchain go1.23.0
 
 require (
 	github.com/PuerkitoBio/goquery v1.8.0
-	github.com/approvals/go-approval-tests v0.0.0-20220530063708-32d5677069bd
 	github.com/gosuri/uiprogress v0.0.1
-	github.com/knakk/rdf v0.0.0-20190304171630-8521bf4c5042
 	github.com/mafredri/cdp v0.34.1
 	github.com/minio/minio-go/v7 v7.0.68
 	github.com/ohler55/ojg v1.14.5
@@ -22,10 +20,9 @@ require (
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/viper v1.12.0
 	github.com/stretchr/testify v1.9.0
+	github.com/testcontainers/testcontainers-go v0.34.0
+	github.com/testcontainers/testcontainers-go/modules/minio v0.34.0
 	github.com/valyala/fasttemplate v1.2.2
-	github.com/xitongsys/parquet-go v1.6.0
-	github.com/xitongsys/parquet-go-source v0.0.0-20211010230925-397910c5e371
-	golang.org/x/crypto v0.24.0
 )
 
 require (
@@ -33,7 +30,6 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
-	github.com/apache/thrift v0.14.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/containerd/containerd v1.7.18 // indirect
 	github.com/containerd/log v0.1.0 // indirect
@@ -51,8 +47,6 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang/snappy v0.0.3 // indirect
-	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/gosuri/uilive v0.0.4 // indirect
@@ -86,7 +80,6 @@ require (
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
-	github.com/rogpeppe/go-internal v1.8.1 // indirect
 	github.com/shirou/gopsutil/v3 v3.23.12 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/spf13/afero v1.8.2 // indirect
@@ -94,8 +87,6 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.3.0 // indirect
-	github.com/testcontainers/testcontainers-go v0.34.0 // indirect
-	github.com/testcontainers/testcontainers-go/modules/minio v0.34.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
@@ -106,6 +97,7 @@ require (
 	go.opentelemetry.io/otel v1.24.0 // indirect
 	go.opentelemetry.io/otel/metric v1.24.0 // indirect
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect
+	golang.org/x/crypto v0.24.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
 	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/term v0.21.0 // indirect

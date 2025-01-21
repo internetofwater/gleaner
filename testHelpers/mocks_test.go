@@ -1,4 +1,4 @@
-package test_helpers
+package testHelpers
 
 import (
 	"fmt"
@@ -40,7 +40,7 @@ func TestServeStaticFile(t *testing.T) {
 // it and risk conflicting ports
 func TestMockConfig(t *testing.T) {
 
-	base := filepath.Join(projectpath.Root, "test_helpers", "sample_configs")
+	base := filepath.Join(projectpath.Root, "testHelpers", "sampleConfigs")
 	confName, err := NewTempConfig("justMainstemsLocalEndpoint.yml", base)
 	require.NoError(t, err)
 	defer os.Remove(confName)

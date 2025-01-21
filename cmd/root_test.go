@@ -18,7 +18,7 @@ import (
 
 	"gleaner/internal/projectpath"
 	sitemaps "gleaner/internal/summoner/sitemaps"
-	"gleaner/test_helpers"
+	"gleaner/testHelpers"
 
 	log "github.com/sirupsen/logrus"
 
@@ -31,7 +31,7 @@ import (
 // Test gleaner's e2e for a single source in a fresh s3 bucket
 func TestRootE2E(t *testing.T) {
 
-	minioHelper, err := test_helpers.NewMinioHandle("minio/minio:latest")
+	minioHelper, err := testHelpers.NewMinioHandle("minio/minio:latest")
 	require.NoError(t, err)
 	client := minioHelper.Client
 	url, _, err := minioHelper.ConnectionStrings()
@@ -43,7 +43,7 @@ func TestRootE2E(t *testing.T) {
 		Address:      strings.Split(url, ":")[0],
 		Port:         strings.Split(url, ":")[1],
 		Source:       "mainstems",
-		Config:       "../test_helpers/sample_configs/justMainstems.yaml",
+		Config:       "../testHelpers/sampleConfigs/justMainstems.yaml",
 		SetupBuckets: true,
 	}
 	log.Info("gleanerCliArgs: ", gleanerCliArgs)
@@ -58,7 +58,7 @@ func TestRootE2E(t *testing.T) {
 	require.Equal(t, buckets[0].Name, "gleanerbucket")
 
 	// After the first run, only one org metadata should be present
-	orgsInfo, orgs, err := test_helpers.GetGleanerBucketObjects(client, "orgs/")
+	orgsInfo, orgs, err := testHelpers.GetGleanerBucketObjects(client, "orgs/")
 
 	require.NoError(t, err)
 	require.Equal(t, 1, len(orgs)) // should only have one org since we only crawled one site
@@ -69,7 +69,7 @@ func TestRootE2E(t *testing.T) {
 	orgData1 := string(orgFirstFileBytes)
 
 	// After first run, we should have as many objects as sites in the sitemap
-	sumInfo, summoned, err := test_helpers.GetGleanerBucketObjects(client, "summoned/")
+	sumInfo, summoned, err := testHelpers.GetGleanerBucketObjects(client, "summoned/")
 	require.NoError(t, err)
 	sitesOnWebpage, err := sitemaps.ParseSitemap("https://pids.geoconnex.dev/sitemap/ref/mainstems/mainstems__0.xml")
 	require.NoError(t, err)
@@ -81,25 +81,25 @@ func TestRootE2E(t *testing.T) {
 	require.NoError(t, err)
 
 	// Check that after the second run, the org metadata should be unchanged since the orgs have not changed
-	orgsInfo2, orgs2, err := test_helpers.GetGleanerBucketObjects(client, "orgs/")
+	orgsInfo2, orgs2, err := testHelpers.GetGleanerBucketObjects(client, "orgs/")
 	require.NoError(t, err)
 	assert.Equal(t, len(orgsInfo2), len(orgsInfo))
 	assert.Equal(t, len(orgs2), len(orgsInfo))
 	orgFirstFileBytes2, err := io.ReadAll(orgs2[0])
 	orgData2 := string(orgFirstFileBytes2)
 	require.NoError(t, err)
-	result := test_helpers.AssertLinesMatchDisregardingOrder(orgData1, orgData2)
+	result := testHelpers.AssertLinesMatchDisregardingOrder(orgData1, orgData2)
 	assert.True(t, result)
 
 	// Check that the hash which is used to generate a particular file continues to exist after
 	// the second runs (i.e. the file was not removed)
-	test_helpers.RequireFilenameExists(t, orgsInfo2, orgFirstFileName)
+	testHelpers.RequireFilenameExists(t, orgsInfo2, orgFirstFileName)
 	// Check that the orgs file has updated metadata even though the content inside is the same
 	oldFirstFileDate := orgsInfo[0].LastModified
-	test_helpers.RequireFileWasModified(t, orgsInfo2, orgFirstFileName, oldFirstFileDate)
+	testHelpers.RequireFileWasModified(t, orgsInfo2, orgFirstFileName, oldFirstFileDate)
 
 	// Check that after the second run, we still have exactly as many objects in the summoned bucket as sites in the sitemap
-	sumInfo2, summoned2, err := test_helpers.GetGleanerBucketObjects(client, "summoned/")
+	sumInfo2, summoned2, err := testHelpers.GetGleanerBucketObjects(client, "summoned/")
 	require.NoError(t, err)
 	assert.Equal(t, len(sitesOnWebpage.URL), len(summoned2))
 	assert.Equal(t, len(sitesOnWebpage.URL), len(sumInfo2))
@@ -109,7 +109,7 @@ func TestRootE2E(t *testing.T) {
 // Test gleaner's e2e for the entire geoconnex pids sitemap
 func TestGeoconnexPids(t *testing.T) {
 
-	minioHandle, err := test_helpers.NewMinioHandle("minio/minio:latest")
+	minioHandle, err := testHelpers.NewMinioHandle("minio/minio:latest")
 	require.NoError(t, err)
 
 	url, _, err := minioHandle.ConnectionStrings()
@@ -120,7 +120,7 @@ func TestGeoconnexPids(t *testing.T) {
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
 		Port:         strings.Split(url, ":")[1],
-		Config:       "../test_helpers/sample_configs/geoconnex-pids.yaml",
+		Config:       "../testHelpers/sampleConfigs/geoconnex-pids.yaml",
 		SetupBuckets: true,
 	}
 
@@ -133,16 +133,16 @@ func TestGeoconnexPids(t *testing.T) {
 	mc := minioHandle.Client
 
 	assertCounts := func() {
-		test_helpers.AssertObjectCount(t, mc, "orgs/", 5)
-		test_helpers.AssertObjectCount(t, mc, "summoned/cdss0/", 30)
-		test_helpers.AssertObjectCount(t, mc, "prov/dams0/", 45)
-		test_helpers.AssertObjectCount(t, mc, "prov/nmwdist0/", 266)
-		test_helpers.AssertObjectCount(t, mc, "prov/refgages0/", 330)
-		test_helpers.AssertObjectCount(t, mc, "prov/refmainstems/", 66)
-		test_helpers.AssertObjectCount(t, mc, "summoned/dams0/", 45)
-		test_helpers.AssertObjectCount(t, mc, "summoned/nmwdist0/", 265)
-		test_helpers.AssertObjectCount(t, mc, "summoned/refgages0/", 330)
-		test_helpers.AssertObjectCount(t, mc, "summoned/refmainstems/", 66)
+		testHelpers.AssertObjectCount(t, mc, "orgs/", 5)
+		testHelpers.AssertObjectCount(t, mc, "summoned/cdss0/", 30)
+		testHelpers.AssertObjectCount(t, mc, "prov/dams0/", 45)
+		testHelpers.AssertObjectCount(t, mc, "prov/nmwdist0/", 266)
+		testHelpers.AssertObjectCount(t, mc, "prov/refgages0/", 330)
+		testHelpers.AssertObjectCount(t, mc, "prov/refmainstems/", 66)
+		testHelpers.AssertObjectCount(t, mc, "summoned/dams0/", 45)
+		testHelpers.AssertObjectCount(t, mc, "summoned/nmwdist0/", 265)
+		testHelpers.AssertObjectCount(t, mc, "summoned/refgages0/", 330)
+		testHelpers.AssertObjectCount(t, mc, "summoned/refmainstems/", 66)
 	}
 	assertCounts()
 
@@ -158,7 +158,7 @@ func TestGeoconnexPids(t *testing.T) {
 // since orgs are done before sitemap summoning
 func TestSitemapWithDeadLink(t *testing.T) {
 
-	minioHandle, err := test_helpers.NewMinioHandle("minio/minio:latest")
+	minioHandle, err := testHelpers.NewMinioHandle("minio/minio:latest")
 	require.NoError(t, err)
 
 	url, _, err := minioHandle.ConnectionStrings()
@@ -170,7 +170,7 @@ func TestSitemapWithDeadLink(t *testing.T) {
 		Address:      strings.Split(url, ":")[0],
 		Port:         strings.Split(url, ":")[1],
 		Source:       "DUMMY",
-		Config:       "../test_helpers/sample_configs/invalidSitemap.yaml",
+		Config:       "../testHelpers/sampleConfigs/invalidSitemap.yaml",
 		SetupBuckets: true,
 	}
 
@@ -180,12 +180,12 @@ func TestSitemapWithDeadLink(t *testing.T) {
 	require.NoError(t, err)
 
 	// After the first run, only one org metadata file should be present
-	_, orgs, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "orgs/")
+	_, orgs, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "orgs/")
 	require.NoError(t, err)
 	require.Equal(t, 1, len(orgs))
 
 	const prefixToGetAllItems = "" // If we don't specify a subdir, we get everything
-	_, allItems, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, prefixToGetAllItems)
+	_, allItems, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, prefixToGetAllItems)
 	require.NoError(t, err)
 	require.Equal(t, len(orgs), len(allItems)) // should only have one org since we only crawled one site
 }
@@ -193,7 +193,7 @@ func TestSitemapWithDeadLink(t *testing.T) {
 // We can crawl an entire config by omitting the source field
 func TestEntireConfigWithoutSingleSource(t *testing.T) {
 
-	minioHandle, err := test_helpers.NewMinioHandle("minio/minio:latest")
+	minioHandle, err := testHelpers.NewMinioHandle("minio/minio:latest")
 	require.NoError(t, err)
 
 	url, _, err := minioHandle.ConnectionStrings()
@@ -204,14 +204,14 @@ func TestEntireConfigWithoutSingleSource(t *testing.T) {
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
 		Port:         strings.Split(url, ":")[1],
-		Config:       "../test_helpers/sample_configs/justHu02.yaml",
+		Config:       "../testHelpers/sampleConfigs/justHu02.yaml",
 		SetupBuckets: true,
 	}
 
 	err = Gleaner(hu02CliArgs)
 	require.NoError(t, err)
 
-	_, summoned, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	_, summoned, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 	sitesOnWebpage, err := sitemaps.ParseSitemap("https://geoconnex.us/sitemap/ref/hu02/hu02__0.xml")
 	require.NoError(t, err)
@@ -222,7 +222,7 @@ func TestEntireConfigWithoutSingleSource(t *testing.T) {
 // the s3 bucket will contain both the old and new crawls
 func TestCrawlsAreAdditive(t *testing.T) {
 
-	minioHandle, err := test_helpers.NewMinioHandle("minio/minio:latest")
+	minioHandle, err := testHelpers.NewMinioHandle("minio/minio:latest")
 	require.NoError(t, err)
 
 	url, _, err := minioHandle.ConnectionStrings()
@@ -233,7 +233,7 @@ func TestCrawlsAreAdditive(t *testing.T) {
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
 		Port:         strings.Split(url, ":")[1],
-		Config:       "../test_helpers/sample_configs/justMainstems.yaml",
+		Config:       "../testHelpers/sampleConfigs/justMainstems.yaml",
 		SetupBuckets: true,
 	}
 
@@ -242,7 +242,7 @@ func TestCrawlsAreAdditive(t *testing.T) {
 	err = Gleaner(mainstemCliArgs)
 	require.NoError(t, err)
 
-	_, summoned, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	_, summoned, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 	mainstemWebpage, err := sitemaps.ParseSitemap("https://pids.geoconnex.dev/sitemap/ref/mainstems/mainstems__0.xml")
 	require.NoError(t, err)
@@ -253,14 +253,14 @@ func TestCrawlsAreAdditive(t *testing.T) {
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
 		Port:         strings.Split(url, ":")[1],
-		Config:       "../test_helpers/sample_configs/justHu02.yaml",
+		Config:       "../testHelpers/sampleConfigs/justHu02.yaml",
 		SetupBuckets: true,
 	}
 
 	err = Gleaner(hu02CliArgs)
 	require.NoError(t, err)
 
-	_, summoned, err = test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	_, summoned, err = testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 	hu02Webpage, err := sitemaps.ParseSitemap("https://geoconnex.us/sitemap/ref/hu02/hu02__0.xml")
 	require.NoError(t, err)
@@ -274,7 +274,7 @@ func TestCrawlsAreAdditive(t *testing.T) {
 // should still be present in the s3 bucket and nothing new should
 // have been summoned
 func TestConfigValidThenInvalid(t *testing.T) {
-	minioHandle, err := test_helpers.NewMinioHandle("minio/minio:latest")
+	minioHandle, err := testHelpers.NewMinioHandle("minio/minio:latest")
 	require.NoError(t, err)
 
 	url, _, err := minioHandle.ConnectionStrings()
@@ -285,7 +285,7 @@ func TestConfigValidThenInvalid(t *testing.T) {
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
 		Port:         strings.Split(url, ":")[1],
-		Config:       "../test_helpers/sample_configs/justMainstems.yaml",
+		Config:       "../testHelpers/sampleConfigs/justMainstems.yaml",
 		SetupBuckets: true,
 	}
 
@@ -294,7 +294,7 @@ func TestConfigValidThenInvalid(t *testing.T) {
 	err = Gleaner(gleanerCliArgs)
 	require.NoError(t, err)
 
-	summonedInfo, summoned, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	summonedInfo, summoned, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 
 	require.NoError(t, err)
 	mainstemWebpage, err := sitemaps.ParseSitemap("https://pids.geoconnex.dev/sitemap/ref/mainstems/mainstems__0.xml")
@@ -307,14 +307,14 @@ func TestConfigValidThenInvalid(t *testing.T) {
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
 		Port:         strings.Split(url, ":")[1],
-		Config:       "../test_helpers/sample_configs/justMainstemsInvalid.yaml",
+		Config:       "../testHelpers/sampleConfigs/justMainstemsInvalid.yaml",
 		SetupBuckets: true,
 	}
 
 	err = Gleaner(gleanerCliArgs)
 	require.NoError(t, err)
 
-	summonedInfo2, summoned2, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	summonedInfo2, summoned2, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 	urlsListedInOriginalSitemap := len(mainstemWebpage.URL)
 	// there should be no additional urls added
@@ -322,7 +322,7 @@ func TestConfigValidThenInvalid(t *testing.T) {
 
 	requireSameDates := true
 	requireSizeChecks := true
-	res, msg := test_helpers.SameObjects(t, summonedInfo, summonedInfo2, requireSameDates, requireSizeChecks)
+	res, msg := testHelpers.SameObjects(t, summonedInfo, summonedInfo2, requireSameDates, requireSizeChecks)
 	require.True(t, res, msg)
 }
 
@@ -330,7 +330,7 @@ func TestConfigValidThenInvalid(t *testing.T) {
 // the next time we go to the sitemap, it no longer contains some sources
 // Since gleaner is idempotent, it should not add new files or touch old ones
 func TestFullThenAbbreviated(t *testing.T) {
-	minioHandle, err := test_helpers.NewMinioHandle("minio/minio:latest")
+	minioHandle, err := testHelpers.NewMinioHandle("minio/minio:latest")
 	require.NoError(t, err)
 
 	url, _, err := minioHandle.ConnectionStrings()
@@ -341,7 +341,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
 		Port:         strings.Split(url, ":")[1],
-		Config:       "../test_helpers/sample_configs/justMainstems.yaml",
+		Config:       "../testHelpers/sampleConfigs/justMainstems.yaml",
 		SetupBuckets: true,
 	}
 
@@ -351,22 +351,22 @@ func TestFullThenAbbreviated(t *testing.T) {
 	err = Gleaner(gleanerCliArgs)
 	require.NoError(t, err)
 
-	sumInfo1, summoned1, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	sumInfo1, summoned1, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 	mainstemWebpage, err := sitemaps.ParseSitemap("https://pids.geoconnex.dev/sitemap/ref/mainstems/mainstems__0.xml")
 	require.NoError(t, err)
 	require.Equal(t, len(mainstemWebpage.URL), len(summoned1))
 
-	sampleConfDir := filepath.Join(projectpath.Root, "test_helpers", "sample_configs")
+	sampleConfDir := filepath.Join(projectpath.Root, "testHelpers", "sampleConfigs")
 	confToAppendTo := "justMainstemsLocalEndpoint.yaml"
 
 	// create the config that gleaner will use to find the proper sitemap
-	newConfig, err := test_helpers.NewTempConfig(confToAppendTo, sampleConfDir)
+	newConfig, err := testHelpers.NewTempConfig(confToAppendTo, sampleConfDir)
 	require.NoError(t, err)
 	defer os.Remove(newConfig)
 
 	// spin up the file server for our abbreviated sitemap
-	server, listener, err := test_helpers.ServeSampleConfigDir()
+	server, listener, err := testHelpers.ServeSampleConfigDir()
 	assert.NoError(t, err)
 	defer func() {
 		server.Close()
@@ -382,7 +382,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 	require.NoError(t, err, "Could not get %s", newConfigEndpoint)
 	require.Equal(t, 200, resp.StatusCode, "Wrong error code for %s", newConfigEndpoint)
 
-	err = test_helpers.MutateYamlSourceUrl(newConfig, 0, newConfigEndpoint)
+	err = testHelpers.MutateYamlSourceUrl(newConfig, 0, newConfigEndpoint)
 	require.NoError(t, err)
 
 	gleanerCliArgs = &GleanerCliArgs{
@@ -397,7 +397,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 	err = Gleaner(gleanerCliArgs)
 	require.NoError(t, err)
 
-	sumInfo2, summoned2, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	sumInfo2, summoned2, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 	// the second summon should not add any new files
 	require.Equal(t, len(summoned1), len(summoned2))
@@ -406,7 +406,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 	// modification date is the same
 	dateChecks := true
 	sizeChecks := true
-	res, msg := test_helpers.SameObjects(t, sumInfo1, sumInfo2, dateChecks, sizeChecks)
+	res, msg := testHelpers.SameObjects(t, sumInfo1, sumInfo2, dateChecks, sizeChecks)
 	require.True(t, res, msg)
 
 	// create another new config, but this different with different dates
@@ -419,7 +419,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 	require.NoError(t, err, "Could not get %s", differentDateEndpoint)
 	require.Equal(t, 200, resp.StatusCode, "Wrong error code for %s", differentDateEndpoint)
 
-	err = test_helpers.MutateYamlSourceUrl(newConfig, 0, differentDateEndpoint)
+	err = testHelpers.MutateYamlSourceUrl(newConfig, 0, differentDateEndpoint)
 	require.NoError(t, err)
 
 	gleanerCliArgs = &GleanerCliArgs{
@@ -434,16 +434,16 @@ func TestFullThenAbbreviated(t *testing.T) {
 	err = Gleaner(gleanerCliArgs)
 	require.NoError(t, err)
 
-	sumInfo3, summoned3, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	sumInfo3, summoned3, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 
 	// the third summon should not add any new files
 	require.Equal(t, len(summoned1), len(summoned3))
 	dateChecks = true
 	sizeChecks = true
-	res, msg = test_helpers.SameObjects(t, sumInfo2, sumInfo3, dateChecks, sizeChecks)
+	res, msg = testHelpers.SameObjects(t, sumInfo2, sumInfo3, dateChecks, sizeChecks)
 	require.True(t, res, msg)
-	res, msg = test_helpers.SameObjects(t, sumInfo1, sumInfo3, dateChecks, sizeChecks)
+	res, msg = testHelpers.SameObjects(t, sumInfo1, sumInfo3, dateChecks, sizeChecks)
 	require.True(t, res, msg)
 
 }
@@ -452,16 +452,16 @@ func TestFullThenAbbreviated(t *testing.T) {
 // TODO: Make gleaner error handling better so the sitemap issues are not just logged
 // but returned to the callee as an error
 func TestIncorrectJsonLd(t *testing.T) {
-	minioHandle, err := test_helpers.NewMinioHandle("minio/minio:latest")
+	minioHandle, err := testHelpers.NewMinioHandle("minio/minio:latest")
 	require.NoError(t, err)
 
 	url, _, err := minioHandle.ConnectionStrings()
 	require.NoError(t, err)
 
-	sampleConfDir := filepath.Join(projectpath.Root, "test_helpers", "sample_configs")
+	sampleConfDir := filepath.Join(projectpath.Root, "testHelpers", "sampleConfigs")
 
 	// spin up the file server for our sitemap with incorrect jsonld
-	server, listener, err := test_helpers.ServeSampleConfigDir()
+	server, listener, err := testHelpers.ServeSampleConfigDir()
 	assert.NoError(t, err)
 	defer func() {
 		server.Close()
@@ -515,11 +515,11 @@ func TestIncorrectJsonLd(t *testing.T) {
 
 	confToAppendTo := "justMainstemsLocalEndpoint.yaml"
 	// create the config that gleaner will use to find the proper sitemap
-	newConfig, err := test_helpers.NewTempConfig(confToAppendTo, sampleConfDir)
+	newConfig, err := testHelpers.NewTempConfig(confToAppendTo, sampleConfDir)
 	require.NoError(t, err)
 	defer os.Remove(newConfig)
 
-	err = test_helpers.MutateYamlSourceUrl(newConfig, 0, sitemapEndpoint)
+	err = testHelpers.MutateYamlSourceUrl(newConfig, 0, sitemapEndpoint)
 	require.NoError(t, err)
 
 	gleanerCliArgs := &GleanerCliArgs{
@@ -534,13 +534,13 @@ func TestIncorrectJsonLd(t *testing.T) {
 	err = Gleaner(gleanerCliArgs)
 	require.NoError(t, err)
 
-	_, orgs1, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "orgs/")
+	_, orgs1, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "orgs/")
 	require.NoError(t, err)
 	require.Equal(t, 1, len(orgs1))
 
 	// Although there are two sites in the sitemap, only one is
 	// summoned since the second site has an incorrect jsonld
-	_, summoned1, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	_, summoned1, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 	require.Equal(t, 1, len(summoned1))
 }
@@ -550,7 +550,7 @@ func TestIncorrectJsonLd(t *testing.T) {
 // Test shows that if there is new jsonld it will be summoned
 func TestSameSitemapWithDifferentJSONLD(t *testing.T) {
 
-	minioHandle, err := test_helpers.NewMinioHandle("minio/minio:latest")
+	minioHandle, err := testHelpers.NewMinioHandle("minio/minio:latest")
 	require.NoError(t, err)
 
 	url, _, err := minioHandle.ConnectionStrings()
@@ -558,14 +558,14 @@ func TestSameSitemapWithDifferentJSONLD(t *testing.T) {
 
 	defer testcontainers.TerminateContainer(minioHandle.Container)
 
-	sampleConfDir := filepath.Join(projectpath.Root, "test_helpers", "sample_configs")
+	sampleConfDir := filepath.Join(projectpath.Root, "testHelpers", "sampleConfigs")
 	confToAppendTo := "justMainstemsLocalEndpoint.yaml"
 	// create the config that gleaner will use to find the proper sitemap
-	mockedSitemapConfig, err := test_helpers.NewTempConfig(confToAppendTo, sampleConfDir)
+	mockedSitemapConfig, err := testHelpers.NewTempConfig(confToAppendTo, sampleConfDir)
 	require.NoError(t, err)
 
 	// spin up the file server for our abbreviated sitemap
-	server, listener, err := test_helpers.ServeSampleConfigDir()
+	server, listener, err := testHelpers.ServeSampleConfigDir()
 	assert.NoError(t, err)
 	defer func() {
 		server.Close()
@@ -577,7 +577,7 @@ func TestSameSitemapWithDifferentJSONLD(t *testing.T) {
 
 	newConfigEndpoint := fmt.Sprintf("http://%s/%s", listener.Addr().String(), abbreviatedSitemap)
 
-	err = test_helpers.MutateYamlSourceUrl(mockedSitemapConfig, 0, newConfigEndpoint)
+	err = testHelpers.MutateYamlSourceUrl(mockedSitemapConfig, 0, newConfigEndpoint)
 	require.NoError(t, err)
 
 	defer os.Remove(mockedSitemapConfig)
@@ -595,7 +595,7 @@ func TestSameSitemapWithDifferentJSONLD(t *testing.T) {
 	require.NoError(t, err)
 
 	// get the total amount of objects summoned
-	summonedInfo, summoned, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	summonedInfo, summoned, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 
 	abbreviateSitemapFile, err := os.ReadFile(filepath.Join(sampleConfDir, "mainstemSitemapWithoutMost.xml"))
@@ -612,7 +612,7 @@ func TestSameSitemapWithDifferentJSONLD(t *testing.T) {
 	err = tempFile.Close()
 	require.NoError(t, err)
 	mockUrl := fmt.Sprintf("http://%s/%s", listener.Addr().String(), filepath.Base(tempFile.Name()))
-	err = test_helpers.MutateYamlSourceUrl(mockedSitemapConfig, 0, mockUrl)
+	err = testHelpers.MutateYamlSourceUrl(mockedSitemapConfig, 0, mockUrl)
 	require.NoError(t, err)
 
 	gleanerCliArgs = &GleanerCliArgs{
@@ -627,13 +627,13 @@ func TestSameSitemapWithDifferentJSONLD(t *testing.T) {
 	err = Gleaner(gleanerCliArgs)
 	require.NoError(t, err)
 
-	summonedInfo2, summoned2, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	summonedInfo2, summoned2, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 	require.NotEqual(t, len(summoned), len(summoned2))
 
 	strictCompareDates := true
 	strictCompareSizes := true
-	same, msg := test_helpers.SameObjects(t, summonedInfo, summonedInfo2, strictCompareDates, strictCompareSizes)
+	same, msg := testHelpers.SameObjects(t, summonedInfo, summonedInfo2, strictCompareDates, strictCompareSizes)
 
 	// there should be new jsonld in s3 since we specified a url with a new jsonld payload that has a different
 	// sha from any of the other jsonld files
@@ -645,7 +645,7 @@ func TestSameSitemapWithDifferentJSONLD(t *testing.T) {
 // Test shows that a different source name does not cause the jsonld to be re-downloaded
 // the objects in s3 remain the same with the same content and datemodified
 func TestDifferentSourceNameWithSameSitemapXMLDoesntDownload(t *testing.T) {
-	minioHandle, err := test_helpers.NewMinioHandle("minio/minio:latest")
+	minioHandle, err := testHelpers.NewMinioHandle("minio/minio:latest")
 	require.NoError(t, err)
 
 	url, _, err := minioHandle.ConnectionStrings()
@@ -656,18 +656,18 @@ func TestDifferentSourceNameWithSameSitemapXMLDoesntDownload(t *testing.T) {
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
 		Port:         strings.Split(url, ":")[1],
-		Config:       "../test_helpers/sample_configs/justMainstems.yaml",
+		Config:       "../testHelpers/sampleConfigs/justMainstems.yaml",
 		SetupBuckets: true,
 	}
 
 	defer testcontainers.TerminateContainer(minioHandle.Container)
 
 	err = Gleaner(mainstemCliArgs)
-	summInfo, _, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	summInfo, _, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 
 	// read in justMainstems but change the name of the line "name: mainstems"
-	justMainstemsPath := filepath.Join(projectpath.Root, "test_helpers", "sample_configs", "justMainstems.yml")
+	justMainstemsPath := filepath.Join(projectpath.Root, "testHelpers", "sampleConfigs", "justMainstems.yml")
 	require.FileExists(t, justMainstemsPath)
 	justMainstems, err := os.ReadFile(justMainstemsPath)
 	require.NoError(t, err)
@@ -694,19 +694,19 @@ func TestDifferentSourceNameWithSameSitemapXMLDoesntDownload(t *testing.T) {
 	}
 
 	err = Gleaner(mainstemCliArgs)
-	summInfo2, _, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	summInfo2, _, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 
 	strictCompareDates := true
 	strictCompareSizes := true
-	same, msg := test_helpers.SameObjects(t, summInfo, summInfo2, strictCompareDates, strictCompareSizes)
+	same, msg := testHelpers.SameObjects(t, summInfo, summInfo2, strictCompareDates, strictCompareSizes)
 	require.True(t, same, msg)
 }
 
 // Check what happens when you remove files from s3 after a crawl and then recrawl the same source
 // Test shows that gleaner will recrawl the same source. Files will stay deleted
 func TestRecrawlSameSourceAfterRemovingFilesInS3(t *testing.T) {
-	minioHandle, err := test_helpers.NewMinioHandle("minio/minio:latest")
+	minioHandle, err := testHelpers.NewMinioHandle("minio/minio:latest")
 	require.NoError(t, err)
 
 	url, _, err := minioHandle.ConnectionStrings()
@@ -717,30 +717,30 @@ func TestRecrawlSameSourceAfterRemovingFilesInS3(t *testing.T) {
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
 		Port:         strings.Split(url, ":")[1],
-		Config:       "../test_helpers/sample_configs/justMainstems.yaml",
+		Config:       "../testHelpers/sampleConfigs/justMainstems.yaml",
 		SetupBuckets: true,
 	}
 
 	defer testcontainers.TerminateContainer(minioHandle.Container)
 
 	err = Gleaner(mainstemCliArgs)
-	summInfo, _, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	summInfo, _, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 
-	err = test_helpers.DeleteObjects(minioHandle.Client, "gleanerbucket", summInfo[1:])
+	err = testHelpers.DeleteObjects(minioHandle.Client, "gleanerbucket", summInfo[1:])
 	require.NoError(t, err)
-	summAfterDeletingAndBeforeRecrawl, _, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	summAfterDeletingAndBeforeRecrawl, _, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	// make sure the s3 is in a different state
-	same, msg := test_helpers.SameObjects(t, summInfo, summAfterDeletingAndBeforeRecrawl, true, true)
+	same, msg := testHelpers.SameObjects(t, summInfo, summAfterDeletingAndBeforeRecrawl, true, true)
 	require.False(t, same, msg)
 
 	err = Gleaner(mainstemCliArgs)
-	summInfo2, _, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	summInfo2, _, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 
 	strictCompareDates := true
 	strictCompareSizes := true
-	same, msg = test_helpers.SameObjects(t, summAfterDeletingAndBeforeRecrawl, summInfo2, strictCompareDates, strictCompareSizes)
+	same, msg = testHelpers.SameObjects(t, summAfterDeletingAndBeforeRecrawl, summInfo2, strictCompareDates, strictCompareSizes)
 	require.False(t, same, msg)
 }
 
@@ -749,7 +749,7 @@ func TestRecrawlSameSourceAfterRemovingFilesInS3(t *testing.T) {
 // Test shows that a different source name does not cause the jsonld to be re-downloaded
 // the objects in s3 remain the same with the same content and datemodified
 func TestDifferentSourceDifferentURLButSameSitemapXMLDoesntChangeS3(t *testing.T) {
-	minioHandle, err := test_helpers.NewMinioHandle("minio/minio:latest")
+	minioHandle, err := testHelpers.NewMinioHandle("minio/minio:latest")
 	require.NoError(t, err)
 
 	url, _, err := minioHandle.ConnectionStrings()
@@ -760,18 +760,18 @@ func TestDifferentSourceDifferentURLButSameSitemapXMLDoesntChangeS3(t *testing.T
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
 		Port:         strings.Split(url, ":")[1],
-		Config:       "../test_helpers/sample_configs/justMainstems.yaml",
+		Config:       "../testHelpers/sampleConfigs/justMainstems.yaml",
 		SetupBuckets: true,
 	}
 
 	defer testcontainers.TerminateContainer(minioHandle.Container)
 
 	err = Gleaner(mainstemCliArgs)
-	summInfo, _, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	summInfo, _, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 
 	// read in justMainstems but change the name of the line "name: mainstems"
-	justMainstemsPath := filepath.Join(projectpath.Root, "test_helpers", "sample_configs", "justMainstems.yml")
+	justMainstemsPath := filepath.Join(projectpath.Root, "testHelpers", "sampleConfigs", "justMainstems.yml")
 	require.FileExists(t, justMainstemsPath)
 	justMainstems, err := os.ReadFile(justMainstemsPath)
 	require.NoError(t, err)
@@ -798,11 +798,11 @@ func TestDifferentSourceDifferentURLButSameSitemapXMLDoesntChangeS3(t *testing.T
 	}
 
 	err = Gleaner(mainstemCliArgs)
-	summInfo2, _, err := test_helpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
+	summInfo2, _, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 
 	strictCompareDates := true
 	strictCompareSizes := true
-	same, msg := test_helpers.SameObjects(t, summInfo, summInfo2, strictCompareDates, strictCompareSizes)
+	same, msg := testHelpers.SameObjects(t, summInfo, summInfo2, strictCompareDates, strictCompareSizes)
 	require.True(t, same, msg)
 }
