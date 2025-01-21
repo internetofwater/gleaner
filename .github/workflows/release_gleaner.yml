@@ -1,39 +1,43 @@
-# .github/workflows/release.yml
-name: goreleaser
+name: Release Gleaner binaries
 
 on:
-  pull_request:
-  push:
-
-permissions:
-  contents: write
-  # packages: write
-  # issues: write
-  # id-token: write
+   release:
+     types: [published]
 
 jobs:
-  goreleaser:
+  releases-matrix:
+    name: Release gleaner Go Binary
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # build and publish in parallel: linux/amd64
+        goos: [linux, windows, darwin]
+        goarch: [amd64,arm64]
+#        goos: [linux]
+#        goarch: [amd64]
+        exclude:
+          - goarch: "386"
+            goos: darwin
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v2
+      - name: donwload schema
+        run: curl https://schema.org/version/latest/schemaorg-current-https.jsonld --output assets/schemaorg-current-https.jsonld
+      - name: donwload schema
+        run: curl https://schema.org/version/latest/schemaorg-current-http.jsonld --output assets/schemaorg-current-http.jsonld
+
+      #     - name: Run tests
+  #      run: go test -v -p=1 -timeout=0 ./...
+      - name: Set variables
+        run: |
+          VER=$(cat VERSION)
+          echo "VERSION=$VER" >> $GITHUB_ENV
+      - uses: wangyoucao577/go-release-action@v1.22
         with:
-          fetch-depth: 0
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: stable
-      # More assembly might be required: Docker logins, GPG, etc.
-      # It all depends on your needs.
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          # either 'goreleaser' (default) or 'goreleaser-pro'
-          distribution: goreleaser
-          # 'latest', 'nightly', or a semver
-          version: "~> v2"
-          args: release --clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Your GoReleaser Pro key, if you are using the 'goreleaser-pro' distribution
-          # GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          goos: ${{ matrix.goos }}
+          goarch: ${{ matrix.goarch }}
+          project_path: "./cmd/gleaner"
+          binary_name: "gleaner"
+          ldflags: "-s -w -X main.VERSION=${{ env.VERSION }} -X github.com/gleanerio/gleaner/pkg.VERSION=${{ env.VERSION }}"
+          extra_files: README.md docs/ configs/ scripts/ assets/
+  #         extra_files: LICENSE README.md
