@@ -1,4 +1,4 @@
-name: E2E Test Pipeline
+name: Test Full Geoconnex Pipeline
 
 on:
   workflow_dispatch: # Allows manual triggering of the workflow
@@ -13,8 +13,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: "Checkout GitHub Action"
-        uses: internetofwater/scheduler
+      - name: "Run Geoconnex Scheduler to simulate a full crawl"
+        uses: internetofwater/scheduler@main
         with:
             nabu_image: internetofwater/nabu:latest
             gleaner_image: internetofwater/gleaner:latest
