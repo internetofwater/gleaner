@@ -1,0 +1,20 @@
+name: E2E Test Pipeline
+
+on:
+  workflow_dispatch: # Allows manual triggering of the workflow
+  push:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  run-e2e-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Checkout GitHub Action"
+        uses: internetofwater/scheduler
+        with:
+            nabu_image: internetofwater/nabu:latest
+            gleaner_image: internetofwater/gleaner:latest
