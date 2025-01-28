@@ -52,11 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     if: always() # Ensures this runs even if previous jobs fail
     steps:
-        - name: Clean up temp image
-          uses: bots-house/ghcr-delete-image-action@v1.1.0
-          with:
-            owner: internetofwater
-            name: gleaner
-            # NOTE: using Personal Access Token
-            token: ${{ secrets.GITHUB_TOKEN }}
-            tag: ${{ env.tag }}
+      - name: Delete image
+        uses: dataaxiom/ghcr-cleanup-action@v1
+        with:
+          delete-tags: ${{ env.tag }}
