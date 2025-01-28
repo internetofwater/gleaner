@@ -55,4 +55,6 @@ jobs:
       - name: Delete image
         uses: dataaxiom/ghcr-cleanup-action@v1
         with:
-          delete-tags: ${{ env.tag }}
+          delete-tags: '^tmp-*$'
+          use-regex: true
+          delete-untagged: false
