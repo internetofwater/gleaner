@@ -19,8 +19,9 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -36,12 +37,6 @@ jobs:
           push: true
           tags: internetofwater/gleaner:${{ env.tag }}
 
-      - name: Get Image Digest
-        id: digest
-        run: |
-          IMAGE_DIGEST=$(docker buildx imagetools inspect --raw internetofwater/gleaner:${{ env.tag }} | jq -r '.manifests[0].digest')
-          echo "digest=$IMAGE_DIGEST" >> $GITHUB_ENV
-
   run-e2e-tests:
     needs: build-and-push-temp-image
     runs-on: ubuntu-latest
@@ -52,13 +47,18 @@ jobs:
           nabu_image: internetofwater/nabu:latest
           gleaner_image: internetofwater/gleaner:${{ env.tag }}
 
-  # cleanup-temp-image:
-  #   needs: run-e2e-tests
-  #   runs-on: ubuntu-latest
-  #   if: always() # Ensures this runs even if previous jobs fail
-  #   steps:
-  #     - name: Log in to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{ secrets.DOCKERHUB_USERNAME }}
-  #         password: ${{ secrets.DOCKERHUB_TOKEN }}
+  remove-docker-tag:
+    runs-on: ubuntu-latest
+
+    # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
+    # (required)
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Remove Docker Tag
+      uses: rafalkk/remove-dockertag-action@v1
+      with:
+        tag_name: ${{ env.tag }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
