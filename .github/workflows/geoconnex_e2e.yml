@@ -16,12 +16,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -29,18 +23,19 @@ jobs:
         id: vars
         run: echo "tag=tmp-${{ github.sha }}" >> $GITHUB_ENV
 
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
-          tags: internetofwater/gleaner:${{ env.tag }}
-
-      - name: Get Image Digest
-        id: digest
-        run: |
-          IMAGE_DIGEST=$(docker buildx imagetools inspect --raw internetofwater/gleaner:${{ env.tag }} | jq -r '.manifests[0].digest')
-          echo "digest=$IMAGE_DIGEST" >> $GITHUB_ENV
+          tags: ghcr.io/internetofwater/gleaner:${{ env.tag }}
 
   run-e2e-tests:
     needs: build-and-push-temp-image
@@ -49,22 +44,19 @@ jobs:
       - name: "Run Geoconnex Scheduler to simulate a full crawl"
         uses: internetofwater/scheduler@main
         with:
-          nabu_image: internetofwater/nabu:latest
-          gleaner_image: internetofwater/gleaner:${{ env.tag }}
+          nabu_image: ghcr.io/internetofwater/nabu:latest
+          gleaner_image: ghcr.io/internetofwater/gleaner:${{ env.tag }}
 
   cleanup-temp-image:
     needs: run-e2e-tests
     runs-on: ubuntu-latest
     if: always() # Ensures this runs even if previous jobs fail
     steps:
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Delete Temporary Docker Image
-        run: |
-          echo "Deleting temporary image internetofwater/gleaner@${{ env.digest }}..."
-          curl --fail-early -X DELETE -u "${{ secrets.DOCKERHUB_USERNAME }}:${{ secrets.DOCKERHUB_TOKEN }}" \
-            "https://hub.docker.com/v2/repositories/internetofwater/gleaner/manifests/${{ env.digest }}/"
+        - name: Clean up temp image
+          uses: bots-house/ghcr-delete-image-action@v1.1.0
+          with:
+            owner: internetofwater
+            name: gleaner
+            # NOTE: using Personal Access Token
+            token: ${{ secrets.PAT }}
+            tag: ghcr.io/internetofwater/gleaner:${{ env.tag }}

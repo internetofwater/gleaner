@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestMain(t *testing.T) {
+func TestPathRootHasExpectedFile(t *testing.T) {
 	// Check that main.go exists at the root
 	mainFile := filepath.Join(Root, "main.go")
 	// check that projectpath.Root/main.go exists
