@@ -35,7 +35,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: internetofwater/gleaner:${{ env.tag }}
+          tags: ghcr.io/internetofwater/gleaner:${{ env.tag }}
 
   run-e2e-tests:
     needs: build-and-push-temp-image
