@@ -49,7 +49,7 @@ func SummonSitemaps(mc *minio.Client, v1 *viper.Viper) error {
 	} else if len(apiSources) > 0 {
 		acquire.RetrieveAPIData(apiSources, mc, runStats, v1)
 	} else {
-		return fmt.Errorf("no API sources found in config: %v", err)
+		return fmt.Errorf("no API sources found in config file %s", v1.ConfigFileUsed())
 	}
 
 	c := make(chan os.Signal, 1)

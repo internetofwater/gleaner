@@ -123,16 +123,11 @@ var SourcesTemplate = map[string]interface{}{
 func GetSources(g1 *viper.Viper) ([]Source, error) {
 	var subtreeKey = "sources"
 	var cfg []Source
-	//for key, value := range SourcesTemplate {
-	//	g1.SetDefault(key, value)
-	//}
 
-	//g1.AutomaticEnv()
-	// config already read. substree passed
 	err := g1.UnmarshalKey(subtreeKey, &cfg)
 	if err != nil {
 		log.Fatal("error when parsing ", subtreeKey, " config: ", err)
-		//No sources, so nothing to run
+		return nil, err
 	}
 	cfg = append([]Source(nil), cfg...)
 	return cfg, err
