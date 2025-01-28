@@ -52,27 +52,13 @@ jobs:
           nabu_image: internetofwater/nabu:latest
           gleaner_image: internetofwater/gleaner:${{ env.tag }}
 
-  cleanup-temp-image:
-    needs: run-e2e-tests
-    runs-on: ubuntu-latest
-    if: always() # Ensures this runs even if previous jobs fail
-    steps:
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Get Docker Hub Token
-        id: get_token
-        run: |
-          HUB_TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d "{\"username\": \"${{ secrets.DOCKERHUB_USERNAME }}\", \"password\": \"${{ secrets.DOCKERHUB_TOKEN }}\"}" https://hub.docker.com/v2/users/login/ | jq -r .token)
-          echo "HUB_TOKEN=$HUB_TOKEN" >> $GITHUB_ENV
-
-      - name: Delete Temporary Docker Image
-        run: |
-          echo "Deleting temporary image internetofwater/gleaner:${{ env.tag }}..."
-          curl -i -X DELETE \
-            -H "Accept: application/json" \
-            -H "Authorization: JWT ${{ env.HUB_TOKEN }}" \
-            "https://hub.docker.com/v2/namespaces/internetofwater/repositories/gleaner/tags/${{ env.tag }}/"
+  # cleanup-temp-image:
+  #   needs: run-e2e-tests
+  #   runs-on: ubuntu-latest
+  #   if: always() # Ensures this runs even if previous jobs fail
+  #   steps:
+  #     - name: Log in to Docker Hub
+  #       uses: docker/login-action@v2
+  #       with:
+  #         username: ${{ secrets.DOCKERHUB_USERNAME }}
+  #         password: ${{ secrets.DOCKERHUB_TOKEN }}
