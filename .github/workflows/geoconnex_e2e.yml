@@ -58,5 +58,5 @@ jobs:
             owner: internetofwater
             name: gleaner
             # NOTE: using Personal Access Token
-            token: ${{ secrets.PAT }}
+            token: ${{ secrets.GITHUB_TOKEN }}
             tag: ghcr.io/internetofwater/gleaner:${{ env.tag }}
