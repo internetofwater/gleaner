@@ -37,20 +37,19 @@ func RunStatsToFile(runStats *common.RunStats) {
 }
 
 // Summoner pulls the resources from the data facilities
-// func Summoner(mc *minio.Client, cs utils.Config) {
 func SummonSitemaps(mc *minio.Client, v1 *viper.Viper) error {
 
-	st := time.Now()
-	log.Info("Summoner start time:", st) // Log the time at start for the record
+	start := time.Now()
+	log.Info("Summoner start time:", start) // Log the time at start for the record
 	runStats := common.NewRunStats()
 
 	apiSources, err := config.RetrieveSourceAPIEndpoints(v1)
 	if err != nil {
-		log.Error("Error getting API endpoint sources:", err)
+		return fmt.Errorf("error getting API endpoint sources: %w", err)
 	} else if len(apiSources) > 0 {
 		acquire.RetrieveAPIData(apiSources, mc, runStats, v1)
 	} else {
-		log.Info("No API endpoint sources found")
+		return fmt.Errorf("no API sources found in config: %v", err)
 	}
 
 	c := make(chan os.Signal, 1)
@@ -85,7 +84,7 @@ func SummonSitemaps(mc *minio.Client, v1 *viper.Viper) error {
 
 	// Time report
 	et := time.Now()
-	diff := et.Sub(st)
+	diff := et.Sub(start)
 	log.Info("Summoner run time:", diff.Minutes())
 	runStats.StopReason = "Complete"
 	runStats.OutputToFile()
