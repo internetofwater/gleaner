@@ -1,37 +1,40 @@
 package acquire
 
 import (
-	"github.com/gleanerio/gleaner/internal/common"
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
 	"time"
+
+	"gleaner/internal/common"
+
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 )
 
 var HEADLESS_URL = "http://127.0.0.1:9222"
 
 func PingHeadless() (int, error) {
 	var client = http.Client{
-	   Timeout: 2 * time.Second,
+		Timeout: 2 * time.Second,
 	}
 
 	req, err := http.NewRequest("HEAD", HEADLESS_URL, nil)
-    if err != nil {
-       return 0, err
-    }
-    resp, err := client.Do(req)
-    if err != nil {
-       return 0, err
-    }
-    resp.Body.Close()
-    return resp.StatusCode, nil
+	if err != nil {
+		return 0, err
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	resp.Body.Close()
+	return resp.StatusCode, nil
 }
 
 func TestHeadlessNG(t *testing.T) {
 	status, err := PingHeadless()
+	t.Log(status)
 
-	if(err != nil || status != 200) {
+	if err != nil || status != 200 {
 		t.Skip("Skipping headless tests because no headless browser is running.")
 	}
 
@@ -40,7 +43,7 @@ func TestHeadlessNG(t *testing.T) {
 		url          string
 		jsonldcount  int
 		headlessWait int
-		expectedFail bool "default:false"
+		expectedFail bool
 	}{
 		{name: "r2r_wait_5_works_returns_2_jsonld",
 			url:          "https://dev.rvdata.us/search/fileset/100135",

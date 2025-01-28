@@ -2,19 +2,23 @@ package summoner
 
 import (
 	"fmt"
-	"github.com/gleanerio/gleaner/internal/common"
-	"github.com/minio/minio-go/v7"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/gleanerio/gleaner/internal/summoner/acquire"
+	"gleaner/internal/common"
+	"gleaner/internal/config"
+
+	"github.com/minio/minio-go/v7"
+	log "github.com/sirupsen/logrus"
+
+	"gleaner/internal/summoner/acquire"
+
 	"github.com/spf13/viper"
 )
 
-func RunStatsOutput(runStats *common.RunStats) {
+func RunStatsToFile(runStats *common.RunStats) {
 	fmt.Print(runStats.Output())
 	const layout = "2006-01-02-15-04-05"
 	t := time.Now()
@@ -25,43 +29,48 @@ func RunStatsOutput(runStats *common.RunStats) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	logFile.WriteString(runStats.Output())
+	_, err = logFile.WriteString(runStats.Output())
+	if err != nil {
+		log.Fatal(err)
+	}
 	logFile.Close()
 }
 
 // Summoner pulls the resources from the data facilities
 // func Summoner(mc *minio.Client, cs utils.Config) {
-func Summoner(mc *minio.Client, v1 *viper.Viper) {
+func SummonSitemaps(mc *minio.Client, v1 *viper.Viper) error {
 
 	st := time.Now()
 	log.Info("Summoner start time:", st) // Log the time at start for the record
 	runStats := common.NewRunStats()
 
-	// Retrieve API urls
-	apiSources, err := acquire.RetrieveAPIEndpoints(v1)
+	apiSources, err := config.RetrieveSourceAPIEndpoints(v1)
 	if err != nil {
 		log.Error("Error getting API endpoint sources:", err)
 	} else if len(apiSources) > 0 {
 		acquire.RetrieveAPIData(apiSources, mc, runStats, v1)
+	} else {
+		log.Info("No API endpoint sources found")
 	}
 
-	c := make(chan os.Signal)
+	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
 	go func() {
 		<-c
 		runStats.StopReason = "User Interrupt or Fatal Error"
-		RunStatsOutput(runStats)
+		runStats.OutputToFile()
 		os.Exit(1)
 	}()
 
 	// Get a list of resource URLs that do and don't require headless processing
-	ru, err := acquire.ResourceURLs(v1, mc, false)
+	domainToUrls, err := acquire.ResourceURLs(v1, mc, false)
 	if err != nil {
-		log.Info("Error getting urls that do not require headless processing:", err)
+		log.Error("Error getting urls that do not require headless processing:", err)
 	}
 	// just report the error, and then run gathered urls
-	if len(ru) > 0 {
-		acquire.ResRetrieve(v1, mc, ru, runStats) // TODO  These can be go funcs that run all at the same time..
+	if len(domainToUrls) > 0 {
+		acquire.ResRetrieve(v1, mc, domainToUrls, runStats) // TODO  These can be go funcs that run all at the same time..
 	}
 
 	hru, err := acquire.ResourceURLs(v1, mc, true)
@@ -77,14 +86,13 @@ func Summoner(mc *minio.Client, v1 *viper.Viper) {
 	// Time report
 	et := time.Now()
 	diff := et.Sub(st)
-	log.Info("Summoner end time:", et)
 	log.Info("Summoner run time:", diff.Minutes())
 	runStats.StopReason = "Complete"
-	RunStatsOutput(runStats)
+	runStats.OutputToFile()
 	// What do I need to the "run" prov
 	// the URLs indexed  []string
 	// the graph generated?  "version" the graph by the build date
 	// pass ru, hru, and v1 to a run prov function.
 	//	RunFeed(v1, mc, et, ru, hru)  // DEV:   hook for building feed  (best place for it?)
-
+	return err
 }

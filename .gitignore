@@ -14,3 +14,8 @@ configs/local/
 .idea
 
 /configs/wifire/
+ui_port.txt*
+
+*TestNormalizeTriple*
+mockedGleanerConfig*
+*__debug_bin*

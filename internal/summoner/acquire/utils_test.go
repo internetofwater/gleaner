@@ -1,14 +1,16 @@
 package acquire
 
 import (
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetRobotsTxt(t *testing.T) {
-	var robots = `User-agent: *
+	var robotsHeader = `User-agent: *
         Disallow: /cgi-bin
         Disallow: /forms
         Disallow: /api/gi-cat
@@ -18,7 +20,10 @@ func TestGetRobotsTxt(t *testing.T) {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
-		w.Write([]byte(robots))
+		_, err := w.Write([]byte(robotsHeader))
+		if err != nil {
+			log.Error(err)
+		}
 	})
 
 	// generate a test server so we can capture and inspect the request
@@ -35,6 +40,6 @@ func TestGetRobotsTxt(t *testing.T) {
 	t.Run("It returns nil if there is no robots.txt at that url", func(t *testing.T) {
 		robots, err := getRobotsTxt(testServer.URL + "/404.txt")
 		assert.Nil(t, robots)
-		assert.NotNil(t, err)
+		assert.Error(t, err)
 	})
 }

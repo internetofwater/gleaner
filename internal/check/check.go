@@ -3,26 +3,18 @@ package check
 import (
 	"context"
 	"fmt"
-	"github.com/gleanerio/gleaner/internal/config"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
+
+	"gleaner/internal/config"
 
 	"github.com/minio/minio-go/v7"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
-// ConnCheck check the connections with a list buckets call
-func ConnCheck(mc *minio.Client) error {
+func isExists(bucketName string, buckets []minio.BucketInfo) (exists bool) {
 
-	buckets, err := mc.ListBuckets(context.Background())
-	log.Trace(buckets)
-
-	return err
-}
-
-func isExists(value string, data []minio.BucketInfo) (exists bool) {
-
-	for _, search := range data {
-		if search.Name == value {
+	for _, search := range buckets {
+		if search.Name == bucketName {
 			return true
 		}
 	}
@@ -30,11 +22,9 @@ func isExists(value string, data []minio.BucketInfo) (exists bool) {
 }
 
 // Buckets checks the setup
-func Buckets(mc *minio.Client, bucket string) error {
+func validateBuckets(mc *minio.Client, bucket string) error {
 	var err error
 
-	// for i := range bl {
-	//found, err := mc.BucketExists(context.Background(), bucket) // returns a redirect if region is not correct
 	buckets, err := mc.ListBuckets(context.Background())
 	found := isExists(bucket, buckets)
 	if err != nil {
@@ -46,19 +36,16 @@ func Buckets(mc *minio.Client, bucket string) error {
 	if found {
 		log.Debug("Validated access to object store:", bucket)
 	}
-	// }
 
 	return err
 }
 
 // MakeBuckets checks the setup
 func MakeBuckets(mc *minio.Client, bucket string) error {
-	var err error
 
-	// for i := range bl {
 	found, err := mc.BucketExists(context.Background(), bucket)
 	if err != nil {
-		log.Debug("Existing bucket", bucket, "check:", err)
+		return err
 	}
 	if found {
 		log.Debug("Gleaner Bucket", bucket, "found.")
@@ -67,17 +54,14 @@ func MakeBuckets(mc *minio.Client, bucket string) error {
 		err = mc.MakeBucket(context.Background(), bucket, minio.MakeBucketOptions{Region: "us-east-1"}) // location is kinda meaningless here
 		if err != nil {
 			log.Debug("Make bucket:", err)
+			return err
 		}
 	}
-	// }
 
 	return err
 }
 
-/*
-*
-Setup Gleaner buckets
-*/
+// Setup Gleaner buckets
 func Setup(mc *minio.Client, v1 *viper.Viper) error {
 	ms := v1.Sub("minio")
 	m1, err := config.ReadMinioConfig(ms)
@@ -85,9 +69,11 @@ func Setup(mc *minio.Client, v1 *viper.Viper) error {
 		log.Error("Error reading gleaner config", err)
 		return err
 	}
-	// Validate Minio is up  TODO:  validate all expected containers are up
 	log.Info("Validating access to object store")
-	err = ConnCheck(mc)
+
+	// Check if we can connect, don't care about buckets at this point
+	_, err = mc.ListBuckets(context.Background())
+
 	if err != nil {
 		log.Error("Connection issue, make sure the minio server is running and accessible.", err)
 		return err
@@ -109,9 +95,7 @@ func Setup(mc *minio.Client, v1 *viper.Viper) error {
 
 }
 
-/*
-Check to see we can connect to s3 instance, and that buckets exist
-*/
+// Check if we can connect and that the proper bucket exists
 func PreflightChecks(mc *minio.Client, v1 *viper.Viper) error {
 	// Validate Minio access
 	bucketName, err := config.GetBucketName(v1)
@@ -120,13 +104,9 @@ func PreflightChecks(mc *minio.Client, v1 *viper.Viper) error {
 		log.Error("missing bucket name.", err)
 		return err
 	}
-	err = ConnCheck(mc)
-	if err != nil {
-		log.Error("Connection issue, make sure the minio server is running and accessible.", err)
-		return err
-	}
+
 	//Check our bucket is ready
-	err = Buckets(mc, bucketName)
+	err = validateBuckets(mc, bucketName)
 	if err != nil {
 		log.Error("Can not find bucket.", err)
 		return err

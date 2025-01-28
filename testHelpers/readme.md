@@ -1,0 +1,1 @@
+This directory contains assets or code that are used for testing but are not needed for production.

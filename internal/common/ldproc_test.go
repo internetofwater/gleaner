@@ -2,29 +2,31 @@ package common
 
 import (
 	"bytes"
-	approvals "github.com/approvals/go-approval-tests"
-	"github.com/approvals/go-approval-tests/reporters"
-	"os"
 
 	"encoding/json"
 	"fmt"
+	"testing"
+
 	"github.com/piprate/json-gold/ld"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"testing"
+	"github.com/stretchr/testify/require"
 )
 
-func TestMain(m *testing.M) {
-	//r := UseReporter(reporters.NewContinuousIntegrationReporter())
-	r := approvals.UseReporter(reporters.NewGoLandReporter())
-	defer r.Close()
+func TestFileExistsRelativeToRoot(t *testing.T) {
+	exists := FileExistsRelativeToRoot("./assets/schemaorg-current-https.jsonld")
+	assert.True(t, exists)
 
-	approvals.UseFolder("testdata")
+	exists = FileExistsRelativeToRoot("assets/schemaorg-current-https.jsonld")
+	assert.True(t, exists)
 
-	os.Exit(m.Run())
+	exists = FileExistsRelativeToRoot("/assets/schemaorg-current-https.jsonld")
+	assert.True(t, exists)
+
+	exists = FileExistsRelativeToRoot("nonexist_dir/schemaorg-current-https.jsonld")
+	assert.False(t, exists)
 }
 
-// jsonexpectations is in test_common_structs
 /* ldjsonprocessor.Normalize often returns "" or the same set of triples
 for JSONLD Document with context or other issues.
 
@@ -107,9 +109,9 @@ func testNormalizeTriple(tests []jsonexpectations, t *testing.T) {
 context:
   cache: true
 contextmaps:
-- file: ../../configs/schemaorg-current-https.jsonld
+- file: assets/schemaorg-current-https.jsonld
   prefix: https://schema.org/
-- file: ../../configs/schemaorg-current-https.jsonld
+- file: assets/schemaorg-current-https.jsonld
   prefix: http://schema.org/
 sources:
 - sourcetype: sitemap
@@ -118,7 +120,8 @@ sources:
 `)
 	viperVal := viper.New()
 	viperVal.SetConfigType("yaml")
-	viperVal.ReadConfig(bytes.NewBuffer(vipercontext))
+	err := viperVal.ReadConfig(bytes.NewBuffer(vipercontext))
+	require.NoError(t, err)
 
 	for _, test := range tests {
 		for i, jsonld := range test.json {
@@ -126,25 +129,22 @@ sources:
 				if test.ignore {
 					return
 				}
-				proc, options := JLDProc(viperVal)
+				proc, options, err := GenerateJSONLDProcessor(viperVal)
+				assert.NoError(t, err)
 
-				// proc := ld.NewJsonLdProcessor()
-				// options := ld.NewJsonLdOptions("")
 				// add the processing mode explicitly if you need JSON-LD 1.1 features
 				options.ProcessingMode = ld.JsonLd_1_1
 				options.Format = "application/n-quads"
 				options.Algorithm = "URDNA2015"
 				var myInterface interface{}
-				err := json.Unmarshal([]byte(jsonld), &myInterface)
-				if err != nil {
-					assert.Error(t, err)
-				}
+				err = json.Unmarshal([]byte(jsonld), &myInterface)
+				assert.NoError(t, err)
 
 				result, err := proc.Normalize(myInterface, options)
+				assert.NoError(t, err)
 
 				valStr := fmt.Sprint(result)
-				//assert.Equal(t, test.expected, valStr)
-				approvals.VerifyString(t, valStr)
+				assert.Equal(t, test.expected, valStr)
 				if test.errorExpected {
 					assert.NotNil(t, err)
 				} else {

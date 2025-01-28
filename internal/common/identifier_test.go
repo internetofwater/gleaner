@@ -1,10 +1,18 @@
 package common
 
 import (
+	"bytes"
 	"fmt"
-	configTypes "github.com/gleanerio/gleaner/internal/config"
 	"os"
 	"path/filepath"
+	"strings"
+	"testing"
+
+	configTypes "gleaner/internal/config"
+
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 /*
@@ -22,15 +30,6 @@ test your jsonpaths here:
 http://jsonpath.herokuapp.com/
 There are four implementations... so you can see if one might be a little quirky
 */
-import (
-	"bytes"
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
-	"strings"
-	"testing"
-)
-
-// jsonexpectations is in test_common_structs
 
 // testdata is in internal/common/testdata/identifier
 // thoughts are that these many be migrated to  an Approval Test approach.
@@ -38,7 +37,16 @@ import (
 
 // should record a table of the file sha and normalize triple sha for each file
 
-var empty = []configTypes.Sources{}
+type jsonexpectations struct {
+	name            string
+	json            map[string]string
+	IdentifierType  string
+	IdentifierPaths string
+	expected        string
+	expectedPath    string
+	errorExpected   bool
+	ignore          bool
+}
 
 // using idenfiters as a stand in for array of identifiers.
 
@@ -353,15 +361,15 @@ func TestValidJsonPathsInput(t *testing.T) {
 
 func testGenerateJsonPathIdentifier(tests []jsonexpectations, t *testing.T) {
 
-	//mock configre file
+	//mock config file
 	// paths are relative to the code
-	var vipercontext = []byte(`
+	var mockConfig = []byte(`
 context:
   cache: true
 contextmaps:
-- file: ../../configs/schemaorg-current-https.jsonld
+- file: assets/schemaorg-current-https.jsonld
   prefix: https://schema.org/
-- file: ../../configs/schemaorg-current-https.jsonld
+- file: assets/schemaorg-current-https.jsonld
   prefix: http://schema.org/
 sources:
 - sourcetype: sitemap
@@ -386,7 +394,10 @@ sources:
 			// otherwise changing the sources information in a multi-threaded ent has issues
 			viperVal := viper.New()
 			viperVal.SetConfigType("yaml")
-			viperVal.ReadConfig(bytes.NewBuffer(vipercontext))
+			config := bytes.NewBuffer(mockConfig)
+			err := viperVal.ReadConfig(config)
+			assert.NoError(t, err)
+
 			sources, err := configTypes.GetSources(viperVal)
 
 			if err != nil {
@@ -407,11 +418,10 @@ sources:
 					t.Fatal("error reading source file:", err)
 				}
 				result, err := GenerateIdentifier(viperVal, s, string(source))
-				//valStr := fmt.Sprint(result.uniqueId)
 				assert.Equal(t, test.expected, result.UniqueId, "uuid faild")
 				assert.Equal(t, test.expectedPath, result.MatchedPath, "matched path failed")
 				assert.Equal(t, test.IdentifierType, result.IdentifierType, "identifier failed")
-				assert.Nil(t, err)
+				assert.NoError(t, err)
 			})
 		}
 	}
@@ -424,9 +434,9 @@ func testGenerateFileShaIdentifier(tests []jsonexpectations, t *testing.T) {
 context:
   cache: true
 contextmaps:
-- file: ../../configs/schemaorg-current-https.jsonld
+- file: assets/schemaorg-current-https.jsonld
   prefix: https://schema.org/
-- file: ../../configs/schemaorg-current-https.jsonld
+- file: assets/schemaorg-current-https.jsonld
   prefix: http://schema.org/
 sources:
 - sourcetype: sitemap
@@ -451,7 +461,9 @@ sources:
 			// otherwise changing the sources information in a multi-threaded ent has issues
 			viperVal := viper.New()
 			viperVal.SetConfigType("yaml")
-			viperVal.ReadConfig(bytes.NewBuffer(vipercontext))
+			err := viperVal.ReadConfig(bytes.NewBuffer(vipercontext))
+
+			require.NoError(t, err)
 			sources, err := configTypes.GetSources(viperVal)
 
 			if err != nil {
@@ -472,7 +484,6 @@ sources:
 					t.Fatal("error reading source file:", err)
 				}
 				result, err := GenerateIdentifier(viperVal, s, string(source))
-				//valStr := fmt.Sprint(result.uniqueId)
 				assert.Equal(t, test.expected, result.UniqueId, "uuid failed")
 				assert.Equal(t, test.expectedPath, result.MatchedPath, "matched path failed")
 				assert.Equal(t, test.IdentifierType, result.IdentifierType, "identifiertype match failed")

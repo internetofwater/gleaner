@@ -11,13 +11,14 @@ There are four implementations... so you can see if one might be a little quirky
 import (
 	"errors"
 	"fmt"
-	"github.com/gleanerio/gleaner/internal/config"
+	"gleaner/internal/config"
+	"sort"
+	"strings"
+
 	"github.com/ohler55/ojg/jp"
 	"github.com/ohler55/ojg/oj"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"sort"
-	"strings"
 )
 
 // Identifier is the structure returned the information
@@ -31,7 +32,7 @@ type Identifier struct {
 
 var jsonPathsDefault = []string{"$['@graph'][?(@['@type']=='schema:Dataset')]['@id']", "$.identifier[?(@.propertyID=='https://registry.identifiers.org/registry/doi')].value", "$.identifier.value", "$.identifier", "$['@id']", "$.url"}
 
-func GenerateIdentifier(v1 *viper.Viper, source config.Sources, jsonld string) (Identifier, error) {
+func GenerateIdentifier(v1 *viper.Viper, source config.Source, jsonld string) (Identifier, error) {
 
 	// Generate calls also do the casecading aka if IdentifierSha is [] it calls JsonSha
 	switch source.IdentifierType {
@@ -106,10 +107,10 @@ func GetIdentiferByPaths(jsonpaths []string, jsonld string) (interface{}, string
 			continue
 		}
 	}
-	return "", "", errors.New("No Match")
+	return "", "", errors.New("no Match")
 }
 
-func GenerateIdentiferString(v1 *viper.Viper, source config.Sources, jsonld string) (Identifier, error) {
+func GenerateIdentiferString(v1 *viper.Viper, source config.Source, jsonld string) (Identifier, error) {
 	uniqueid, err := GenerateIdentifierSha(v1, source, jsonld)
 
 	if err != nil {
@@ -123,7 +124,7 @@ func GenerateIdentiferString(v1 *viper.Viper, source config.Sources, jsonld stri
 	return uniqueid, err
 }
 
-func GenerateIdentifierSha(v1 *viper.Viper, source config.Sources, jsonld string) (Identifier, error) {
+func GenerateIdentifierSha(v1 *viper.Viper, source config.Source, jsonld string) (Identifier, error) {
 	// need a copy of the arrays, or it will get munged in a multithreaded env
 	var jsonpath = make([]string, len(jsonPathsDefault))
 	copy(jsonpath, jsonPathsDefault)
@@ -195,9 +196,7 @@ func GenerateFileSha(v1 *viper.Viper, jsonld string) (Identifier, error) {
 	uuid := GetSHA(jsonld) // Moved to the normalized sha value
 
 	if uuid == "" {
-		// error
-		log.Error("ERROR: uuid generator:", "Action: Getting file sha")
-		id = Identifier{}
+		return id, errors.New("could not generate uuid as a sha")
 	}
 	log.Debug(" Action: Json sha generated", uuid)
 	id = Identifier{UniqueId: uuid,

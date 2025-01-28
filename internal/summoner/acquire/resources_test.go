@@ -1,14 +1,16 @@
 package acquire
 
 import (
-	configTypes "github.com/gleanerio/gleaner/internal/config"
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
-	"github.com/temoto/robotstxt"
+	configTypes "gleaner/internal/config"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
+	"github.com/temoto/robotstxt"
 )
 
 func TestGetRobotsForDomain(t *testing.T) {
@@ -22,7 +24,10 @@ func TestGetRobotsForDomain(t *testing.T) {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
-		w.Write([]byte(robots))
+		_, err := w.Write([]byte(robots))
+		if err != nil {
+			log.Error(err)
+		}
 	})
 	// generate a test server so we can capture and inspect the request
 	testServer := httptest.NewServer(mux)
@@ -67,30 +72,37 @@ func TestOverrideCrawlDelayFromRobots(t *testing.T) {
 	group := robots.FindGroup(EarthCubeAgent)
 
 	t.Run("It does nothing if given a nil robots object", func(t *testing.T) {
-		overrideCrawlDelayFromRobots(viper, "test", 0, nil)
+		err := overrideCrawlDelayFromRobots(viper, "test", 0, nil)
+		assert.Error(t, err) // should error and not change the viper pointer that was passed in
 		sources, err := configTypes.GetSources(viper)
+		assert.NoError(t, err)
 		source, err := configTypes.GetSourceByName(sources, "test")
 		assert.Nil(t, err)
 		assert.Equal(t, int64(0), source.Delay)
 	})
 
 	t.Run("It handles trying to set the crawl delay for a source that does not exist", func(t *testing.T) {
-		overrideCrawlDelayFromRobots(viper, "foo", 0, group)
-		assert.Nil(t, err)
+		err := overrideCrawlDelayFromRobots(viper, "foo", 0, group)
+		assert.Error(t, err)
 	})
 
 	t.Run("It overrides the crawl delay if it is more than our default delay", func(t *testing.T) {
-		overrideCrawlDelayFromRobots(viper, "test", 9999, group)
+		err := overrideCrawlDelayFromRobots(viper, "test", 9999, group)
+		assert.NoError(t, err)
 		sources, err := configTypes.GetSources(viper)
+		assert.NoError(t, err)
 		source, err := configTypes.GetSourceByName(sources, "test")
 		assert.Nil(t, err)
 		assert.Equal(t, int64(10000), source.Delay)
 	})
 
-	t.Run("It does not override the crawl delay if it is less than our default delay", func(t *testing.T) {
-		overrideCrawlDelayFromRobots(viper, "test", 10001, group)
+	t.Run("It does not go above the default delay", func(t *testing.T) {
+		err := overrideCrawlDelayFromRobots(viper, "test", 10001, group)
+		assert.NoError(t, err)
 		sources, err := configTypes.GetSources(viper)
+		assert.NoError(t, err)
 		source, err := configTypes.GetSourceByName(sources, "test")
+		assert.NoError(t, err)
 		assert.Nil(t, err)
 		assert.Equal(t, int64(10000), source.Delay)
 	})

@@ -2,9 +2,11 @@ package common
 
 import (
 	"bytes"
+
 	log "github.com/sirupsen/logrus"
 
 	"context"
+
 	minio "github.com/minio/minio-go/v7"
 )
 
@@ -58,7 +60,10 @@ func GetMillObjects(mc *minio.Client, prefix string) []Entry {
 		}
 
 		buf := new(bytes.Buffer)
-		buf.ReadFrom(fo)
+		_, err = buf.ReadFrom(fo)
+		if err != nil {
+			log.Error(err)
+		}
 		jld := buf.String() // Does a complete copy of the bytes in the buffer.
 
 		// Mock call for some validation (and a template for other millers)

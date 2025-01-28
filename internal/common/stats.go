@@ -2,10 +2,11 @@ package common
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type RunStats struct {
@@ -33,11 +34,30 @@ func (c *RunStats) Add(repo string) *RepoStats {
 	return r
 }
 
+func (c *RunStats) OutputToFile() {
+	fmt.Print(c.Output())
+	const layout = "2006-01-02-15-04-05"
+	t := time.Now()
+	lf := fmt.Sprintf("%s/gleaner-runstats-%s.log", Logpath, t.Format(layout))
+
+	LogFile := lf // log to custom file
+	logFile, err := os.OpenFile(LogFile, os.O_APPEND|os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = logFile.WriteString(c.Output())
+	if err != nil {
+		log.Fatal(err)
+	}
+	logFile.Close()
+}
+
 type RepoStats struct {
 	mu    sync.Mutex
 	Name  string
 	Start time.Time
 	End   time.Time
+	// These stats are part of the counts map
 	//SitemapCount     int
 	//SitemapHttpError int
 	//SitemapIssues    int
@@ -52,25 +72,24 @@ func NewRepoStats(name string) *RepoStats {
 }
 func (c *RepoStats) setEndTime() {
 	c.mu.Lock()
-	// Lock so only one goroutine at a time can access the map c.v.
 	defer c.mu.Unlock()
 	c.End = time.Now()
 }
 
-const Count string = "SitemapCount"
-const HttpError string = "SitemapHttpError"
-const Issues string = "SitemapIssues"
-const Summoned string = "SitemapSummoned"
-const EmptyDoc string = "SitemapEmptyDoc"
-const Stored string = "SitemapStored"
-const StoreError string = "SitemapStoredError"
-const HeadlessError string = "HeadlessServerError"
+const (
+	Count       = "SitemapCount"
+	HttpError   = "SitemapHttpError"
+	Issues      = "SitemapIssues"
+	Summoned    = "SitemapSummoned"
+	EmptyDoc    = "SitemapEmptyDoc"
+	Stored      = "SitemapStored"
+	StoreError  = "SitemapStoredError"
+	HeadlessErr = "HeadlessServerError"
+)
 
 // Inc increments the counter for the given key.
 func (c *RepoStats) Inc(key string) {
 	c.mu.Lock()
-	// Lock so only one goroutine at a time can access the map c.v.
-	//_, ok := c.counts[key]
 	c.counts[key]++
 	c.mu.Unlock()
 }
@@ -78,7 +97,6 @@ func (c *RepoStats) Inc(key string) {
 // Inc sets a value for the given key.
 func (c *RepoStats) Set(key string, value int) {
 	c.mu.Lock()
-	// Lock so only one goroutine at a time can access the map c.v.
 	c.counts[key] = value
 	c.mu.Unlock()
 }
@@ -86,7 +104,6 @@ func (c *RepoStats) Set(key string, value int) {
 // Value returns the current value of the counter for the given key.
 func (c *RepoStats) Value(key string) int {
 	c.mu.Lock()
-	// Lock so only one goroutine at a time can access the map c.v.
 	defer c.mu.Unlock()
 	return c.counts[key]
 }
@@ -95,7 +112,7 @@ func (c *RunStats) Output() string {
 	out := fmt.Sprintln("RunStats:")
 	out += fmt.Sprintf("  Start: %s\n", c.Date)
 	out += fmt.Sprintf("  Reason: %s\n", c.StopReason)
-	out += fmt.Sprintf("  Source:\n")
+	out += "  Source:\n"
 	for name, repo := range c.RepoStats {
 
 		out += fmt.Sprintf("    - name: %s\n", name)
@@ -113,7 +130,7 @@ func (c *RepoStats) Output() string {
 	out := fmt.Sprintln("SourceStats:")
 	out += fmt.Sprintf("  Start: %s\n", c.Start)
 	out += fmt.Sprintf("  End: %s\n", c.End)
-	out += fmt.Sprintf("  Source:\n")
+	out += "  Source:\n"
 
 	out += fmt.Sprintf("    - name: %s\n", c.Name)
 	for r, count := range c.counts {
@@ -134,6 +151,9 @@ func RunRepoStatsOutput(repoStats *RepoStats, source string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	logFile.WriteString(repoStats.Output())
+	_, err = logFile.WriteString(repoStats.Output())
+	if err != nil {
+		log.Fatal(err)
+	}
 	logFile.Close()
 }

@@ -5,28 +5,32 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	configTypes "github.com/gleanerio/gleaner/internal/config"
-	log "github.com/sirupsen/logrus"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"strings"
 
-	"github.com/gleanerio/gleaner/internal/common"
-	"github.com/gleanerio/gleaner/internal/millers/graph"
+	configTypes "gleaner/internal/config"
+
+	log "github.com/sirupsen/logrus"
+
+	"gleaner/internal/common"
+	"gleaner/internal/millers/graph"
+
 	minio "github.com/minio/minio-go/v7"
-	"github.com/piprate/json-gold/ld"
 	"github.com/spf13/viper"
 )
 
 // Call the SHACL service container (or cloud instance) // TODO: service URL needs to be in the config file!
-func shaclTestNG(v1 *viper.Viper, bucket, prefix string, mc *minio.Client, object, shape minio.ObjectInfo, proc *ld.JsonLdProcessor, options *ld.JsonLdOptions) (string, error) {
+func shaclTestNG(v1 *viper.Viper, bucket, prefix string, mc *minio.Client, object, shape minio.ObjectInfo) (string, error) {
 
 	// read config file
 	//miniocfg := v1.GetStringMapString("minio")
 	//bucketName := miniocfg["bucket"] //   get the top level bucket for all of gleaner operations from config file
 	bucketName, err := configTypes.GetBucketName(v1)
+	if err != nil {
+		return "", err
+	}
 
 	key := object.Key // replace if new function idea works..
 
@@ -83,7 +87,7 @@ func shaclTestNG(v1 *viper.Viper, bucket, prefix string, mc *minio.Client, objec
 
 	// TODO
 	// resolve how call
-	rdfubn, err := shaclCallNG(mcfg["url"], string(b.Bytes()), string(sb.Bytes()))
+	rdfubn, err := shaclCallNG(mcfg["url"], b.String(), sb.String())
 	if err != nil {
 		log.Error(err)
 	}
@@ -101,12 +105,8 @@ func shaclTestNG(v1 *viper.Viper, bucket, prefix string, mc *minio.Client, objec
 
 	objectName := fmt.Sprintf("%s/%s", prefix, milledkey)
 
-	//contentType := "application/ld+json"
-	usermeta := make(map[string]string) // what do I want to know?
+	usermeta := make(map[string]string)
 	usermeta["origfile"] = key
-	//		usermeta["url"] = urlloc
-	//		usermeta["sha1"] = sha
-	//		bucket := "gleaner-summoned" //   fmt.Sprintf("gleaner-summoned/%s", k) // old was just k
 
 	// Upload the file
 	_, err = graph.LoadToMinio(rdfubn, bucketName, objectName, mc)
@@ -130,7 +130,10 @@ func shaclCallNG(url, dg, sg string) (string, error) {
 	writer := multipart.NewWriter(body)
 	// writer.WriteField("datagraph", urlval)
 	// writer.WriteField("shapegraph", sgkey)
-	writer.WriteField("fmt", "nt")
+	err := writer.WriteField("fmt", "nt")
+	if err != nil {
+		return "", err
+	}
 
 	//part, err := writer.CreateFormFile("datagraph", "datagraph")
 	part, err := writer.CreateFormFile("dg", "datagraph")
@@ -171,7 +174,7 @@ func shaclCallNG(url, dg, sg string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
@@ -192,8 +195,14 @@ func shaclTest(urlval, dg, sgkey, sg string, gb *common.Buffer) int {
 	url := "http://localhost:8080/uploader" // TODO this should be set in the config file
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	writer.WriteField("datagraph", urlval)
-	writer.WriteField("shapegraph", sgkey)
+	err := writer.WriteField("datagraph", urlval)
+	if err != nil {
+		log.Error(err)
+	}
+	err = writer.WriteField("shapegraph", sgkey)
+	if err != nil {
+		log.Error(err)
+	}
 
 	part, err := writer.CreateFormFile("datagraph", "datagraph")
 	if err != nil {
@@ -232,7 +241,7 @@ func shaclTest(urlval, dg, sgkey, sg string, gb *common.Buffer) int {
 	}
 	defer resp.Body.Close()
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Error(err)
 	}

@@ -1,20 +1,21 @@
 package shapes
 
 import (
-	"bytes"
 	"fmt"
-	configTypes "github.com/gleanerio/gleaner/internal/config"
-	log "github.com/sirupsen/logrus"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 
-	"github.com/gleanerio/gleaner/internal/common"
-	"github.com/gleanerio/gleaner/internal/millers/graph"
+	configTypes "gleaner/internal/config"
 
-	"github.com/knakk/rdf"
+	log "github.com/sirupsen/logrus"
+
+	"gleaner/internal/common"
+	"gleaner/internal/millers/graph"
+
 	minio "github.com/minio/minio-go/v7"
 	"github.com/spf13/viper"
 )
@@ -27,7 +28,10 @@ type ShapeRef struct {
 // SHACLMillObjects test a concurrent version of calling mock
 func SHACLMillObjects(mc *minio.Client, bucketname string, v1 *viper.Viper) {
 	// load the SHACL files listed in the config file
-	loadShapeFiles(mc, v1)
+	err := loadShapeFiles(mc, v1)
+	if err != nil {
+		log.Error(err)
+	}
 
 	entries := common.GetMillObjects(mc, bucketname)
 	multiCall(entries, bucketname, mc, v1)
@@ -39,10 +43,16 @@ func loadShapeFiles(mc *minio.Client, v1 *viper.Viper) error {
 	//miniocfg := v1.GetStringMapString("minio")
 	//bucketName := miniocfg["bucket"] //   get the top level bucket for all of gleaner operations from config file
 	bucketName, err := configTypes.GetBucketName(v1)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
 	var s []ShapeRef
 	err = v1.UnmarshalKey("shapefiles", &s)
 	if err != nil {
 		log.Error(err)
+		return err
 	}
 
 	for x := range s {
@@ -64,7 +74,7 @@ func loadShapeFiles(mc *minio.Client, v1 *viper.Viper) error {
 		} else { // see if it's a file
 			log.Trace("Load file...")
 
-			dat, err := ioutil.ReadFile(s[x].Ref)
+			dat, err := os.ReadFile(s[x].Ref)
 			if err != nil {
 				log.Error("Error loading file", s[x].Ref, err)
 			}
@@ -130,27 +140,33 @@ func multiCall(e []common.Entry, bucketname string, mc *minio.Client, v1 *viper.
 	}
 }
 
-func rdf2rdf(r string) (string, error) {
-	// Decode the existing triples
-	var inFormat rdf.Format
-	inFormat = rdf.Turtle
+// unused for now
+// func rdf2rdf(r string) (string, error) {
+// 	// Decode the existing triples
+// 	var inFormat rdf.Format = rdf.Turtle
 
-	var outFormat rdf.Format
-	outFormat = rdf.NTriples
+// 	var outFormat rdf.Format = rdf.NTriples
 
-	var s string
-	buf := bytes.NewBufferString(s)
+// 	var s string
+// 	buf := bytes.NewBufferString(s)
 
-	dec := rdf.NewTripleDecoder(strings.NewReader(r), inFormat)
-	tr, err := dec.DecodeAll()
+// 	dec := rdf.NewTripleDecoder(strings.NewReader(r), inFormat)
+// 	tr, err := dec.DecodeAll()
+// 	if err != nil {
+// 		return "", err
+// 	}
 
-	enc := rdf.NewTripleEncoder(buf, outFormat)
-	err = enc.EncodeAll(tr)
+// 	enc := rdf.NewTripleEncoder(buf, outFormat)
+// 	err = enc.EncodeAll(tr)
 
-	enc.Close()
+// 	enc.Close()
 
-	return buf.String(), err
-}
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	return buf.String(), err
+// }
 
 // this same function is in pkg/summoner  resolve duplication here and
 // potentially elsewhere
@@ -173,7 +189,7 @@ func getBody(url string) ([]byte, error) {
 
 	var bodyBytes []byte
 	if resp.StatusCode == http.StatusOK {
-		bodyBytes, err = ioutil.ReadAll(resp.Body)
+		bodyBytes, err = io.ReadAll(resp.Body)
 		if err != nil {
 			log.Error(err)
 			return nil, err

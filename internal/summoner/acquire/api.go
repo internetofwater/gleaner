@@ -2,37 +2,20 @@ package acquire
 
 import (
 	"fmt"
-	"github.com/gleanerio/gleaner/internal/common"
-	configTypes "github.com/gleanerio/gleaner/internal/config"
-	"github.com/minio/minio-go/v7"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
+	"gleaner/internal/common"
+	configTypes "gleaner/internal/config"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/minio/minio-go/v7"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
-/* Acquire JSON-LD from API endpoints */
-const APIType = "api"
-
-// Read the config and get API endpoint template strings
-func RetrieveAPIEndpoints(v1 *viper.Viper) ([]configTypes.Sources, error) {
-	var apiSources []configTypes.Sources
-
-	// Get our API sources
-	sources, err := configTypes.GetSources(v1)
-	if err != nil {
-		log.Error("Error getting sources to summon: ", err)
-		return apiSources, err
-	}
-
-	apiSources = configTypes.GetActiveSourceByType(sources, APIType)
-	return apiSources, err
-}
-
-// given a paged API url template, iterate through the pages until we get
+// given a paged API url template, concurrently iterate through the pages until we get
 // all the results we want.
-func RetrieveAPIData(apiSources []configTypes.Sources, mc *minio.Client, runStats *common.RunStats, v1 *viper.Viper) {
+func RetrieveAPIData(apiSources []configTypes.Source, mc *minio.Client, runStats *common.RunStats, v1 *viper.Viper) {
 	wg := sync.WaitGroup{}
 
 	for _, source := range apiSources {
@@ -55,9 +38,10 @@ func RetrieveAPIData(apiSources []configTypes.Sources, mc *minio.Client, runStat
 	wg.Wait()
 }
 
-func getAPISource(v1 *viper.Viper, mc *minio.Client, source configTypes.Sources, wg *sync.WaitGroup, repologger *log.Logger, repoStats *common.RepoStats) {
+// Download a single API source
+func getAPISource(v1 *viper.Viper, mc *minio.Client, source configTypes.Source, wg *sync.WaitGroup, repologger *log.Logger, repoStats *common.RepoStats) {
 
-	bucketName, tc, delay, _, acceptContent, jsonProfile, err := getConfig(v1, source.Name) // _ is headless wait
+	cfg, err := getConfig(v1, source.Name) // _ is headless wait
 	if err != nil {
 		// trying to read a source, so let's not kill everything with a panic/fatal
 		log.Error("Error reading config file ", err)
@@ -66,7 +50,7 @@ func getAPISource(v1 *viper.Viper, mc *minio.Client, source configTypes.Sources,
 
 	var client http.Client
 
-	responseStatusChan := make(chan int, tc) // a blocking channel to keep concurrency under control
+	responseStatusChan := make(chan int, cfg.ThreadCount) // a blocking channel to keep concurrency under control
 	lwg := sync.WaitGroup{}
 
 	defer func() {
@@ -92,8 +76,7 @@ func getAPISource(v1 *viper.Viper, mc *minio.Client, source configTypes.Sources,
 				log.Error(i, err, urlloc)
 			}
 			req.Header.Set("User-Agent", EarthCubeAgent)
-			//req.Header.Set("Accept", "application/ld+json, text/html")
-			req.Header.Set("Accept", acceptContent)
+			req.Header.Set("Accept", cfg.AcceptContent)
 			response, err := client.Do(req)
 
 			if err != nil {
@@ -116,7 +99,7 @@ func getAPISource(v1 *viper.Viper, mc *minio.Client, source configTypes.Sources,
 			log.Trace("Response status ", response.StatusCode, " from ", urlloc)
 			responseStatusChan <- response.StatusCode
 
-			jsonlds, err := FindJSONInResponse(v1, urlloc, jsonProfile, repologger, response)
+			jsonlds, err := FindJSONInResponse(v1, urlloc, cfg.JsonProfile, repologger, response)
 
 			if err != nil {
 				log.Error("#", i, " error on ", urlloc, err) // print an message containing the index (won't keep order)
@@ -137,10 +120,10 @@ func getAPISource(v1 *viper.Viper, mc *minio.Client, source configTypes.Sources,
 				repoStats.Inc(common.Summoned)
 			}
 
-			UploadWrapper(v1, mc, bucketName, sourceName, urlloc, repologger, repoStats, jsonlds)
+			UploadWithLogsAndMetadata(v1, mc, cfg.BucketName, sourceName, urlloc, repologger, repoStats, jsonlds)
 
-			log.Trace("#", i, "thread for", urlloc)             // print an message containing the index (won't keep order)
-			time.Sleep(time.Duration(delay) * time.Millisecond) // sleep a bit if directed to by the provider
+			log.Trace("#", i, "thread for", urlloc)                 // print an message containing the index (won't keep order)
+			time.Sleep(time.Duration(cfg.Delay) * time.Millisecond) // sleep a bit if directed to by the provider
 
 			lwg.Done()
 		}(i, source.Name)

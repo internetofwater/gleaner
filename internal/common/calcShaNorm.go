@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/piprate/json-gold/ld"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -20,18 +21,18 @@ func GetSHA(s string) string {
 
 // GetNormSHA returns the sha hash for a normalized JSON-LD data graph
 func GetNormSHA(jsonld string, v1 *viper.Viper) (string, error) {
-	proc, options := JLDProc(v1)
+	proc, options, err := GenerateJSONLDProcessor(v1)
+	if err != nil {
+		return "", err
+	}
 
-	// proc := ld.NewJsonLdProcessor()
-	// options := ld.NewJsonLdOptions("")
-	// add the processing mode explicitly if you need JSON-LD 1.1 features
 	options.ProcessingMode = ld.JsonLd_1_1
 	options.Format = "application/n-quads"
 	options.Algorithm = "URDNA2015"
 
 	// JSON-LD   this needs to be an interface, otherwise it thinks it is a URL to get
 	var myInterface interface{}
-	err := json.Unmarshal([]byte(jsonld), &myInterface)
+	err = json.Unmarshal([]byte(jsonld), &myInterface)
 	if err != nil {
 		return "", err
 	}

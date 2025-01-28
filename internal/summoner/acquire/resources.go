@@ -1,39 +1,24 @@
 package acquire
 
 import (
-	"github.com/gleanerio/gleaner/internal/common"
-	log "github.com/sirupsen/logrus"
+	"errors"
+	"gleaner/internal/common"
 	"strings"
 	"time"
 
-	configTypes "github.com/gleanerio/gleaner/internal/config"
+	log "github.com/sirupsen/logrus"
+
+	configTypes "gleaner/internal/config"
 
 	"github.com/temoto/robotstxt"
 
-	"github.com/gleanerio/gleaner/internal/summoner/sitemaps"
+	"gleaner/internal/summoner/sitemaps"
+
 	"github.com/minio/minio-go/v7"
 	"github.com/spf13/viper"
 )
 
-// Sources Holds the metadata associated with the sites to harvest
-//
-//	type Sources struct {
-//		Name       string
-//		Logo       string
-//		URL        string
-//		Headless   bool
-//		PID        string
-//		ProperName string
-//		Domain     string
-//		// SitemapFormat string
-//		// Active        bool
-//	}
-//
-// type Sources = configTypes.Sources
-const siteMapType = "sitemap"
-const robotsType = "robots"
-
-// ResourceURLs looks gets the resource URLs for a domain.  The results is a
+// Gets the resource URLs for a domain.  The results is a
 // map with domain name as key and []string of the URLs to process.
 func ResourceURLs(v1 *viper.Viper, mc *minio.Client, headless bool) (map[string][]string, error) {
 	domainsMap := make(map[string][]string)
@@ -41,14 +26,17 @@ func ResourceURLs(v1 *viper.Viper, mc *minio.Client, headless bool) (map[string]
 	// Know whether we are running in diff mode, in order to exclude urls that have already
 	// been summoned before
 	mcfg, err := configTypes.ReadSummmonerConfig(v1.Sub("summoner"))
+	if err != nil {
+		return nil, err
+	}
 	sources, err := configTypes.GetSources(v1)
-	domains := configTypes.GetActiveSourceByHeadless(sources, headless)
+	domains := configTypes.FilterSourcesByHeadless(sources, headless)
 	if err != nil {
 		log.Error("Error getting sources to summon: ", err)
 		return domainsMap, err // if we can't read list, ok to return an error
 	}
 
-	sitemapDomains := configTypes.GetActiveSourceByType(domains, siteMapType)
+	sitemapDomains := configTypes.FilterSourcesByType(domains, "sitemap")
 
 	for _, domain := range sitemapDomains {
 		var robots *robotstxt.RobotsData
@@ -80,12 +68,15 @@ func ResourceURLs(v1 *viper.Viper, mc *minio.Client, headless bool) (map[string]
 			log.Error("Mode diff is not currently supported")
 			//urls = excludeAlreadySummoned(domain.Name, urls)
 		}
-		overrideCrawlDelayFromRobots(v1, domain.Name, mcfg.Delay, group)
+		err = overrideCrawlDelayFromRobots(v1, domain.Name, mcfg.Delay, group)
+		if err != nil {
+			return nil, err
+		}
 		domainsMap[domain.Name] = urls
 		log.Debug(domain.Name, "sitemap size is :", len(domainsMap[domain.Name]), " mode: ", mcfg.Mode)
 	}
 
-	robotsDomains := configTypes.GetActiveSourceByType(domains, robotsType)
+	robotsDomains := configTypes.FilterSourcesByType(domains, "robots")
 
 	for _, domain := range robotsDomains {
 
@@ -112,7 +103,10 @@ func ResourceURLs(v1 *viper.Viper, mc *minio.Client, headless bool) (map[string]
 			log.Error("Mode diff is not currently supported")
 			//urls = excludeAlreadySummoned(domain.Name, urls)
 		}
-		overrideCrawlDelayFromRobots(v1, domain.Name, mcfg.Delay, group)
+		err = overrideCrawlDelayFromRobots(v1, domain.Name, mcfg.Delay, group)
+		if err != nil {
+			return nil, err
+		}
 		domainsMap[domain.Name] = urls
 		log.Debug(domain.Name, "sitemap size from robots.txt is : ", len(domainsMap[domain.Name]), " mode: ", mcfg.Mode)
 	}
@@ -129,23 +123,24 @@ func getSitemapURLList(domainURL string, robots *robotstxt.Group) ([]string, err
 	var us sitemaps.Sitemap
 	var s []string
 
-	idxr, err := sitemaps.DomainIndex(domainURL)
+	idxr, err := sitemaps.GetSitemapsFromIndex(domainURL)
 	if err != nil {
 		log.Error("Error reading sitemap at:", domainURL, err)
 		return s, err
 	}
 
 	if len(idxr) < 1 {
-		log.Info(domainURL, " is not a sitemap index, checking to see if it is a sitemap")
-		us, err = sitemaps.DomainSitemap(domainURL)
+		us, err = sitemaps.ParseSitemap(domainURL)
 		if err != nil {
-			log.Error("Error parsing sitemap index at ", domainURL, err)
+			log.Error(domainURL, " could not be parsed as either a sitemap index or a sitemap", err)
 			return s, err
 		}
+		log.Info(domainURL, " was parsed as a sitemap")
+
 	} else {
 		log.Info("Walking the sitemap index for sitemaps")
 		for _, idxv := range idxr {
-			subset, err := sitemaps.DomainSitemap(idxv)
+			subset, err := sitemaps.ParseSitemap(idxv)
 			us.URL = append(us.URL, subset.URL...)
 			if err != nil {
 				log.Error("Error parsing sitemap index at: ", idxv, err)
@@ -172,28 +167,33 @@ func getSitemapURLList(domainURL string, robots *robotstxt.Group) ([]string, err
 	return s, nil
 }
 
-func overrideCrawlDelayFromRobots(v1 *viper.Viper, sourceName string, delay int64, robots *robotstxt.Group) {
-	// Look at the crawl delay from this domain's robots.txt, if we can, and one exists.
-	if robots != nil {
-		// this is a time.Duration, which is in nanoseconds, because of COURSE it is, but we want milliseconds
-		log.Debug("Raw crawl delay for robots ", sourceName, " set to ", robots.CrawlDelay)
-		crawlDelay := int64(robots.CrawlDelay / time.Millisecond)
-		log.Debug("Crawl Delay specified by robots.txt for ", sourceName, " : ", crawlDelay)
-
-		// If our default delay is less than what is set there, set a delay for this
-		// domain to respect the robots.txt setting.
-		if delay < crawlDelay {
-			sources, err := configTypes.GetSources(v1)
-			source, err := configTypes.GetSourceByName(sources, sourceName)
-
-			if err != nil {
-				log.Error("Error setting crawl delay override for ", sourceName, ":", err)
-				return
-			}
-			source.Delay = crawlDelay
-			v1.Set("sources", sources)
-		}
+func overrideCrawlDelayFromRobots(v1 *viper.Viper, sourceName string, delay int64, robots *robotstxt.Group) error {
+	if robots == nil {
+		return errors.New("no robots.txt for " + sourceName)
 	}
+
+	// Look at the crawl delay from this domain's robots.txt, if we can, and one exists.
+	// this is a time.Duration, which is in nanoseconds but we want milliseconds
+	log.Debug("Raw crawl delay for robots ", sourceName, " set to ", robots.CrawlDelay)
+	crawlDelay := int64(robots.CrawlDelay / time.Millisecond)
+	log.Debug("Crawl Delay specified by robots.txt for ", sourceName, " : ", crawlDelay)
+
+	// If our default delay is less than what is set there, set a delay for this
+	// domain to respect the robots.txt setting.
+	if delay < crawlDelay {
+		sources, err := configTypes.GetSources(v1)
+		if err != nil {
+			log.Fatal(err)
+		}
+		source, err := configTypes.GetSourceByName(sources, sourceName)
+
+		if err != nil {
+			return err
+		}
+		source.Delay = crawlDelay
+		v1.Set("sources", sources)
+	}
+	return nil
 }
 
 func getRobotsForDomain(url string) (*robotstxt.RobotsData, error) {
@@ -205,44 +205,4 @@ func getRobotsForDomain(url string) (*robotstxt.RobotsData, error) {
 		return nil, err
 	}
 	return robots, nil
-}
-
-// TODO, with bolt gone, this capacity is no longer in Gleaner.  That is fine, it
-// is likely best done in other ways, but this function will also need to be removed above.
-
-//func excludeAlreadySummoned(domainName string, urls []string, db *bolt.DB) []string {
-//	//  TODO if we check for URLs in prov..  do that here..
-//	//oa := objects.ProvURLs(v1, mc, bucketName, fmt.Sprintf("prov/%s", domain.Name))
-//
-//	oa := []string{}
-//	db.View(func(tx *bolt.Tx) error {
-//		// Assume bucket exists and has keys
-//		b := tx.Bucket([]byte(domainName))
-//		c := b.Cursor()
-//
-//		for key, _ := c.First(); key != nil; key, _ = c.Next() {
-//			//fmt.Printf("key=%s, value=%s\n", k, v)
-//			oa = append(oa, fmt.Sprintf("%s", key))
-//		}
-//
-//		return nil
-//	})
-//
-//	d := difference(urls, oa)
-//	return d
-//}
-
-// difference returns the elements in `a` that aren't in `b`.
-func difference(a, b []string) []string {
-	mb := make(map[string]struct{}, len(b))
-	for _, x := range b {
-		mb[x] = struct{}{}
-	}
-	var diff []string
-	for _, x := range a {
-		if _, found := mb[x]; !found {
-			diff = append(diff, x)
-		}
-	}
-	return diff
 }

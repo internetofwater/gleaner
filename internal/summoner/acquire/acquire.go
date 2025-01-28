@@ -1,7 +1,8 @@
 package acquire
 
 import (
-	"github.com/gleanerio/gleaner/internal/common"
+	"fmt"
+	"gleaner/internal/common"
 	"net/http"
 	"net/url"
 	"strings"
@@ -10,7 +11,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	configTypes "github.com/gleanerio/gleaner/internal/config"
+	config "gleaner/internal/config"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/minio/minio-go/v7"
@@ -21,20 +22,20 @@ import (
 const EarthCubeAgent = "EarthCube_DataBot/1.0"
 const JSONContentType = "application/ld+json"
 
-// ResRetrieve is a function to pull down the data graphs at resources
-func ResRetrieve(v1 *viper.Viper, mc *minio.Client, m map[string][]string, runStats *common.RunStats) {
+// ResRetrieve iterates through every domain and spawns a go routine to get the data from all the associated URLs for each
+func ResRetrieve(v1 *viper.Viper, mc *minio.Client, domainToUrls map[string][]string, runStats *common.RunStats) {
 	wg := sync.WaitGroup{}
 
 	// Why do I pass the wg pointer?   Just make a new one
 	// for each domain in getDomain and us this one here with a semaphore
 	// to control the loop?
-	for domain, urls := range m {
+	for domain, urls := range domainToUrls {
 		r := runStats.Add(domain)
 		r.Set(common.Count, len(urls))
 		r.Set(common.HttpError, 0)
 		r.Set(common.Issues, 0)
 		r.Set(common.Summoned, 0)
-		log.Info("Queuing URLs for ", domain)
+		log.Infof("Queuing %d URLs for domain: '%s'", len(urls), domain)
 
 		repologger, err := common.LogIssues(v1, domain)
 		if err != nil {
@@ -44,41 +45,57 @@ func ResRetrieve(v1 *viper.Viper, mc *minio.Client, m map[string][]string, runSt
 			repologger.Info("URL Count ", len(urls))
 		}
 		wg.Add(1)
-		//go getDomain(v1, mc, urls, domain, &wg, db)
 		go getDomain(v1, mc, urls, domain, &wg, repologger, r)
 	}
 
 	wg.Wait()
+	log.Infof("Completed acquire for %d domains", len(domainToUrls))
 }
 
-func getConfig(v1 *viper.Viper, sourceName string) (string, int, int64, int, string, string, error) {
-	bucketName, err := configTypes.GetBucketName(v1)
+// all the configuration values that are relevant for retrieving JSON-LD for a specific URL
+type retrievalConfig struct {
+	BucketName    string
+	ThreadCount   int
+	Delay         int64
+	HeadlessWait  int
+	AcceptContent string
+	JsonProfile   string
+}
+
+func getConfig(v1 *viper.Viper, sourceName string) (retrievalConfig, error) {
+	bucketName, err := config.GetBucketName(v1)
 	if err != nil {
-		return bucketName, 0, 0, 0, configTypes.AccceptContentType, "", err
+		return retrievalConfig{}, err
 	}
 
-	var mcfg configTypes.Summoner
-	mcfg, err = configTypes.ReadSummmonerConfig(v1.Sub("summoner"))
+	var mcfg config.Summoner
+	mcfg, err = config.ReadSummmonerConfig(v1.Sub("summoner"))
 
 	if err != nil {
-		return bucketName, 0, 0, 0, configTypes.AccceptContentType, "", err
+		return retrievalConfig{}, err
 	}
 	// Set default thread counts and global delay
 	tc := mcfg.Threads
 	delay := mcfg.Delay
 
-	if delay != 0 {
+	if delay != 0 || tc == 0 {
 		tc = 1
 	}
 
 	// look for a domain specific override crawl delay
-	sources, err := configTypes.GetSources(v1)
-	source, err := configTypes.GetSourceByName(sources, sourceName)
+	sources, err := config.GetSources(v1)
+	if err != nil {
+		return retrievalConfig{}, err
+	}
+	source, err := config.GetSourceByName(sources, sourceName)
 	acceptContent := source.AcceptContentType
+	if acceptContent == "" {
+		acceptContent = JSONContentType
+	}
 	jsonProfile := source.JsonProfile
 	hw := source.HeadlessWait
 	if err != nil {
-		return bucketName, tc, delay, hw, acceptContent, jsonProfile, err
+		return retrievalConfig{}, err
 	}
 
 	if source.Delay != 0 && source.Delay > delay {
@@ -88,22 +105,29 @@ func getConfig(v1 *viper.Viper, sourceName string) (string, int, int64, int, str
 	}
 	log.Info("Thread count ", tc, " delay ", delay)
 
-	return bucketName, tc, delay, hw, acceptContent, jsonProfile, nil
+	return retrievalConfig{
+		BucketName:    bucketName,
+		ThreadCount:   tc,
+		Delay:         delay,
+		HeadlessWait:  hw,
+		AcceptContent: acceptContent,
+		JsonProfile:   jsonProfile,
+	}, nil
 }
 
 func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName string,
 	wg *sync.WaitGroup, repologger *log.Logger, repoStats *common.RepoStats) {
 
-	bucketName, tc, delay, headlessWait, acceptContent, jsonProfile, err := getConfig(v1, sourceName)
+	cfg, err := getConfig(v1, sourceName)
 	if err != nil {
-		// trying to read a source, so let's not kill everything with a panic/fatal
+		// trying to read a source, so let'ss not kill everything with a panic/fatal
 		log.Error("Error reading config file ", err)
 		repologger.Error("Error reading config file ", err)
 	}
 
 	var client http.Client
 
-	semaphoreChan := make(chan struct{}, tc) // a blocking channel to keep concurrency under control
+	semaphoreChan := make(chan struct{}, cfg.ThreadCount) // a blocking channel to keep concurrency under control
 	lwg := sync.WaitGroup{}
 
 	defer func() {
@@ -122,9 +146,7 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 
 		// TODO / WARNING for large site we can exhaust memory with just the creation of the
 		// go routines. 1 million =~ 4 GB  So we need to control how many routines we
-		// make too..  reference https://github.com/mr51m0n/gorc (but look for someting in the core
-		// library too)
-
+		// make too..
 		go func(i int, sourceName string) {
 			semaphoreChan <- struct{}{}
 
@@ -136,7 +158,7 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 				log.Error(i, err, urlloc)
 			}
 			req.Header.Set("User-Agent", EarthCubeAgent)
-			req.Header.Set("Accept", acceptContent)
+			req.Header.Set("Accept", cfg.AcceptContent)
 
 			resp, err := client.Do(req)
 			if err != nil {
@@ -148,7 +170,8 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 			}
 			defer resp.Body.Close()
 
-			jsonlds, err := FindJSONInResponse(v1, urlloc, jsonProfile, repologger, resp)
+			log.Infof("Got statuscode %d when fetching URL: '%s'", resp.StatusCode, urlloc)
+			jsonlds, err := FindJSONInResponse(v1, urlloc, cfg.JsonProfile, repologger, resp)
 			// there was an issue with sitemaps... but now this code
 			//if contains(contentTypeHeader, JSONContentType) || contains(contentTypeHeader, "application/json") {
 			//
@@ -168,7 +191,7 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 			//	if err != nil {
 			//		log.Error("#", i, " error on ", urlloc, err) // print an message containing the index (won't keep order)
 			//		repoStats.Inc(common.Issues)
-			//		lwg.Done() // tell the wait group that we be done
+			//		lwg.Done() // tell the wait group that wes be done
 			//		<-semaphoreChan
 			//		return
 			//	}
@@ -189,7 +212,7 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 			// even is no JSON-LD packages found, record the event of checking this URL
 			if len(jsonlds) < 1 {
 				// TODO is her where I then try headless, and scope the following for into an else?
-				if headlessWait >= 0 {
+				if cfg.HeadlessWait >= 0 {
 					log.WithFields(log.Fields{"url": urlloc, "contentType": "Direct access failed, trying headless']"}).Info("Direct access failed, trying headless for ", urlloc)
 					repologger.WithFields(log.Fields{"url": urlloc, "contentType": "Direct access failed, trying headless']"}).Error() // this needs to go into the issues file
 					err := PageRenderAndUpload(v1, mc, 60*time.Second, urlloc, sourceName, repologger, repoStats)                      // TODO make delay configurable
@@ -205,11 +228,14 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 				repoStats.Inc(common.Summoned)
 			}
 
-			UploadWrapper(v1, mc, bucketName, sourceName, urlloc, repologger, repoStats, jsonlds)
+			UploadWithLogsAndMetadata(v1, mc, cfg.BucketName, sourceName, urlloc, repologger, repoStats, jsonlds)
 
-			bar.Add(1)                                          // bar.Incr()
-			log.Trace("#", i, "thread for", urlloc)             // print an message containing the index (won't keep order)
-			time.Sleep(time.Duration(delay) * time.Millisecond) // sleep a bit if directed to by the provider
+			err = bar.Add(1) // bar.Incr()
+			if err != nil {
+				log.Error(err) // print an message containing the index (won't keep order)
+			}
+			log.Trace("#", i, "thread for", urlloc)                 // print an message containing the index (won't keep order)
+			time.Sleep(time.Duration(cfg.Delay) * time.Millisecond) // sleep a bit if directed to by the provider
 
 			lwg.Done()
 
@@ -221,7 +247,13 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 }
 
 func FindJSONInResponse(v1 *viper.Viper, urlloc string, jsonProfile string, repologger *log.Logger, response *http.Response) ([]string, error) {
-	doc, err := goquery.NewDocumentFromResponse(response)
+	// NewDocumentResponse is deprecated but the alternative doesn't seem to work
+	body := response.Body
+	if body == nil {
+		return nil, fmt.Errorf("body not found on response")
+	}
+
+	doc, err := goquery.NewDocumentFromReader(response.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -262,30 +294,32 @@ func FindJSONInResponse(v1 *viper.Viper, urlloc string, jsonProfile string, repo
 	return jsonlds, nil
 }
 
-func UploadWrapper(v1 *viper.Viper, mc *minio.Client, bucketName string, sourceName string, urlloc string, repologger *log.Logger, repoStats *common.RepoStats, jsonlds []string) {
-	for i, jsonld := range jsonlds {
-		if jsonld != "" { // traps out the root domain...   should do this different
-			logFields := log.Fields{"url": urlloc, "issue": "Uploading"}
-			log.WithFields(logFields).Trace("#", i, "Uploading ")
-			repologger.WithFields(logFields).Trace()
-			sha, err := Upload(v1, mc, bucketName, sourceName, urlloc, jsonld)
-			if err != nil {
-				logFields = log.Fields{"url": urlloc, "sha": sha, "issue": "Error uploading jsonld to object store"}
-				log.WithFields(logFields).Error("Error uploading jsonld to object store: ", urlloc, err)
-				repologger.WithFields(logFields).Error(err)
-				repoStats.Inc(common.StoreError)
-			} else {
-				logFields = log.Fields{"url": urlloc, "sha": sha, "issue": "Uploaded to object store"}
-				repologger.WithFields(logFields).Trace(err)
-				log.WithFields(logFields).Info("Successfully put ", sha, " in summoned bucket for ", urlloc)
-				repoStats.Inc(common.Stored)
-			}
+// Wrap the minio PutObject function with verbose logging and track the stats
+func UploadWithLogsAndMetadata(v1 *viper.Viper, mc *minio.Client, bucketName string, sourceName string, urlloc string, repologger *log.Logger, repoStats *common.RepoStats, jsonlds []string) {
 
-		} else {
+	for i, jsonld := range jsonlds {
+		if jsonld == "" {
 			logFields := log.Fields{"url": urlloc, "issue": "Empty JSON-LD document found "}
 			log.WithFields(logFields).Info("Empty JSON-LD document found. Continuing.")
 			repologger.WithFields(logFields).Error("Empty JSON-LD document found. Continuing.")
+			continue
+		}
 
+		logFields := log.Fields{"url": urlloc, "issue": "Uploading"}
+		log.WithFields(logFields).Trace("#", i, "Uploading ")
+		repologger.WithFields(logFields).Trace()
+		sha, err := Upload(v1, mc, bucketName, sourceName, urlloc, jsonld)
+
+		if err != nil {
+			logFields = log.Fields{"url": urlloc, "sha": sha, "issue": "Error uploading jsonld to object store"}
+			log.WithFields(logFields).Error("Error uploading jsonld to object store: ", urlloc, err)
+			repologger.WithFields(logFields).Error(err)
+			repoStats.Inc(common.StoreError)
+		} else {
+			logFields = log.Fields{"url": urlloc, "sha": sha, "issue": "Uploaded to object store"}
+			repologger.WithFields(logFields).Trace(err)
+			log.WithFields(logFields).Info("Successfully put ", sha, " in summoned bucket for ", urlloc)
+			repoStats.Inc(common.Stored)
 		}
 	}
 }

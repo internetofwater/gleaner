@@ -1,14 +1,17 @@
 package acquire
 
 import (
-	configTypes "github.com/gleanerio/gleaner/internal/config"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"gleaner/internal/config"
+	configTypes "gleaner/internal/config"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestRetrieveAPIEndpoints(t *testing.T) {
+func TestRetrieveSourceAPIEndpoints(t *testing.T) {
 	t.Run("It reads a config for an API indexing source and returns the expected information", func(t *testing.T) {
-		apiSource := configTypes.Sources{
+		apiSource := configTypes.Source{
 			Name:         "apiSource",
 			SourceType:   "api",
 			Active:       true,
@@ -35,10 +38,9 @@ func TestRetrieveAPIEndpoints(t *testing.T) {
 			},
 		}
 
-		viper := ConfigSetupHelper(conf)
-		sources, err := RetrieveAPIEndpoints(viper)
-		var expected []Sources
-		assert.Equal(t, append(expected, apiSource), sources)
+		viper := config.SetupHelper(conf)
+		sources, err := config.RetrieveSourceAPIEndpoints(viper)
+		assert.Equal(t, []configTypes.Source{apiSource}, sources)
 		assert.Nil(t, err)
 	})
 }

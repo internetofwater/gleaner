@@ -2,22 +2,15 @@ package acquire
 
 import (
 	"bytes"
-	"errors"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
-)
 
-func ConfigSetupHelper(conf map[string]interface{}) *viper.Viper {
-	var viper = viper.New()
-	for key, value := range conf {
-		viper.Set(key, value)
-	}
-	return viper
-}
+	config "gleaner/internal/config"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
+)
 
 func TestGetConfig(t *testing.T) {
 	t.Run("It reads a config for an indexing source and returns the expected information", func(t *testing.T) {
@@ -27,11 +20,11 @@ func TestGetConfig(t *testing.T) {
 			"sources":  []map[string]interface{}{{"name": "testSource"}},
 		}
 
-		viper := ConfigSetupHelper(conf)
-		bucketName, tc, delay, _, _, _, err := getConfig(viper, "testSource")
-		assert.Equal(t, "test", bucketName)
-		assert.Equal(t, 5, tc)
-		assert.Equal(t, int64(0), delay)
+		viper := config.SetupHelper(conf)
+		cfg, err := getConfig(viper, "testSource")
+		assert.Equal(t, "test", cfg.BucketName)
+		assert.Equal(t, 5, cfg.ThreadCount)
+		assert.Equal(t, int64(0), cfg.Delay)
 		assert.Nil(t, err)
 	})
 
@@ -42,11 +35,11 @@ func TestGetConfig(t *testing.T) {
 			"sources":  []map[string]interface{}{{"name": "testSource"}},
 		}
 
-		viper := ConfigSetupHelper(conf)
-		bucketName, tc, delay, _, _, _, err := getConfig(viper, "testSource")
-		assert.Equal(t, "test", bucketName)
-		assert.Equal(t, 1, tc)
-		assert.Equal(t, int64(1000), delay)
+		viper := config.SetupHelper(conf)
+		cfg, err := getConfig(viper, "testSource")
+		assert.Equal(t, "test", cfg.BucketName)
+		assert.Equal(t, 1, cfg.ThreadCount)
+		assert.Equal(t, int64(1000), cfg.Delay)
 		assert.Nil(t, err)
 	})
 
@@ -57,11 +50,11 @@ func TestGetConfig(t *testing.T) {
 			"sources":  []map[string]interface{}{{"name": "testSource"}},
 		}
 
-		viper := ConfigSetupHelper(conf)
-		bucketName, tc, delay, _, _, _, err := getConfig(viper, "testSource")
-		assert.Equal(t, "test", bucketName)
-		assert.Equal(t, 5, tc)
-		assert.Equal(t, int64(0), delay)
+		viper := config.SetupHelper(conf)
+		cfg, err := getConfig(viper, "testSource")
+		assert.Equal(t, "test", cfg.BucketName)
+		assert.Equal(t, 5, cfg.ThreadCount)
+		assert.Equal(t, int64(0), cfg.Delay)
 		assert.Nil(t, err)
 	})
 
@@ -72,11 +65,11 @@ func TestGetConfig(t *testing.T) {
 			"sources":  []map[string]interface{}{{"name": "testSource", "delay": 100}},
 		}
 
-		viper := ConfigSetupHelper(conf)
-		bucketName, tc, delay, _, _, _, err := getConfig(viper, "testSource")
-		assert.Equal(t, "test", bucketName)
-		assert.Equal(t, 1, tc)
-		assert.Equal(t, int64(100), delay)
+		viper := config.SetupHelper(conf)
+		cfg, err := getConfig(viper, "testSource")
+		assert.Equal(t, "test", cfg.BucketName)
+		assert.Equal(t, 1, cfg.ThreadCount)
+		assert.Equal(t, int64(100), cfg.Delay)
 		assert.Nil(t, err)
 	})
 
@@ -87,11 +80,11 @@ func TestGetConfig(t *testing.T) {
 			"sources":  []map[string]interface{}{{"name": "testSource", "delay": 10}},
 		}
 
-		viper := ConfigSetupHelper(conf)
-		bucketName, tc, delay, _, _, _, err := getConfig(viper, "testSource")
-		assert.Equal(t, "test", bucketName)
-		assert.Equal(t, 1, tc)
-		assert.Equal(t, int64(50), delay)
+		viper := config.SetupHelper(conf)
+		cfg, err := getConfig(viper, "testSource")
+		assert.Equal(t, "test", cfg.BucketName)
+		assert.Equal(t, 1, cfg.ThreadCount)
+		assert.Equal(t, int64(50), cfg.Delay)
 		assert.Nil(t, err)
 	})
 }
@@ -100,7 +93,7 @@ func TestFindJSONInResponse(t *testing.T) {
 	conf := map[string]interface{}{
 		"contextmaps": map[string]interface{}{},
 	}
-	viper := ConfigSetupHelper(conf)
+	viper := config.SetupHelper(conf)
 	logger := log.New()
 	const JSONContentType = "application/ld+json"
 	testJson := `{
@@ -128,15 +121,16 @@ func TestFindJSONInResponse(t *testing.T) {
 	}
 
 	t.Run("It returns an error if the response document cannot be parsed", func(t *testing.T) {
-		result, err := FindJSONInResponse(viper, urlloc, JSONContentType, logger, nil)
+		// create dummy response object
+		result, err := FindJSONInResponse(viper, urlloc, JSONContentType, logger, &http.Response{})
 		assert.Nil(t, result)
-		assert.Equal(t, errors.New("Response is nil"), err)
+		assert.Error(t, err)
 	})
 
 	t.Run("It finds JSON-LD in HTML document responses", func(t *testing.T) {
 		html := "<html><body>yay<script type='application/ld+json'>" + testJson + "</script></body></html>"
 
-		response.Body = ioutil.NopCloser(bytes.NewBufferString(html))
+		response.Body = io.NopCloser(bytes.NewBufferString(html))
 		response.ContentLength = int64(len(html))
 		var expected []string
 
@@ -146,7 +140,7 @@ func TestFindJSONInResponse(t *testing.T) {
 	})
 
 	t.Run("It finds JSON-LD in JSON document responses", func(t *testing.T) {
-		response.Body = ioutil.NopCloser(bytes.NewBufferString(testJson))
+		response.Body = io.NopCloser(bytes.NewBufferString(testJson))
 		response.ContentLength = int64(len(testJson))
 		var expected []string
 
@@ -156,7 +150,7 @@ func TestFindJSONInResponse(t *testing.T) {
 	})
 
 	t.Run("It finds JSON-LD in http responses with a JSON-LD content type", func(t *testing.T) {
-		response.Body = ioutil.NopCloser(bytes.NewBufferString(testJson))
+		response.Body = io.NopCloser(bytes.NewBufferString(testJson))
 		response.ContentLength = int64(len(testJson))
 		response.Header.Add("Content-Type", JSONContentType)
 		var expected []string
@@ -167,7 +161,7 @@ func TestFindJSONInResponse(t *testing.T) {
 	})
 
 	t.Run("It finds JSON-LD in http responses with a JSON content type", func(t *testing.T) {
-		response.Body = ioutil.NopCloser(bytes.NewBufferString(testJson))
+		response.Body = io.NopCloser(bytes.NewBufferString(testJson))
 		response.ContentLength = int64(len(testJson))
 		response.Header.Add("Content-Type", "application/json; charset=utf-8")
 		var expected []string

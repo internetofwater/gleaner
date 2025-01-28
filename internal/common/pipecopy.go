@@ -5,14 +5,15 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"sync"
+
+	log "github.com/sirupsen/logrus"
 
 	minio "github.com/minio/minio-go/v7"
 )
 
-func PipeCopyNG(name, bucket, prefix string, mc *minio.Client) error {
+func PipeCopyNamedGraph(name, bucket, prefix string, mc *minio.Client) error {
 	log.Debug("Start pipe reader / writer sequence")
 
 	pr, pw := io.Pipe()     // TeeReader of use?
@@ -44,7 +45,10 @@ func PipeCopyNG(name, bucket, prefix string, mc *minio.Client) error {
 				log.Error(err)
 			}
 
-			pw.Write(b.Bytes())
+			n, err := pw.Write(b.Bytes())
+			if err != nil {
+				log.Errorf("failed to write %d bytes: %v", n, err)
+			}
 		}
 
 	}()
