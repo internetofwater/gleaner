@@ -75,4 +75,4 @@ jobs:
           curl -i -X DELETE \
             -H "Accept: application/json" \
             -H "Authorization: JWT ${{ env.HUB_TOKEN }}" \
-            "https://hub.docker.com/v2/repositories/internetofwater/gleaner/tags/${{ env.tag }}/"
+            "https://hub.docker.com/v2/namespaces/internetofwater/repositories/gleaner/tags/${{ env.tag }}/""
