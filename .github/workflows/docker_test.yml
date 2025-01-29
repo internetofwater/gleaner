@@ -3,7 +3,7 @@ name: Docker Tests
 on: [push]
 
 jobs:
-  golangci:
+  build-and-run:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
