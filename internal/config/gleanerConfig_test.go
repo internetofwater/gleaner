@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGleanerConfig(t *testing.T) {
@@ -16,4 +17,7 @@ func TestGleanerConfig(t *testing.T) {
 		t.Fatal("no minio config")
 	}
 	assert.Equal(t, 9000, res.GetInt("port"))
+	minio, err := ReadMinioConfig(res)
+	require.NoError(t, err)
+	assert.Equal(t, "gleanerbucket", minio.Bucket)
 }

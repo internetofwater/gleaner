@@ -31,7 +31,7 @@ func validateBuckets(mc *minio.Client, bucket string) error {
 		return err
 	}
 	if !found {
-		return fmt.Errorf("unable to locate required bucket:  %s, did you run gleaner with -setup the first to set up buckets?", bucket)
+		return fmt.Errorf("unable to locate required bucket:  %s, did you run gleaner with --setup the first to set up buckets?", bucket)
 	}
 	if found {
 		log.Debug("Validated access to object store:", bucket)
