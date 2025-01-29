@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -35,6 +36,7 @@ var gleanerTemplate = map[string]interface{}{
 func ReadGleanerConfig(filename string, cfgDir string) (*viper.Viper, error) {
 	v := viper.New()
 	for key, value := range gleanerTemplate {
+		log.Debug("setting default value for ", key, " to ", value)
 		v.SetDefault(key, value)
 	}
 
