@@ -8,27 +8,31 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-     
-      - name: Build Docker Image
+
+      - name: Create Docker Network
+        run: docker network create mynetwork
+
+      - name: Build Gleaner Docker Image
         run: docker build -t gleaner .
 
       - name: Run Minio Container
         run: |
-            docker run -d --rm -p 9000:9000 minio/minio server /data
+          docker run -d --rm --network mynetwork --name minio minio/minio server /data
 
-
-      - name: Wait for minio to be ready
+      - name: Wait for Minio to be Ready
         run: |
           end=$(date -ud '+30 seconds' +%s)
-          while ! nc -z 127.0.0.1 9000; do
+          while ! nc -z minio 9000; do
             sleep 1
             now=$(date -u +%s)
             if [ $now -gt $end ]; then
-              echo "Timeout waiting for minio"
+              echo "Timeout waiting for Minio"
               exit 1
             fi
           done
 
       - name: Run Gleaner
-        run: docker run -v ./testHelpers/sampleConfigs/justHu02.yaml:/app/gleanerconfig.yaml --rm gleaner --cfg gleanerconfig.yaml --setup
-
+        run: |
+          docker run --network mynetwork \
+            -v ./testHelpers/sampleConfigs/justHu02.yaml:/app/gleanerconfig.yaml \
+            --rm gleaner --cfg gleanerconfig.yaml --setup --address minio
