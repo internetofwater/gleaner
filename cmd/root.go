@@ -108,7 +108,6 @@ func Gleaner(cli *GleanerCliArgs) error {
 		if err != nil {
 			return errors.New("error making buckets for setup call")
 		}
-		log.Info("Buckets generated. Object store should be ready for runs")
 	}
 
 	// idate Minio access

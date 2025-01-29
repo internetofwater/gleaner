@@ -70,10 +70,11 @@ func getAPISource(v1 *viper.Viper, mc *minio.Client, source configTypes.Source, 
 		go func(i int, sourceName string) {
 			repologger.Trace("Indexing", urlloc)
 			log.Debug("Indexing ", urlloc)
-
+			// "https://pids.geoconnex.dev/sitemap/ref/mainstems/mainstems__0.xml%!(EXTRA int=0)" TODO COME BACK HERE
 			req, err := http.NewRequest("GET", urlloc, nil)
 			if err != nil {
 				log.Error(i, err, urlloc)
+				return
 			}
 			req.Header.Set("User-Agent", EarthCubeAgent)
 			req.Header.Set("Accept", cfg.AcceptContent)

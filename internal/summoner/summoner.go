@@ -43,13 +43,15 @@ func SummonSitemaps(mc *minio.Client, v1 *viper.Viper) error {
 	log.Info("Summoner start time:", start) // Log the time at start for the record
 	runStats := common.NewRunStats()
 
+	// Confusingly this function was originally written such that it should not return an error if there are no API sources
+	// it should just skip retrieving then and go on.
 	apiSources, err := config.RetrieveSourceAPIEndpoints(v1)
 	if err != nil {
 		return fmt.Errorf("error getting API endpoint sources: %w", err)
 	} else if len(apiSources) > 0 {
 		acquire.RetrieveAPIData(apiSources, mc, runStats, v1)
 	} else {
-		return fmt.Errorf("no API sources found in config file %s", v1.ConfigFileUsed())
+		log.Warnf("no API sources found in config file %s; this is ok if you're not using API sources", v1.ConfigFileUsed())
 	}
 
 	c := make(chan os.Signal, 1)
