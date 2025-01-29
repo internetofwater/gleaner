@@ -3,15 +3,14 @@ package config
 import (
 	"fmt"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
 // auth fails if a region is set in minioclient...
 var gleanerTemplate = map[string]interface{}{
 	"minio": map[string]string{
-		"address":   "localhost",
-		"port":      "9000",
+		"address":   "",
+		"port":      "",
 		"region":    "",
 		"accesskey": "",
 		"secretkey": "",
@@ -36,7 +35,6 @@ var gleanerTemplate = map[string]interface{}{
 func ReadGleanerConfig(filename string, cfgDir string) (*viper.Viper, error) {
 	v := viper.New()
 	for key, value := range gleanerTemplate {
-		log.Error("setting default value for ", key, " to ", value)
 		v.SetDefault(key, value)
 	}
 
