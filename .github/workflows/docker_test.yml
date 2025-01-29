@@ -1,0 +1,41 @@
+name: Docker Tests
+
+on: [push]
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create Docker Network
+        run: docker network create mynetwork
+
+      - name: Build Gleaner Docker Image
+        run: docker build -t gleaner .
+
+      - name: Run Minio Container with Health Check
+        run: |
+          docker run -d --rm --network mynetwork --name minio \
+            --health-cmd="curl --silent --show-error --fail http://localhost:9000/minio/health/ready || exit 1" \
+            --health-interval=10s --health-timeout=5s --health-retries=3 \
+            minio/minio server /data
+
+      - name: Wait for Minio to be Healthy
+        run: |
+          end=$(date -ud '+30 seconds' +%s)
+          while [[ "$(docker inspect --format '{{.State.Health.Status}}' minio)" != "healthy" ]]; do
+            sleep 1
+            now=$(date -u +%s)
+            if [ $now -gt $end ]; then
+              echo "Timeout waiting for Minio to become healthy"
+              exit 1
+            fi
+          done
+
+      - name: Run Gleaner
+        run: |
+          docker run --network mynetwork \
+            -v ./testHelpers/sampleConfigs/justHu02.yaml:/app/gleanerconfig.yaml \
+            --rm gleaner --cfg gleanerconfig.yaml --setup --address minio

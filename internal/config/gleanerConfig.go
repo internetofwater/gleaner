@@ -9,8 +9,8 @@ import (
 // auth fails if a region is set in minioclient...
 var gleanerTemplate = map[string]interface{}{
 	"minio": map[string]string{
-		"address":   "localhost",
-		"port":      "9000",
+		"address":   "",
+		"port":      "",
 		"region":    "",
 		"accesskey": "",
 		"secretkey": "",
