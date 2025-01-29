@@ -12,7 +12,7 @@ jobs:
       - name: Build Docker Image
         run: docker build -t gleaner .
 
-      - name: Run Docker Container
+      - name: Run Minio Container
         run: |
             docker run -d --rm -p 9000:9000 minio/minio server /data
 
