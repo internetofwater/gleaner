@@ -71,9 +71,9 @@ func TestOverrideCrawlDelayFromRobots(t *testing.T) {
 
 	group := robots.FindGroup(EarthCubeAgent)
 
-	t.Run("It does nothing if given a nil robots object", func(t *testing.T) {
+	t.Run("It does nothing if there is no robots.txt", func(t *testing.T) {
 		err := overrideCrawlDelayFromRobots(viper, "test", 0, nil)
-		assert.Error(t, err) // should error and not change the viper pointer that was passed in
+		assert.Nil(t, err) // should error and not change the viper pointer that was passed in
 		sources, err := configTypes.GetSources(viper)
 		assert.NoError(t, err)
 		source, err := configTypes.GetSourceByName(sources, "test")
