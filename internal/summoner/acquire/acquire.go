@@ -170,7 +170,7 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 			}
 			defer resp.Body.Close()
 
-			log.Infof("Got statuscode %d when fetching URL: '%s'", resp.StatusCode, urlloc)
+			log.Tracef("Got statuscode %d when fetching URL: '%s'", resp.StatusCode, urlloc)
 			jsonlds, err := FindJSONInResponse(v1, urlloc, cfg.JsonProfile, repologger, resp)
 			// there was an issue with sitemaps... but now this code
 			//if contains(contentTypeHeader, JSONContentType) || contains(contentTypeHeader, "application/json") {
@@ -318,7 +318,7 @@ func UploadWithLogsAndMetadata(v1 *viper.Viper, mc *minio.Client, bucketName str
 		} else {
 			logFields = log.Fields{"url": urlloc, "sha": sha, "issue": "Uploaded to object store"}
 			repologger.WithFields(logFields).Trace(err)
-			log.WithFields(logFields).Info("Successfully put ", sha, " in summoned bucket for ", urlloc)
+			log.WithFields(logFields).Trace("Successfully put ", sha, " in summoned bucket for ", urlloc)
 			repoStats.Inc(common.Stored)
 		}
 	}
