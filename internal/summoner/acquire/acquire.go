@@ -15,7 +15,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/minio/minio-go/v7"
-	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/viper"
 )
 
@@ -136,9 +135,6 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 		close(semaphoreChan)
 	}()
 
-	count := len(urls)
-	bar := progressbar.Default(int64(count))
-
 	// we actually go get the URLs now
 	for i := range urls {
 		lwg.Add(1)
@@ -230,10 +226,6 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 
 			UploadWithLogsAndMetadata(v1, mc, cfg.BucketName, sourceName, urlloc, repologger, repoStats, jsonlds)
 
-			err = bar.Add(1) // bar.Incr()
-			if err != nil {
-				log.Error(err) // print an message containing the index (won't keep order)
-			}
 			log.Trace("#", i, "thread for", urlloc)                 // print an message containing the index (won't keep order)
 			time.Sleep(time.Duration(cfg.Delay) * time.Millisecond) // sleep a bit if directed to by the provider
 

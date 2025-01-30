@@ -8,7 +8,6 @@ import (
 
 	configTypes "gleaner/internal/config"
 
-	"github.com/gosuri/uiprogress"
 	log "github.com/sirupsen/logrus"
 
 	"gleaner/internal/common"
@@ -45,8 +44,6 @@ func ShapeNG(mc *minio.Client, prefix string, v1 *viper.Viper) error {
 	defer close(doneCh)           // Indicate to our routine to exit cleanly upon return.
 	isRecursive := true
 
-	// Spiffy progress line
-	uiprogress.Start()
 	x := 0 // ugh..  why won't len(oc) work..   buffered channel issue I assume?
 	opts := minio.ListObjectsOptions{
 		Recursive: isRecursive,
@@ -56,14 +53,6 @@ func ShapeNG(mc *minio.Client, prefix string, v1 *viper.Viper) error {
 	for range mc.ListObjects(context.Background(), bucketName, opts) {
 		x = x + 1
 	}
-	count := x
-	bar3 := uiprogress.AddBar(count).PrependElapsed().AppendCompleted()
-	bar3.PrependFunc(func(b *uiprogress.Bar) string {
-		return rightPad2Len("shacl", " ", 15)
-	})
-	bar3.Fill = '-'
-	bar3.Head = '>'
-	bar3.Empty = ' '
 
 	// TODO get the list of shape files in the shape bucket
 	//for shape := range mc.ListObjectsV2(bucketname, "shapes", isRecursive, doneCh) {
@@ -92,7 +81,6 @@ func ShapeNG(mc *minio.Client, prefix string, v1 *viper.Viper) error {
 				wg.Done() // tell the wait group that we be done
 				log.Debug("Doc:", bucketName, "error:", err)
 
-				bar3.Incr()
 				<-semaphoreChan
 			}(object)
 		}
@@ -125,13 +113,4 @@ func ShapeNG(mc *minio.Client, prefix string, v1 *viper.Viper) error {
 	}
 
 	return err
-}
-
-//  ---------- func below are dupes..  they will be moved to a commons
-
-// sugar function for the ui bar
-func rightPad2Len(s string, padStr string, overallLen int) string {
-	padCountInt := 1 + ((overallLen - len(padStr)) / len(padStr))
-	var retStr = s + strings.Repeat(padStr, padCountInt)
-	return retStr[:overallLen]
 }
