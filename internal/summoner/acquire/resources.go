@@ -1,7 +1,6 @@
 package acquire
 
 import (
-	"errors"
 	"gleaner/internal/common"
 	"strings"
 	"time"
@@ -169,7 +168,8 @@ func getSitemapURLList(domainURL string, robots *robotstxt.Group) ([]string, err
 
 func overrideCrawlDelayFromRobots(v1 *viper.Viper, sourceName string, delay int64, robots *robotstxt.Group) error {
 	if robots == nil {
-		return errors.New("no robots.txt for " + sourceName)
+		log.Warnf("No robots.txt found for %s so no crawl delay will be set", sourceName)
+		return nil
 	}
 
 	// Look at the crawl delay from this domain's robots.txt, if we can, and one exists.
