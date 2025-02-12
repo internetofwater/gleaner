@@ -1,7 +1,7 @@
 package testHelpers
 
 import (
-	"gleaner/internal/config"
+	"gleaner/cmd/config"
 	"gleaner/internal/projectpath"
 	"net"
 	"net/http"

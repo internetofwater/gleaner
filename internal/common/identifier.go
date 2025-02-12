@@ -11,7 +11,7 @@ There are four implementations... so you can see if one might be a little quirky
 import (
 	"errors"
 	"fmt"
-	"gleaner/internal/config"
+	"gleaner/cmd/config"
 	"sort"
 	"strings"
 
@@ -32,7 +32,7 @@ type Identifier struct {
 
 var jsonPathsDefault = []string{"$['@graph'][?(@['@type']=='schema:Dataset')]['@id']", "$.identifier[?(@.propertyID=='https://registry.identifiers.org/registry/doi')].value", "$.identifier.value", "$.identifier", "$['@id']", "$.url"}
 
-func GenerateIdentifier(v1 *viper.Viper, source config.Source, jsonld string) (Identifier, error) {
+func GenerateIdentifier(v1 *viper.Viper, source config.SourceConfig, jsonld string) (Identifier, error) {
 
 	// Generate calls also do the casecading aka if IdentifierSha is [] it calls JsonSha
 	switch source.IdentifierType {

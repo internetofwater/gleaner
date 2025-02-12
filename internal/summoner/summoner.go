@@ -7,6 +7,7 @@ import (
 	"syscall"
 	"time"
 
+	"gleaner/cmd/config"
 	"gleaner/internal/common"
 	"gleaner/internal/config"
 
@@ -14,8 +15,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"gleaner/internal/summoner/acquire"
-
-	"github.com/spf13/viper"
 )
 
 func RunStatsToFile(runStats *common.RunStats) {
@@ -37,7 +36,7 @@ func RunStatsToFile(runStats *common.RunStats) {
 }
 
 // Summoner pulls the resources from the data facilities
-func SummonSitemaps(mc *minio.Client, v1 *viper.Viper) error {
+func SummonSitemaps(mc *minio.Client, conf config.GleanerConfig) error {
 
 	start := time.Now()
 	log.Info("Summoner start time:", start) // Log the time at start for the record

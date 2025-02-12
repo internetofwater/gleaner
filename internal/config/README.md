@@ -1,1 +1,0 @@
-Each file in this directory represents each a part of the gleaner config or the entire config. You can extract either the entire config or specific parts by serializing it to the appropriate golang struct.

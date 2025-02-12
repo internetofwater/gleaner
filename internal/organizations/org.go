@@ -6,14 +6,13 @@ import (
 	"fmt"
 	"text/template"
 
-	"gleaner/internal/config"
+	"gleaner/cmd/config"
 
 	log "github.com/sirupsen/logrus"
 
 	"gleaner/internal/common"
 
 	"github.com/minio/minio-go/v7"
-	"github.com/spf13/viper"
 )
 
 // Represents the JSONLD file that will be converted into an nq for each org in the org/ bucket
@@ -36,25 +35,15 @@ const orgJSONLDTemplate = `{
 
 // For each source in the gleaner config, build the JSONLD for the org,
 // convert that to nq, and upload to minio
-func BuildOrgNqsAndUpload(mc *minio.Client, v1 *viper.Viper) error {
-
-	bucketName, err := config.GetBucketName(v1)
-	if err != nil {
-		return err
-	}
+func BuildOrgNqsAndUpload(mc *minio.Client, conf config.GleanerConfig) error {
 
 	log.Info("Building organization graph.")
-	domains, err := config.GetSources(v1)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-	jsonldProcessor, options, err := common.GenerateJSONLDProcessor(v1)
+	jsonldProcessor, options, err := common.GenerateJSONLDProcessor(conf)
 	if err != nil {
 		return err
 	}
 
-	for _, domain := range domains {
+	for _, domain := range conf.Sources {
 
 		jsonld, err := BuildOrgJSONLD(domain)
 		if err != nil {
@@ -70,7 +59,7 @@ func BuildOrgNqsAndUpload(mc *minio.Client, v1 *viper.Viper) error {
 
 		objectName := fmt.Sprintf("orgs/%s.nq", domain.Name)
 
-		if _, err := mc.PutObject(context.Background(), bucketName, objectName, rdfBuffer, int64(rdfBuffer.Len()), minio.PutObjectOptions{ContentType: "application/n-quads"}); err != nil {
+		if _, err := mc.PutObject(context.Background(), conf.Minio.Bucket, objectName, rdfBuffer, int64(rdfBuffer.Len()), minio.PutObjectOptions{ContentType: "application/n-quads"}); err != nil {
 			return err
 		}
 	}
@@ -79,7 +68,7 @@ func BuildOrgNqsAndUpload(mc *minio.Client, v1 *viper.Viper) error {
 }
 
 // Create a provenance ontology JSONLD string that associates the crawl with its organizational data
-func BuildOrgJSONLD(src config.Source) (string, error) {
+func BuildOrgJSONLD(src config.SourceConfig) (string, error) {
 
 	// Make sure there are no empty string values for fields that would be
 	// inserted into the jsonld template
