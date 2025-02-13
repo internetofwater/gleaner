@@ -1,13 +1,13 @@
 package acquire
 
 import (
-	"gleaner/internal/common"
+	"fmt"
 	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 
-	configTypes "gleaner/internal/config"
+	configTypes "gleaner/cmd/config"
 
 	"github.com/temoto/robotstxt"
 
@@ -17,38 +17,28 @@ import (
 	"github.com/spf13/viper"
 )
 
+type SourceWithRobots struct {
+	Source configTypes.SourceConfig
+	Robots *robotstxt.RobotsData
+}
+
 // Gets the resource URLs for a domain.  The results is a
 // map with domain name as key and []string of the URLs to process.
-func ResourceURLs(v1 *viper.Viper, mc *minio.Client, headless bool) (map[string][]string, error) {
+func ResourceURLs(conf configTypes.GleanerConfig, mc *minio.Client, headless bool) (map[string][]string, error) {
 	domainsMap := make(map[string][]string)
-	var repoFatalErrors common.MultiError
-	// Know whether we are running in diff mode, in order to exclude urls that have already
-	// been summoned before
-	mcfg, err := configTypes.ReadSummmonerConfig(v1.Sub("summoner"))
-	if err != nil {
-		return nil, err
-	}
-	sources, err := configTypes.GetSources(v1)
-	domains := configTypes.FilterSourcesByHeadless(sources, headless)
-	if err != nil {
-		log.Error("Error getting sources to summon: ", err)
-		return domainsMap, err // if we can't read list, ok to return an error
-	}
 
-	sitemapDomains := configTypes.FilterSourcesByType(domains, "sitemap")
-
-	for _, domain := range sitemapDomains {
+	for _, domain := range conf.GetHeadlessSources() {
 		var robots *robotstxt.RobotsData
 		var group *robotstxt.Group
 
-		if v1.Get("rude") == true {
+		if conf.Rude == true {
 			robots = nil
 			group = nil
 			log.Info("Rude indexing mode enabled; ignoring robots.txt.")
 		} else {
-			robots, err = getRobotsForDomain(domain.Domain)
+			robots, err := getRobotsForDomain(domain.Domain)
 			if err != nil {
-				log.Info("Error getting robots.txt for ", domain.Name, ", continuing without it.")
+				log.Error("Error getting robots.txt for ", domain.Name, ", continuing without it.")
 				robots = nil
 				group = nil
 			}
@@ -57,15 +47,13 @@ func ResourceURLs(v1 *viper.Viper, mc *minio.Client, headless bool) (map[string]
 			group = robots.FindGroup(EarthCubeAgent)
 			log.Info("Got robots.txt group ", group)
 		}
-		urls, err := getSitemapURLList(domain.URL, group)
+		urls, err := getSitemapURLList(domain.Url, group)
 		if err != nil {
 			log.Error("Error getting sitemap urls for: ", domain.Name, err)
-			repoFatalErrors = append(repoFatalErrors, err)
-			//return domainsMap, err // returning means that domains after broken one do not get indexed.
+			return nil, err
 		}
-		if mcfg.Mode == "diff" {
-			log.Error("Mode diff is not currently supported")
-			//urls = excludeAlreadySummoned(domain.Name, urls)
+		if conf.Mode == "diff" {
+			return nil, fmt.Errorf("Mode diff is not currently supported")
 		}
 		err = overrideCrawlDelayFromRobots(v1, domain.Name, mcfg.Delay, group)
 		if err != nil {
@@ -74,47 +62,7 @@ func ResourceURLs(v1 *viper.Viper, mc *minio.Client, headless bool) (map[string]
 		domainsMap[domain.Name] = urls
 		log.Debug(domain.Name, "sitemap size is :", len(domainsMap[domain.Name]), " mode: ", mcfg.Mode)
 	}
-
-	robotsDomains := configTypes.FilterSourcesByType(domains, "robots")
-
-	for _, domain := range robotsDomains {
-
-		var urls []string
-		// first, get the robots file and parse it
-		robots, err := getRobotsTxt(domain.URL)
-		if err != nil {
-			log.Error("Error getting sitemap location from robots.txt for: ", domain.Name, err)
-			repoFatalErrors = append(repoFatalErrors, err)
-			//return domainsMap, err // returning means that domains after broken one do not get indexed.
-		}
-		group := robots.FindGroup(EarthCubeAgent)
-		log.Debug("Found user agent group ", group)
-		for _, sitemap := range robots.Sitemaps {
-			sitemapUrls, err := getSitemapURLList(sitemap, group)
-			if err != nil {
-				log.Error("Error getting sitemap urls for: ", domain.Name, err)
-				repoFatalErrors = append(repoFatalErrors, err)
-				//return domainsMap, err // returning means that domains after broken one do not get indexed.
-			}
-			urls = append(urls, sitemapUrls...)
-		}
-		if mcfg.Mode == "diff" {
-			log.Error("Mode diff is not currently supported")
-			//urls = excludeAlreadySummoned(domain.Name, urls)
-		}
-		err = overrideCrawlDelayFromRobots(v1, domain.Name, mcfg.Delay, group)
-		if err != nil {
-			return nil, err
-		}
-		domainsMap[domain.Name] = urls
-		log.Debug(domain.Name, "sitemap size from robots.txt is : ", len(domainsMap[domain.Name]), " mode: ", mcfg.Mode)
-	}
-	if len(repoFatalErrors) == 0 {
-		return domainsMap, nil
-	} else {
-		return domainsMap, repoFatalErrors
-	}
-
+	return domainsMap, nil
 }
 
 // given a sitemap url, parse it and get the list of URLS from it.

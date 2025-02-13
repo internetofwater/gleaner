@@ -7,7 +7,7 @@ import (
 	"text/template"
 	"time"
 
-	config "gleaner/internal/config"
+	config "gleaner/cmd/config"
 
 	log "github.com/sirupsen/logrus"
 

@@ -33,20 +33,7 @@ type Identifier struct {
 var jsonPathsDefault = []string{"$['@graph'][?(@['@type']=='schema:Dataset')]['@id']", "$.identifier[?(@.propertyID=='https://registry.identifiers.org/registry/doi')].value", "$.identifier.value", "$.identifier", "$['@id']", "$.url"}
 
 func GenerateIdentifier(v1 *viper.Viper, source config.SourceConfig, jsonld string) (Identifier, error) {
-
-	// Generate calls also do the casecading aka if IdentifierSha is [] it calls JsonSha
-	switch source.IdentifierType {
-	case config.IdentifierString:
-		return GenerateIdentiferString(v1, source, jsonld)
-	case config.IdentifierSha:
-		return GenerateIdentifierSha(v1, source, jsonld)
-	case config.NormalizedJsonSha:
-		return GenerateNormalizedSha(v1, jsonld)
-	default: //config.filesha
-		return GenerateFileSha(v1, jsonld)
-
-	}
-
+	return GenerateFileSha(v1, jsonld)
 }
 
 func GetIdentifierByPath(jsonPath string, jsonld string) (interface{}, error) {
@@ -192,7 +179,6 @@ func GenerateNormalizedSha(v1 *viper.Viper, jsonld string) (Identifier, error) {
 
 func GenerateFileSha(v1 *viper.Viper, jsonld string) (Identifier, error) {
 	var id Identifier
-	//uuid := common.GetSHA(jsonld)
 	uuid := GetSHA(jsonld) // Moved to the normalized sha value
 
 	if uuid == "" {

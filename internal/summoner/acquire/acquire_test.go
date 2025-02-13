@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"testing"
 
-	config "gleaner/internal/config"
+	config "gleaner/cmd/config"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"

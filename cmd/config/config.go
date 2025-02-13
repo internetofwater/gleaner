@@ -2,12 +2,15 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 
-	"github.com/minio/minio-go"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v2"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -17,6 +20,33 @@ type GleanerConfig struct {
 	Context     ContextConfig
 	ContextMaps []ContextMap
 	Sources     []SourceConfig
+	Rude        bool
+	Mode        string // "full" or "diff"
+}
+
+func (gc GleanerConfig) WriteConfigAs(filePath string) error {
+
+	data, err := yaml.Marshal(gc)
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(filePath, data, 0644)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (gc GleanerConfig) GetHeadlessSources() []SourceConfig {
+	var headlessSources []SourceConfig
+	for _, source := range gc.Sources {
+		if source.Headless {
+			headlessSources = append(headlessSources, source)
+		}
+	}
+	return headlessSources
 }
 
 type MinioConfig struct {
@@ -50,14 +80,23 @@ func (mcfg MinioConfig) NewClient() (*minio.Client, error) {
 
 	if mcfg.Region == "" {
 		log.Warn("no region set")
-		minioClient, err = minio.New(endpoint, accessKeyID, secretAccessKey, useSSL)
+		opts := &minio.Options{
+			Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
+			Secure: useSSL,
+		}
+		minioClient, err = minio.New(endpoint, opts)
 		if err != nil {
 			return nil, err
 		}
 	} else {
 		log.Warn("region set; for GCS or AWS, may cause issues with minio")
 		region := mcfg.Region
-		minioClient, err = minio.NewWithRegion(endpoint, accessKeyID, secretAccessKey, useSSL, region)
+		opts := &minio.Options{
+			Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
+			Secure: useSSL,
+			Region: region,
+		}
+		minioClient, err = minio.New(endpoint, opts)
 		if err != nil {
 			return nil, err
 		}

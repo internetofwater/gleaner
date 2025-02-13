@@ -10,11 +10,10 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/minio/minio-go/v7"
-	"github.com/spf13/viper"
 )
 
 // ProvURL returns the URLs we have currently indexed as recorded in the prov records
-func GetProvURLs(v1 *viper.Viper, minioClient *minio.Client, bucket, prefix string) []string {
+func GetProvURLs(minioClient *minio.Client, bucket, prefix string) []string {
 
 	opts := minio.SelectObjectOptions{
 		Expression:     "select s.\"@graph\"[1]['@id'] from s3object s",
@@ -44,13 +43,11 @@ func GetProvURLs(v1 *viper.Viper, minioClient *minio.Client, bucket, prefix stri
 
 	oa := []string{}
 
-	// for object := range mc.ListObjectsV2(objs["bucket"], objs["prefix"], isRecursive, doneCh) {
 	for object := range minioClient.ListObjects(context.Background(), bucket,
 		minio.ListObjectsOptions{Prefix: prefix, Recursive: true}) {
 
 		wg.Add(1)
 		go func(object minio.ObjectInfo) {
-			// oa = append(oa, object.Key) // WARNING  append is not always thread safe..   wg of 1 till I address this
 
 			log.Trace("Bucket", bucket, "object:", object.Key)
 

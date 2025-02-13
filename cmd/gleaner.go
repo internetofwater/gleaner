@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"gleaner/cmd/config"
 	"gleaner/internal"
@@ -18,7 +19,7 @@ import (
 
 type GleanerCliArgs struct {
 	Address      string // address for minio
-	Port         int    // port for minio
+	Port         string // port for minio
 	Bucket       string // minio bucket to put data
 	Source       string // source to crawl from the config
 	Config       string // full path to config
@@ -57,8 +58,12 @@ func Gleaner(cli *GleanerCliArgs, conf config.GleanerConfig) error {
 	if cli.SecretKey != "" {
 		conf.Minio.Secretkey = cli.SecretKey
 	}
-	if cli.Port != 0 {
-		conf.Minio.Port = cli.Port
+	if cli.Port != "" {
+		portAsInt, err := strconv.Atoi(cli.Port)
+		if err != nil {
+			return err
+		}
+		conf.Minio.Port = portAsInt
 	}
 
 	mc, err := conf.Minio.NewClient()
@@ -75,20 +80,14 @@ func Gleaner(cli *GleanerCliArgs, conf config.GleanerConfig) error {
 		}
 	}
 
-	if err := organizations.BuildOrgNqsAndUpload(mc, conf); err != nil {
+	if err := organizations.SummonOrgs(mc, conf); err != nil {
 		return err
 	}
 
-	err = summoner.SummonSitemaps(mc, conf)
-
-	if err != nil {
-		return fmt.Errorf("error summoning sitemaps: %v", err)
+	if err := summoner.SummonSitemaps(mc, conf); err != nil {
+		return err
 	}
 
-	// // if configured, process summoned sources fronm JSON-LD to RDF (nq)
-	// if gleanerCfgSection["mill"] == "true" {
-	// 	millers.Millers(mc, v1) // need to remove rundir and then fix the compile
-	// }
 	return err
 }
 
@@ -101,7 +100,7 @@ var rootCmd = &cobra.Command{
 
 		gleanerCliArgs := &GleanerCliArgs{}
 		gleanerCliArgs.Address, _ = cmd.Flags().GetString("address")
-		gleanerCliArgs.Port, _ = cmd.Flags().GetInt("port")
+		gleanerCliArgs.Port, _ = cmd.Flags().GetString("port")
 		gleanerCliArgs.Bucket, _ = cmd.Flags().GetString("bucket")
 		gleanerCliArgs.Source, _ = cmd.Flags().GetString("source")
 		gleanerCliArgs.Config, _ = cmd.Flags().GetString("cfg")

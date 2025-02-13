@@ -1,7 +1,7 @@
 package acquire
 
 import (
-	configTypes "gleaner/internal/config"
+	configTypes "gleaner/cmd/config"
 	"net/http"
 	"net/http/httptest"
 	"testing"

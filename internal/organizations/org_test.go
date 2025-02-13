@@ -3,8 +3,8 @@ package organizations
 import (
 	"testing"
 
-	"gleaner/internal/check"
-	config "gleaner/internal/config"
+	config "gleaner/cmd/config"
+	"gleaner/internal"
 	"gleaner/testHelpers"
 
 	"github.com/stretchr/testify/assert"
@@ -14,10 +14,9 @@ import (
 
 func TestBuildJSONLDFromSource(t *testing.T) {
 
-	source := config.Source{
+	source := config.SourceConfig{
 		Name: "test",
-		URL:  "https://test.com/test.xml",
-		PID:  "https://test.com",
+		Url:  "https://test.com/test.xml",
 	}
 
 	jsonld, err := BuildOrgJSONLD(source)
@@ -38,13 +37,13 @@ func TestBuildJSONLDFromSource(t *testing.T) {
 // and upload it to minio as n-quads
 func TestOrgNQsInMinio(t *testing.T) {
 
-	v1, err := config.ReadGleanerConfig("justMainstems.yaml", "../../testHelpers/sampleConfigs")
+	conf, err := config.ReadGleanerConfig("justMainstems.yaml", "../../testHelpers/sampleConfigs")
 	require.NoError(t, err)
 
 	minioHelper, err := testHelpers.NewMinioHandle("minio/minio:latest")
 	require.NoError(t, err)
 
-	err = check.MakeBuckets(minioHelper.Client, "gleanerbucket")
+	err = internal.MakeBuckets(minioHelper.Client, "gleanerbucket")
 	require.NoError(t, err)
 
 	defer func() {
@@ -52,11 +51,10 @@ func TestOrgNQsInMinio(t *testing.T) {
 		assert.NoError(t, err)
 	}()
 
-	err = BuildOrgNqsAndUpload(minioHelper.Client, v1)
+	err = SummonOrgs(minioHelper.Client, conf)
 	require.NoError(t, err)
 
-	sources, err := config.GetSources(v1)
 	require.NoError(t, err)
-	testHelpers.AssertObjectCount(t, minioHelper.Client, "orgs/", len(sources))
+	testHelpers.AssertObjectCount(t, minioHelper.Client, "orgs/", len(conf.Sources))
 
 }

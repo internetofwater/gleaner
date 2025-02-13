@@ -64,18 +64,8 @@ func MutateYamlSourceUrl(configPath string, index int, url string) error {
 	if err != nil {
 		return err
 	}
-
-	// Get the sources array
-	// Retrieve the sources array
-	var sources []map[string]interface{}
-	if err := conf.UnmarshalKey("sources", &sources); err != nil {
-		return err
-	}
-
 	// Update the url in the sources array
-	sources[index]["url"] = url
-
-	conf.Set("sources", sources)
+	conf.Sources[index].Url = url
 
 	// Write the modified configuration to the temporary file
 	err = conf.WriteConfigAs(configPath)

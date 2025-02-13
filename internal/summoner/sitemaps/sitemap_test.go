@@ -10,6 +10,7 @@ func TestGeoconnexSitemapParse(t *testing.T) {
 	sitemapUrls, err := GetSitemapsFromIndex("https://geoconnex.us/sitemap.xml")
 	assert.NoError(t, err)
 	var emptyMaps []string
+
 	for _, url := range sitemapUrls {
 		assert.NotEmpty(t, url)
 

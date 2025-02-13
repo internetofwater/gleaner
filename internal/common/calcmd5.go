@@ -4,16 +4,16 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"gleaner/cmd/config"
 	"io"
 	"strings"
 
 	"github.com/piprate/json-gold/ld"
-	"github.com/spf13/viper"
 )
 
 // Normalize a jsonld string and return the MD5 hash
-func GetNormMD5(jsonld string, v1 *viper.Viper) (string, error) {
-	proc, options, err := GenerateJSONLDProcessor(v1)
+func GetNormMD5(jsonld string, conf config.GleanerConfig) (string, error) {
+	proc, options, err := GenerateJSONLDProcessor(conf)
 	if err != nil {
 		return "", err
 	}

@@ -35,7 +35,7 @@ const orgJSONLDTemplate = `{
 
 // For each source in the gleaner config, build the JSONLD for the org,
 // convert that to nq, and upload to minio
-func BuildOrgNqsAndUpload(mc *minio.Client, conf config.GleanerConfig) error {
+func SummonOrgs(mc *minio.Client, conf config.GleanerConfig) error {
 
 	log.Info("Building organization graph.")
 	jsonldProcessor, options, err := common.GenerateJSONLDProcessor(conf)
@@ -76,9 +76,8 @@ func BuildOrgJSONLD(src config.SourceConfig) (string, error) {
 		name string
 		val  string
 	}{
-		{"PID", src.PID},
 		{"Name", src.Name},
-		{"URL", src.URL},
+		{"URL", src.Url},
 	} {
 		if field.val == "" {
 			return "", fmt.Errorf("source %s is missing required field %s", src.Name, field.name)

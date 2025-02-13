@@ -11,7 +11,7 @@ toolchain go1.23.0
 require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/mafredri/cdp v0.34.1
-	github.com/minio/minio-go/v7 v7.0.84
+	github.com/minio/minio-go/v7 v7.0.85
 	github.com/ohler55/ojg v1.14.5
 	github.com/piprate/json-gold v0.5.0
 	github.com/spf13/cobra v1.5.0
