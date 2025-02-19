@@ -445,7 +445,6 @@ func Upload(v1 *viper.Viper, mc *minio.Client, bucketName string, site string, u
 
 	// Make sure the object doesn't already exist and we don't accidentally overwrite it
 	if _, err := mc.StatObject(context.Background(), bucketName, objectName, minio.StatObjectOptions{}); err == nil {
-		log.Warn("Object already exists:", objectName)
 		return "", err
 	}
 
