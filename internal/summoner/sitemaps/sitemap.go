@@ -34,10 +34,9 @@ type URL struct {
 }
 
 func ParseSitemap(sitemapURL string) (Sitemap, error) {
-	// result := make([]string, 0)
 	serializedSitemap := Sitemap{}
 
-	urls := make([]URL, 0)
+	urls := []URL{}
 	err := sitemap.ParseFromSite(sitemapURL, func(entry sitemap.Entry) error {
 		url := URL{}
 		url.Loc = strings.TrimSpace(entry.GetLocation())

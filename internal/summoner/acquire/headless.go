@@ -9,7 +9,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	configTypes "gleaner/internal/config"
+	configTypes "gleaner/cmd/config"
 
 	"github.com/mafredri/cdp"
 	"github.com/mafredri/cdp/devtool"
@@ -24,7 +24,7 @@ import (
 // HeadlessNG gets schema.org entries in sites that put the JSON-LD in dynamically with JS.
 // It uses a chrome headless instance (which MUST BE RUNNING).
 // TODO..  trap out error where headless is NOT running
-func HeadlessNG(v1 *viper.Viper, mc *minio.Client, m map[string][]string, runStats *common.RunStats) {
+func HeadlessNG(conf configTypes.GleanerConfig, mc *minio.Client, m map[string][]string) error {
 	// NOTE   this function compares to ResRetrieve in acquire.go.  They both approach things
 	// in same ways due to hwo we deal with threading (opportunities).   We don't queue up domains
 	// multiple times since we are dealing with our local resource now in the form of the headless tooling.
@@ -35,9 +35,6 @@ func HeadlessNG(v1 *viper.Viper, mc *minio.Client, m map[string][]string, runSta
 	//)
 
 	for k := range m {
-		r := runStats.Add(k)
-		r.Set(common.Count, len(m[k]))
-		log.Trace("Headless chrome call to:", k)
 		repologger, err := common.LogIssues(v1, k)
 		if err != nil {
 			log.Error("Headless Error creating a logger for a repository", err)
@@ -53,10 +50,8 @@ func HeadlessNG(v1 *viper.Viper, mc *minio.Client, m map[string][]string, runSta
 				log.Error(m[k][i], "::", err)
 			}
 		}
-		common.RunRepoStatsOutput(r, k)
-
 	}
-
+	return nil
 }
 
 //// ThreadedHeadlessNG does not work.. ;)

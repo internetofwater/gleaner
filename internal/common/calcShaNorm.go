@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"gleaner/cmd/config"
 
 	"github.com/piprate/json-gold/ld"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 // GetSHA returns the sha with any string s
@@ -20,8 +20,8 @@ func GetSHA(s string) string {
 }
 
 // GetNormSHA returns the sha hash for a normalized JSON-LD data graph
-func GetNormSHA(jsonld string, v1 *viper.Viper) (string, error) {
-	proc, options, err := GenerateJSONLDProcessor(v1)
+func GetNormSHA(jsonld string, conf config.GleanerConfig) (string, error) {
+	proc, options, err := GenerateJSONLDProcessor(conf)
 	if err != nil {
 		return "", err
 	}

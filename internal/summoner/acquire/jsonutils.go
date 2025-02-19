@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"gleaner/internal/config"
+	"gleaner/cmd/config"
 
 	log "github.com/sirupsen/logrus"
 

@@ -11,7 +11,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	config "gleaner/internal/config"
+	"gleaner/cmd/config"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/minio/minio-go/v7"
@@ -22,27 +22,15 @@ const EarthCubeAgent = "EarthCube_DataBot/1.0"
 const JSONContentType = "application/ld+json"
 
 // ResRetrieve iterates through every domain and spawns a go routine to get the data from all the associated URLs for each
-func ResRetrieve(v1 *viper.Viper, mc *minio.Client, domainToUrls map[string][]string, runStats *common.RunStats) {
+func ResRetrieve(conf config.GleanerConfig, mc *minio.Client, domainToUrls map[string][]string) {
 	wg := sync.WaitGroup{}
 
 	// Why do I pass the wg pointer?   Just make a new one
 	// for each domain in getDomain and us this one here with a semaphore
 	// to control the loop?
 	for domain, urls := range domainToUrls {
-		r := runStats.Add(domain)
-		r.Set(common.Count, len(urls))
-		r.Set(common.HttpError, 0)
-		r.Set(common.Issues, 0)
-		r.Set(common.Summoned, 0)
 		log.Infof("Queuing %d URLs for domain: '%s'", len(urls), domain)
 
-		repologger, err := common.LogIssues(v1, domain)
-		if err != nil {
-			log.Error("Error creating a logger for a repository", err)
-		} else {
-			repologger.Info("Queuing URLs for ", domain)
-			repologger.Info("URL Count ", len(urls))
-		}
 		wg.Add(1)
 		go getDomain(v1, mc, urls, domain, &wg, repologger, r)
 	}
@@ -51,78 +39,8 @@ func ResRetrieve(v1 *viper.Viper, mc *minio.Client, domainToUrls map[string][]st
 	log.Infof("Completed acquire for %d domains", len(domainToUrls))
 }
 
-// all the configuration values that are relevant for retrieving JSON-LD for a specific URL
-type retrievalConfig struct {
-	BucketName    string
-	ThreadCount   int
-	Delay         int64
-	HeadlessWait  int
-	AcceptContent string
-	JsonProfile   string
-}
-
-func getConfig(v1 *viper.Viper, sourceName string) (retrievalConfig, error) {
-	bucketName, err := config.GetBucketName(v1)
-	if err != nil {
-		return retrievalConfig{}, err
-	}
-
-	var mcfg config.Summoner
-	mcfg, err = config.ReadSummmonerConfig(v1.Sub("summoner"))
-
-	if err != nil {
-		return retrievalConfig{}, err
-	}
-	// Set default thread counts and global delay
-	tc := mcfg.Threads
-	delay := mcfg.Delay
-
-	if delay != 0 || tc == 0 {
-		tc = 1
-	}
-
-	// look for a domain specific override crawl delay
-	sources, err := config.GetSources(v1)
-	if err != nil {
-		return retrievalConfig{}, err
-	}
-	source, err := config.GetSourceByName(sources, sourceName)
-	acceptContent := source.AcceptContentType
-	if acceptContent == "" {
-		acceptContent = JSONContentType
-	}
-	jsonProfile := source.JsonProfile
-	hw := source.HeadlessWait
-	if err != nil {
-		return retrievalConfig{}, err
-	}
-
-	if source.Delay != 0 && source.Delay > delay {
-		delay = source.Delay
-		tc = 1
-		log.Info("Crawl delay set to ", delay, " for ", sourceName)
-	}
-	log.Info("Thread count ", tc, " delay ", delay)
-
-	return retrievalConfig{
-		BucketName:    bucketName,
-		ThreadCount:   tc,
-		Delay:         delay,
-		HeadlessWait:  hw,
-		AcceptContent: acceptContent,
-		JsonProfile:   jsonProfile,
-	}, nil
-}
-
 func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName string,
 	wg *sync.WaitGroup, repologger *log.Logger, repoStats *common.RepoStats) {
-
-	cfg, err := getConfig(v1, sourceName)
-	if err != nil {
-		// trying to read a source, so let'ss not kill everything with a panic/fatal
-		log.Error("Error reading config file ", err)
-		repologger.Error("Error reading config file ", err)
-	}
 
 	var client http.Client
 
@@ -235,7 +153,6 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 		}(i, sourceName)
 
 	}
-	common.RunRepoStatsOutput(repoStats, sourceName)
 }
 
 func FindJSONInResponse(v1 *viper.Viper, urlloc string, jsonProfile string, repologger *log.Logger, response *http.Response) ([]string, error) {

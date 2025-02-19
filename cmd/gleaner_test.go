@@ -16,6 +16,7 @@ import (
 	"testing"
 	"text/template"
 
+	"gleaner/cmd/config"
 	"gleaner/internal/projectpath"
 	sitemaps "gleaner/internal/summoner/sitemaps"
 	"gleaner/testHelpers"
@@ -50,7 +51,7 @@ func TestRootE2E(t *testing.T) {
 
 	defer testcontainers.TerminateContainer(minioHelper.Container)
 
-	err = Gleaner(gleanerCliArgs)
+	err = Gleaner(gleanerCliArgs, config.GleanerConfig{})
 	require.NoError(t, err)
 
 	buckets, err := minioHelper.Client.ListBuckets(context.Background())
@@ -77,7 +78,7 @@ func TestRootE2E(t *testing.T) {
 	require.Equal(t, len(sitesOnWebpage.URL), len(sumInfo))
 
 	// Run it again
-	err = Gleaner(gleanerCliArgs)
+	err = Gleaner(gleanerCliArgs, config.GleanerConfig{})
 	require.NoError(t, err)
 
 	// Check that after the second run, the org metadata should be unchanged since the orgs have not changed
@@ -126,7 +127,7 @@ func TestGeoconnexPids(t *testing.T) {
 
 	defer testcontainers.TerminateContainer(minioHandle.Container)
 
-	err = Gleaner(gleanerCliArgs)
+	err = Gleaner(gleanerCliArgs, config.GleanerConfig{})
 
 	require.NoError(t, err)
 
@@ -146,7 +147,7 @@ func TestGeoconnexPids(t *testing.T) {
 	}
 	assertCounts()
 
-	err = Gleaner(gleanerCliArgs)
+	err = Gleaner(gleanerCliArgs, config.GleanerConfig{})
 	assert.NoError(t, err)
 
 	// Asserts it is idempotent
@@ -176,7 +177,7 @@ func TestSitemapWithDeadLink(t *testing.T) {
 
 	defer testcontainers.TerminateContainer(minioHandle.Container)
 
-	err = Gleaner(gleanerCliArgs)
+	err = Gleaner(gleanerCliArgs, config.GleanerConfig{})
 	require.NoError(t, err)
 
 	// After the first run, only one org metadata file should be present
@@ -208,7 +209,7 @@ func TestEntireConfigWithoutSingleSource(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	err = Gleaner(hu02CliArgs)
+	err = Gleaner(hu02CliArgs, config.GleanerConfig{})
 	require.NoError(t, err)
 
 	_, summoned, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
@@ -239,7 +240,7 @@ func TestCrawlsAreAdditive(t *testing.T) {
 
 	defer testcontainers.TerminateContainer(minioHandle.Container)
 
-	err = Gleaner(mainstemCliArgs)
+	err = Gleaner(mainstemCliArgs, config.GleanerConfig{})
 	require.NoError(t, err)
 
 	_, summoned, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
@@ -257,7 +258,7 @@ func TestCrawlsAreAdditive(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	err = Gleaner(hu02CliArgs)
+	err = Gleaner(hu02CliArgs, config.GleanerConfig{})
 	require.NoError(t, err)
 
 	_, summoned, err = testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
@@ -291,7 +292,7 @@ func TestConfigValidThenInvalid(t *testing.T) {
 
 	defer testcontainers.TerminateContainer(minioHandle.Container)
 
-	err = Gleaner(gleanerCliArgs)
+	err = Gleaner(gleanerCliArgs, config.GleanerConfig{})
 	require.NoError(t, err)
 
 	summonedInfo, summoned, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
@@ -311,7 +312,7 @@ func TestConfigValidThenInvalid(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	err = Gleaner(gleanerCliArgs)
+	err = Gleaner(gleanerCliArgs, config.GleanerConfig{})
 	require.NoError(t, err)
 
 	summonedInfo2, summoned2, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
@@ -348,7 +349,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 	defer testcontainers.TerminateContainer(minioHandle.Container)
 
 	// Run gleaner with the entire
-	err = Gleaner(gleanerCliArgs)
+	err = Gleaner(gleanerCliArgs, config.GleanerConfig{})
 	require.NoError(t, err)
 
 	sumInfo1, summoned1, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
@@ -394,7 +395,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	err = Gleaner(gleanerCliArgs)
+	err = Gleaner(gleanerCliArgs, config.GleanerConfig{})
 	require.NoError(t, err)
 
 	sumInfo2, summoned2, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
@@ -431,7 +432,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	err = Gleaner(gleanerCliArgs)
+	err = Gleaner(gleanerCliArgs, config.GleanerConfig{})
 	require.NoError(t, err)
 
 	sumInfo3, summoned3, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
@@ -531,7 +532,7 @@ func TestIncorrectJsonLd(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	err = Gleaner(gleanerCliArgs)
+	err = Gleaner(gleanerCliArgs, config.GleanerConfig{})
 	require.NoError(t, err)
 
 	_, orgs1, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "orgs/")
@@ -591,7 +592,7 @@ func TestSameSitemapWithDifferentJSONLD(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	err = Gleaner(gleanerCliArgs)
+	err = Gleaner(gleanerCliArgs, config.GleanerConfig{})
 	require.NoError(t, err)
 
 	// get the total amount of objects summoned
@@ -624,7 +625,7 @@ func TestSameSitemapWithDifferentJSONLD(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	err = Gleaner(gleanerCliArgs)
+	err = Gleaner(gleanerCliArgs, config.GleanerConfig{})
 	require.NoError(t, err)
 
 	summonedInfo2, summoned2, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
@@ -662,7 +663,7 @@ func TestDifferentSourceNameWithSameSitemapXMLDoesntDownload(t *testing.T) {
 
 	defer testcontainers.TerminateContainer(minioHandle.Container)
 
-	err = Gleaner(mainstemCliArgs)
+	err = Gleaner(mainstemCliArgs, config.GleanerConfig{})
 	summInfo, _, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 
@@ -693,7 +694,7 @@ func TestDifferentSourceNameWithSameSitemapXMLDoesntDownload(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	err = Gleaner(mainstemCliArgs)
+	err = Gleaner(mainstemCliArgs, config.GleanerConfig{})
 	summInfo2, _, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 
@@ -723,7 +724,7 @@ func TestRecrawlSameSourceAfterRemovingFilesInS3(t *testing.T) {
 
 	defer testcontainers.TerminateContainer(minioHandle.Container)
 
-	err = Gleaner(mainstemCliArgs)
+	err = Gleaner(mainstemCliArgs, config.GleanerConfig{})
 	summInfo, _, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 
@@ -734,7 +735,7 @@ func TestRecrawlSameSourceAfterRemovingFilesInS3(t *testing.T) {
 	same, msg := testHelpers.SameObjects(t, summInfo, summAfterDeletingAndBeforeRecrawl, true, true)
 	require.False(t, same, msg)
 
-	err = Gleaner(mainstemCliArgs)
+	err = Gleaner(mainstemCliArgs, config.GleanerConfig{})
 	summInfo2, _, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 
@@ -766,7 +767,7 @@ func TestDifferentSourceDifferentURLButSameSitemapXMLDoesntChangeS3(t *testing.T
 
 	defer testcontainers.TerminateContainer(minioHandle.Container)
 
-	err = Gleaner(mainstemCliArgs)
+	err = Gleaner(mainstemCliArgs, config.GleanerConfig{})
 	summInfo, _, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 
@@ -797,7 +798,7 @@ func TestDifferentSourceDifferentURLButSameSitemapXMLDoesntChangeS3(t *testing.T
 		SetupBuckets: true,
 	}
 
-	err = Gleaner(mainstemCliArgs)
+	err = Gleaner(mainstemCliArgs, config.GleanerConfig{})
 	summInfo2, _, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 

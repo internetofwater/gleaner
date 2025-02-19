@@ -2,7 +2,7 @@ package testHelpers
 
 import (
 	"context"
-	"gleaner/internal/check"
+	"gleaner/internal"
 	"gleaner/internal/projectpath"
 	"path/filepath"
 	"testing"
@@ -39,7 +39,7 @@ func TestDeleteObjects(t *testing.T) {
 	testFile := filepath.Join(projectpath.Root, "testHelpers", "sampleConfigs", "justMainstems.yml")
 
 	// create the gleanerbucket bucket
-	err = check.MakeBuckets(minioHandle.Client, "gleanerbucket")
+	err = internal.MakeBuckets(minioHandle.Client, "gleanerbucket")
 	require.NoError(t, err)
 
 	// upload a file

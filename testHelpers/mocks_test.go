@@ -2,7 +2,7 @@ package testHelpers
 
 import (
 	"fmt"
-	"gleaner/internal/config"
+	"gleaner/cmd/config"
 	"gleaner/internal/projectpath"
 	"net/http"
 	"os"
@@ -53,9 +53,9 @@ func TestMockConfig(t *testing.T) {
 	base = filepath.Base(confName)
 	dir := filepath.Dir(confName)
 
-	v, err := config.ReadGleanerConfig(base, dir)
+	conf, err := config.ReadGleanerConfig(base, dir)
 	require.NoError(t, err)
 
-	require.Equal(t, "http://example.com", v.GetString("sources.0.url"))
+	require.Equal(t, "http://example.com", conf.Sources[0])
 
 }
