@@ -36,7 +36,7 @@ jobs:
           push: true
           tags: internetofwater/gleaner:${{ env.tag }}
 
-      - name: "Run Geoconnex Scheduler to simulate a full crawl"
+      - name: Run Nabu tests with gleaner image to test integration
         uses: internetofwater/nabu@master
         with:
           gleaner_image: internetofwater/gleaner:${{ env.tag }}
