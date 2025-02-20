@@ -197,7 +197,6 @@ func fixId(jsonld string) (string, error) {
 		selector = "itemListElement.#.item.@id"
 		formatter = func(index int) string { return fmt.Sprintf("itemListElement.%v.item.@id", index) }
 	} else { // we don't know how to fix any of these other things
-		log.Trace("Found a top-level type of ", topLevelType, " in this jsonld document")
 		return jsonld, err
 	}
 	jsonIdentifiers := gjson.Get(jsonld, selector)
@@ -206,10 +205,8 @@ func fixId(jsonld string) (string, error) {
 		jsonIdentifier := jsonResult.String()
 		idUrl, idErr := url.Parse(jsonIdentifier)
 		if idUrl.Scheme == "" { // we have a relative url and no base in the context
-			log.Trace("Transforming id: ", jsonIdentifier, " to file:// url because it is relative")
 			jsonld, idErr = sjson.Set(jsonld, formatter(index), "file://"+jsonIdentifier)
 		} else {
-			log.Trace("JSON-LD context base or IRI id found: ", originalBase, "ID: ", idUrl)
 		}
 		if idErr != nil {
 			err = idErr

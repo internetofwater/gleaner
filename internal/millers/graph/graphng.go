@@ -61,7 +61,6 @@ func GraphNG(mc *minio.Client, prefix string, v1 *viper.Viper) error {
 
 	// TODO make a version of PipeCopy that generates Parquet version of graph
 	// TODO..  then delete milled objects?
-	log.Trace("Processed prefix:", prefix)
 	millprefix := strings.ReplaceAll(prefix, "summoned", "milled")
 	sp := strings.SplitAfterN(prefix, "/", 2)
 	mcfg := v1.GetStringMapString("gleaner")
@@ -109,13 +108,11 @@ func uploadObj2RDF(bucketName, prefix string, mc *minio.Client, object minio.Obj
 
 	// TODO
 	// Process the bytes in b to RDF (with randomized blank nodes)
-	//log.Trace("JLD2NQ call")
 	//rdf, err := common.JLD2nq(b.String(), proc, options)
 	//if err != nil {
 	//	return key, err
 	//}
 	//
-	//log.Trace("blank node fix call")
 	//rdfubn := GlobalUniqueBNodes(rdf)
 	rdfubn, err := Obj2RDF(b.String(), proc, options)
 	if err != nil {
@@ -141,13 +138,11 @@ func uploadObj2RDF(bucketName, prefix string, mc *minio.Client, object minio.Obj
 func Obj2RDF(jsonld string, proc *ld.JsonLdProcessor, options *ld.JsonLdOptions) (string, error) {
 
 	// Process the bytes in b to RDF (with randomized blank nodes)
-	log.Trace("JLD2NQ call")
 	rdf, err := common.JLD2nq(jsonld, proc, options)
 	if err != nil {
 		return "", err
 	}
 
-	log.Trace("blank node fix call")
 	rdfubn := GlobalUniqueBNodes(rdf)
 
 	return rdfubn, nil

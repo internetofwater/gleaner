@@ -96,7 +96,6 @@ func getAPISource(v1 *viper.Viper, mc *minio.Client, source configTypes.Source, 
 			}
 
 			defer response.Body.Close()
-			log.Trace("Response status ", response.StatusCode, " from ", urlloc)
 			responseStatusChan <- response.StatusCode
 
 			jsonlds, err := FindJSONInResponse(v1, urlloc, cfg.JsonProfile, repologger, response)
@@ -122,7 +121,6 @@ func getAPISource(v1 *viper.Viper, mc *minio.Client, source configTypes.Source, 
 
 			UploadWithLogsAndMetadata(v1, mc, cfg.BucketName, sourceName, urlloc, repologger, repoStats, jsonlds)
 
-			log.Trace("#", i, "thread for", urlloc)                 // print an message containing the index (won't keep order)
 			time.Sleep(time.Duration(cfg.Delay) * time.Millisecond) // sleep a bit if directed to by the provider
 
 			lwg.Done()

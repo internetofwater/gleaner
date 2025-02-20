@@ -185,8 +185,6 @@ func GenerateNormalizedSha(v1 *viper.Viper, jsonld string) (Identifier, error) {
 		}
 	}
 
-	log.Trace("jsonsha: ", uuid)
-	//	fmt.Println("\njsonsha:", id)
 	return id, err
 }
 
@@ -204,7 +202,6 @@ func GenerateFileSha(v1 *viper.Viper, jsonld string) (Identifier, error) {
 		JsonSha:        uuid,
 	}
 
-	log.Trace("jsonsha: ", uuid)
 	//	fmt.Println("\njsonsha:", id)
 	return id, nil
 }
