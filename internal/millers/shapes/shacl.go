@@ -57,7 +57,6 @@ func loadShapeFiles(mc *minio.Client, v1 *viper.Viper) error {
 
 	for x := range s {
 		if isURL(s[x].Ref) {
-			log.Trace("Load SHACL file")
 			b, err := getBody(s[x].Ref)
 			if err != nil {
 				log.Error("Error getting SHACL file body", err)
@@ -72,7 +71,6 @@ func loadShapeFiles(mc *minio.Client, v1 *viper.Viper) error {
 			}
 			log.Debug("Loaded SHACL file:", s[x].Ref)
 		} else { // see if it's a file
-			log.Trace("Load file...")
 
 			dat, err := os.ReadFile(s[x].Ref)
 			if err != nil {
@@ -111,7 +109,6 @@ func multiCall(e []common.Entry, bucketname string, mc *minio.Client, v1 *viper.
 		log.Debug("Checking data graphs against shape graph:", m[j])
 		for k := range e {
 			wg.Add(1)
-			log.Trace("Ready JSON-LD package  #", j, e[k].Urlval)
 			go func(j, k int) {
 				semaphoreChan <- struct{}{}
 				status := shaclTest(e[k].Urlval, e[k].Jld, m[j].Key, m[j].Jld, &gb)

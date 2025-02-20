@@ -61,7 +61,6 @@ func ShapeNG(mc *minio.Client, prefix string, v1 *viper.Viper) error {
 		Prefix:    "shapes",
 	}
 	for shape := range mc.ListObjects(context.Background(), bucketName, opts2) {
-		log.Trace("Checking data graphs against shape graph:", shape)
 
 		//for object := range mc.ListObjectsV2(bucketname, prefix, isRecursive, doneCh) {
 		for object := range mc.ListObjects(context.Background(), prefix, minio.ListObjectsOptions{

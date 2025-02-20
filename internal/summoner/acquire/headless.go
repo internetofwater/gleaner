@@ -37,7 +37,6 @@ func HeadlessNG(v1 *viper.Viper, mc *minio.Client, m map[string][]string, runSta
 	for k := range m {
 		r := runStats.Add(k)
 		r.Set(common.Count, len(m[k]))
-		log.Trace("Headless chrome call to:", k)
 		repologger, err := common.LogIssues(v1, k)
 		if err != nil {
 			log.Error("Headless Error creating a logger for a repository", err)
@@ -356,7 +355,6 @@ func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologge
 		"headlesswait": fmt.Sprintf("%d", headlessWait*1000),
 		"retries":      "3",
 	})
-	log.Trace(expression)
 	evalArgs := runtime.NewEvaluateArgs(expression).SetAwaitPromise(true).SetReturnByValue(true)
 	eval, err := c.Runtime.Evaluate(ctx, evalArgs)
 	if err != nil {

@@ -23,7 +23,5 @@ func LoadToMinio(jsonld, bucketName, objectName string, mc *minio.Client) (int64
 		return 0, err
 	}
 
-	log.Trace("Uploaded Bucket:", bucketName, "File:", objectName, "Size", n)
-
 	return n.Size, nil
 }

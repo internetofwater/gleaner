@@ -226,7 +226,6 @@ func getDomain(v1 *viper.Viper, mc *minio.Client, urls []string, sourceName stri
 
 			UploadWithLogsAndMetadata(v1, mc, cfg.BucketName, sourceName, urlloc, repologger, repoStats, jsonlds)
 
-			log.Trace("#", i, "thread for", urlloc)                 // print an message containing the index (won't keep order)
 			time.Sleep(time.Duration(cfg.Delay) * time.Millisecond) // sleep a bit if directed to by the provider
 
 			lwg.Done()

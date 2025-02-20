@@ -52,8 +52,6 @@ func GetProvURLs(v1 *viper.Viper, minioClient *minio.Client, bucket, prefix stri
 		go func(object minio.ObjectInfo) {
 			// oa = append(oa, object.Key) // WARNING  append is not always thread safe..   wg of 1 till I address this
 
-			log.Trace("Bucket", bucket, "object:", object.Key)
-
 			reader, err := minioClient.SelectObjectContent(context.Background(), bucket, object.Key, opts)
 			if err != nil {
 				log.Fatal(err)
@@ -68,7 +66,6 @@ func GetProvURLs(v1 *viper.Viper, minioClient *minio.Client, bucket, prefix stri
 			oa = append(oa, strings.TrimSpace(buf.String()))
 
 			wg.Done() // tell the wait group that we be done
-			log.Trace("Doc:", object.Key, "error", err)
 			<-semaphoreChan
 
 		}(object)
