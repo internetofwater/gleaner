@@ -206,7 +206,6 @@ func fixId(jsonld string) (string, error) {
 		idUrl, idErr := url.Parse(jsonIdentifier)
 		if idUrl.Scheme == "" { // we have a relative url and no base in the context
 			jsonld, idErr = sjson.Set(jsonld, formatter(index), "file://"+jsonIdentifier)
-		} else {
 		}
 		if idErr != nil {
 			err = idErr
