@@ -1,140 +1,15 @@
 package shapes
 
 import (
-	"fmt"
 	"io"
 	"net/http"
-	"net/url"
-	"os"
-	"strings"
-	"sync"
-
-	configTypes "gleaner/internal/config"
 
 	log "github.com/sirupsen/logrus"
-
-	"gleaner/internal/common"
-	"gleaner/internal/millers/graph"
-
-	minio "github.com/minio/minio-go/v7"
-	"github.com/spf13/viper"
 )
 
 // ShapeRef holds http:// or file:// URIs for shape file locations
 type ShapeRef struct {
 	Ref string
-}
-
-// SHACLMillObjects test a concurrent version of calling mock
-func SHACLMillObjects(mc *minio.Client, bucketname string, v1 *viper.Viper) {
-	// load the SHACL files listed in the config file
-	err := loadShapeFiles(mc, v1)
-	if err != nil {
-		log.Error(err)
-	}
-
-	entries := common.GetMillObjects(mc, bucketname)
-	multiCall(entries, bucketname, mc, v1)
-}
-
-func loadShapeFiles(mc *minio.Client, v1 *viper.Viper) error {
-
-	// read config file
-	//miniocfg := v1.GetStringMapString("minio")
-	//bucketName := miniocfg["bucket"] //   get the top level bucket for all of gleaner operations from config file
-	bucketName, err := configTypes.GetBucketName(v1)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-
-	var s []ShapeRef
-	err = v1.UnmarshalKey("shapefiles", &s)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-
-	for x := range s {
-		if isURL(s[x].Ref) {
-			b, err := getBody(s[x].Ref)
-			if err != nil {
-				log.Error("Error getting SHACL file body", err)
-			}
-
-			as := strings.Split(s[x].Ref, "/")
-			// TODO  caution..  we need to note the RDF encoding and perhaps pass it along or verify it
-			// is what we should be using
-			_, err = graph.LoadToMinio(string(b), bucketName, fmt.Sprintf("shapes/%s", as[len(as)-1]), mc)
-			if err != nil {
-				log.Error(err)
-			}
-			log.Debug("Loaded SHACL file:", s[x].Ref)
-		} else { // see if it's a file
-
-			dat, err := os.ReadFile(s[x].Ref)
-			if err != nil {
-				log.Error("Error loading file", s[x].Ref, err)
-			}
-
-			as := strings.Split(s[x].Ref, "/")
-			_, err = graph.LoadToMinio(string(dat), bucketName, fmt.Sprintf("shapes/%s", as[len(as)-1]), mc)
-			if err != nil {
-				log.Error(err)
-			}
-			log.Debug("Loaded SHACL file:", s[x].Ref)
-
-		}
-	}
-
-	return nil
-}
-
-func isURL(str string) bool {
-	u, err := url.Parse(str)
-	return err == nil && u.Scheme != "" && u.Host != ""
-}
-
-func multiCall(e []common.Entry, bucketname string, mc *minio.Client, v1 *viper.Viper) {
-	mcfg := v1.GetStringMapString("gleaner")
-
-	semaphoreChan := make(chan struct{}, 20) // a blocking channel to keep concurrency under control (1 == single thread)
-	defer close(semaphoreChan)
-	wg := sync.WaitGroup{} // a wait group enables the main process a wait for goroutines to finish
-
-	var gb common.Buffer
-	m := common.GetShapeGraphs(mc, "gleaner") // TODO: beware static bucket lists, put this in the config
-
-	for j := range m {
-		log.Debug("Checking data graphs against shape graph:", m[j])
-		for k := range e {
-			wg.Add(1)
-			go func(j, k int) {
-				semaphoreChan <- struct{}{}
-				status := shaclTest(e[k].Urlval, e[k].Jld, m[j].Key, m[j].Jld, &gb)
-
-				wg.Done() // tell the wait group that we be done
-				log.Debug("#", j, e[k].Urlval, "wrote", status, "bytes")
-
-				<-semaphoreChan
-			}(j, k)
-		}
-	}
-	wg.Wait()
-
-	// log.Println(gb.Len())
-
-	// TODO   gb is type turtle here..   need to convert to ntriples to store
-	// nt, err := rdf2rdf(gb.String())
-	// if err != nil {
-	// 		log.Error(err)
-	// 	}
-
-	// write to S3
-	_, err := graph.LoadToMinio(gb.String(), "gleaner-milled", fmt.Sprintf("%s/%s_shacl.nt", mcfg["runid"], bucketname), mc)
-	if err != nil {
-		log.Error(err)
-	}
 }
 
 // unused for now

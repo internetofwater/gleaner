@@ -1,121 +1,16 @@
 package shapes
 
 import (
-	"bufio"
 	"bytes"
-	"context"
-	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"strings"
 
-	configTypes "gleaner/internal/config"
-
 	log "github.com/sirupsen/logrus"
 
 	"gleaner/internal/common"
-	"gleaner/internal/millers/graph"
-
-	minio "github.com/minio/minio-go/v7"
-	"github.com/spf13/viper"
 )
-
-// Call the SHACL service container (or cloud instance) // TODO: service URL needs to be in the config file!
-func shaclTestNG(v1 *viper.Viper, bucket, prefix string, mc *minio.Client, object, shape minio.ObjectInfo) (string, error) {
-
-	// read config file
-	//miniocfg := v1.GetStringMapString("minio")
-	//bucketName := miniocfg["bucket"] //   get the top level bucket for all of gleaner operations from config file
-	bucketName, err := configTypes.GetBucketName(v1)
-	if err != nil {
-		return "", err
-	}
-
-	key := object.Key // replace if new function idea works..
-
-	// Read the object bytes (our data graoh)
-	//fo, err := mc.GetObject(bucketname, object.Key, minio.GetObjectOptions{})
-	fo, err := mc.GetObject(context.Background(), bucketName, object.Key, minio.GetObjectOptions{})
-	if err != nil {
-		fmt.Println(err)
-		return "", err
-	}
-
-	var b bytes.Buffer
-	bw := bufio.NewWriter(&b)
-
-	_, err = io.Copy(bw, fo)
-	if err != nil {
-		log.Error(err)
-	}
-
-	// TODO  this is a waste to read the same bytes N times!   read early and pass a pointer!
-	// Read the object bytes (our data graoh)
-	//so, err := mc.GetObject("gleaner", shape.Key, minio.GetObjectOptions{})
-	so, err := mc.GetObject(context.Background(), "gleaner", shape.Key, minio.GetObjectOptions{})
-	if err != nil {
-		log.Error(err)
-		return "", err
-	}
-
-	var sb bytes.Buffer
-	sbw := bufio.NewWriter(&sb)
-
-	_, err = io.Copy(sbw, so)
-	if err != nil {
-		log.Error(err)
-	}
-
-	// TODO
-	// Process the bytes in b to RDF (with randomized blank nodes)
-	// rdf, err := jld2nq(string(b.Bytes()), key, proc, options)
-	// if err != nil {
-	// 	return key, err
-	// }
-
-	// rdf := "The results of the SHACL call in nquads"
-	// rdfubn := GlobalUniqueBNodes(rdf)
-	// rdfubn := "blank node fixed RDF if I can't skolemize in Tangram"
-
-	//log.Println(string(b.Bytes()))
-	//log.Println("------------------")
-	//log.Println(string(sb.Bytes()))
-
-	// get the URL from viper object
-	mcfg := v1.GetStringMapString("shaclservice")
-
-	// TODO
-	// resolve how call
-	rdfubn, err := shaclCallNG(mcfg["url"], b.String(), sb.String())
-	if err != nil {
-		log.Error(err)
-	}
-
-	// TODO we have our nt from SHACL, but it needs some extra info to let us
-	// build reports.  The response is ntriples, so easy to find the subject
-	// IRI.   On our end we need the @id or schema:url.  I hate doing another
-	// heavy frame. Can I get the value earlier in the chain?
-
-	milledkey := strings.ReplaceAll(key, ".jsonld", ".rdf")
-	milledkey = strings.ReplaceAll(milledkey, "summoned/", "")
-
-	// make an object with prefix like  scienceorg-dg/objectname.rdf  (where is had .jsonld before)
-	// objectName := fmt.Sprintf("%s-shacl/%s", prefix, strings.ReplaceAll(key, ".jsonld", ".rdf"))
-
-	objectName := fmt.Sprintf("%s/%s", prefix, milledkey)
-
-	usermeta := make(map[string]string)
-	usermeta["origfile"] = key
-
-	// Upload the file
-	_, err = graph.LoadToMinio(rdfubn, bucketName, objectName, mc)
-	if err != nil {
-		return objectName, err
-	}
-
-	return objectName, nil
-}
 
 // Call the SHACL service container (or cloud instance) // TODO: service URL needs to be in the config file!
 func shaclCallNG(url, dg, sg string) (string, error) {

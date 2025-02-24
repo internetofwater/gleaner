@@ -110,26 +110,6 @@ func SameDates(arr1 []minioClient.ObjectInfo, arr2 []minioClient.ObjectInfo) boo
 	return true
 }
 
-func RequireFilenameExists(t *testing.T, arr []minioClient.ObjectInfo, filename string) {
-	for _, obj := range arr {
-		if obj.Key == filename {
-			return
-		}
-	}
-	require.Fail(t, "filename not found")
-}
-
-func RequireFileWasModified(t *testing.T, newObjects []minioClient.ObjectInfo, oldFilename string, oldDate time.Time) {
-
-	for _, obj := range newObjects {
-		if obj.Key == oldFilename {
-			require.Greater(t, obj.LastModified, oldDate)
-			return
-		}
-	}
-	require.Fail(t, "filename not found")
-}
-
 func GetGleanerBucketObjects(mc *minioClient.Client, subDir string) ([]minioClient.ObjectInfo, []*minioClient.Object, error) {
 	var metadata []minioClient.ObjectInfo
 	var objects []*minioClient.Object
