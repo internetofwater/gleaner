@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 
 	log "github.com/sirupsen/logrus"
@@ -185,66 +184,4 @@ func GetSourceByName(sources []Source, name string) (*Source, error) {
 		}
 	}
 	return nil, fmt.Errorf("unable to find a source with name %s", name)
-}
-
-func SourceToNabuPrefix(sources []Source, useMilled bool) []string {
-	jsonld := "summoned"
-	if useMilled {
-		jsonld = "milled"
-	}
-	var prefixes []string
-	for _, s := range sources {
-
-		switch s.SourceType {
-
-		case "sitemap":
-			prefixes = append(prefixes, fmt.Sprintf("%s/%s", jsonld, s.Name))
-
-		case "sitegraph":
-			// sitegraph not milled
-			prefixes = append(prefixes, fmt.Sprintf("%s/%s", "summoned", s.Name))
-		}
-	}
-	return prefixes
-}
-func SourceToNabuProv(sources []Source) []string {
-
-	var prefixes []string
-	for _, s := range sources {
-		prefixes = append(prefixes, "prov/"+s.Name)
-	}
-	return prefixes
-}
-
-func PruneSources(v1 *viper.Viper, useSources []string) (*viper.Viper, error) {
-	var finalSources []Source
-	allSources, err := GetSources(v1)
-	if err != nil {
-		log.Fatal("error retrieving sources: ", err)
-	}
-	for _, s := range allSources {
-		if contains(useSources, s.Name) {
-			s.Active = true // we assume you want to run this, even if disabled, normally
-			finalSources = append(finalSources, s)
-		}
-	}
-	if len(finalSources) > 0 {
-		v1.Set("sources", finalSources)
-		return v1, err
-	} else {
-
-		return v1, errors.New("cannot find a source with the name ")
-	}
-
-}
-
-// checks if a string is present in a slice
-func contains(s []string, str string) bool {
-	for _, v := range s {
-		if v == str {
-			return true
-		}
-	}
-
-	return false
 }

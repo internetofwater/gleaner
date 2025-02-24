@@ -101,13 +101,6 @@ func (c *RepoStats) Set(key string, value int) {
 	c.mu.Unlock()
 }
 
-// Value returns the current value of the counter for the given key.
-func (c *RepoStats) Value(key string) int {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.counts[key]
-}
-
 func (c *RunStats) Output() string {
 	out := fmt.Sprintln("RunStats:")
 	out += fmt.Sprintf("  Start: %s\n", c.Date)
