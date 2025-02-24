@@ -18,24 +18,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-func RunStatsToFile(runStats *common.RunStats) {
-	fmt.Print(runStats.Output())
-	const layout = "2006-01-02-15-04-05"
-	t := time.Now()
-	lf := fmt.Sprintf("%s/gleaner-runstats-%s.log", common.Logpath, t.Format(layout))
-
-	LogFile := lf // log to custom file
-	logFile, err := os.OpenFile(LogFile, os.O_APPEND|os.O_RDWR|os.O_CREATE, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-	_, err = logFile.WriteString(runStats.Output())
-	if err != nil {
-		log.Fatal(err)
-	}
-	logFile.Close()
-}
-
 // Summoner pulls the resources from the data facilities
 func SummonSitemaps(mc *minio.Client, v1 *viper.Viper) error {
 
