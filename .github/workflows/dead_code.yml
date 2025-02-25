@@ -1,0 +1,23 @@
+name: Check for dead code
+
+on: [push]
+
+jobs:
+  deadcode:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: [ '1.23' ]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Install deadcode
+        run: go install golang.org/x/tools/cmd/deadcode@latest
+      - name: Check for dead code
+        # we have to use bash to get the correct exit code since deadcode returns 0 even if there is dead code
+        run: bash -c 'deadcode -tags "e2e" -test ./... | tee out && [ ! -s out ]'

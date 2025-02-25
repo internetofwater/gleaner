@@ -90,26 +90,6 @@ func SameObjects(t *testing.T, arr1, arr2 []minioClient.ObjectInfo, requireSameM
 	return true, ""
 }
 
-func SameDates(arr1 []minioClient.ObjectInfo, arr2 []minioClient.ObjectInfo) bool {
-	if len(arr1) != len(arr2) {
-		return false
-	}
-
-	keyMap := make(map[string]time.Time)
-
-	for _, obj1 := range arr1 {
-		keyMap[obj1.Key] = obj1.LastModified
-	}
-
-	for _, obj2 := range arr2 {
-		if lastModified, found := keyMap[obj2.Key]; !found || lastModified != obj2.LastModified {
-			return false
-		}
-	}
-
-	return true
-}
-
 func RequireFilenameExists(t *testing.T, arr []minioClient.ObjectInfo, filename string) {
 	for _, obj := range arr {
 		if obj.Key == filename {
@@ -273,15 +253,4 @@ func NewMinioHandle(img string, opts ...testcontainers.ContainerCustomizer) (*Mi
 		Client:    mc,
 		ctx:       ctx,
 	}, nil
-}
-
-func CreateTempGleanerConfig() (string, error) {
-	// create a temp config file
-	f, err := os.CreateTemp("", "gleanerconfig")
-	if err != nil {
-		return "", err
-	}
-
-	_, err = f.WriteString("gleanerconfig")
-	return f.Name(), err
 }
