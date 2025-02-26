@@ -9,11 +9,11 @@ http://jsonpath.herokuapp.com/
 There are four implementations... so you can see if one might be a little quirky
 */
 import (
+	"crypto/sha1"
 	"errors"
 	"fmt"
 	"gleaner/internal/config"
 	"sort"
-	"strings"
 
 	"github.com/ohler55/ojg/jp"
 	"github.com/ohler55/ojg/oj"
@@ -33,20 +33,7 @@ type Identifier struct {
 var jsonPathsDefault = []string{"$['@graph'][?(@['@type']=='schema:Dataset')]['@id']", "$.identifier[?(@.propertyID=='https://registry.identifiers.org/registry/doi')].value", "$.identifier.value", "$.identifier", "$['@id']", "$.url"}
 
 func GenerateIdentifier(v1 *viper.Viper, source config.Source, jsonld string) (Identifier, error) {
-
-	// Generate calls also do the casecading aka if IdentifierSha is [] it calls JsonSha
-	switch source.IdentifierType {
-	case config.IdentifierString:
-		return GenerateIdentiferString(v1, source, jsonld)
-	case config.IdentifierSha:
-		return GenerateIdentifierSha(v1, source, jsonld)
-	case config.NormalizedJsonSha:
-		return GenerateNormalizedSha(v1, jsonld)
-	default: //config.filesha
-		return GenerateFileSha(v1, jsonld)
-
-	}
-
+	return GenerateFileSha(v1, jsonld)
 }
 
 func GetIdentifierByPath(jsonPath string, jsonld string) (interface{}, error) {
@@ -110,82 +97,11 @@ func GetIdentiferByPaths(jsonpaths []string, jsonld string) (interface{}, string
 	return "", "", errors.New("no Match")
 }
 
-func GenerateIdentiferString(v1 *viper.Viper, source config.Source, jsonld string) (Identifier, error) {
-	uniqueid, err := GenerateIdentifierSha(v1, source, jsonld)
-
-	if err != nil {
-		return uniqueid, err
-	}
-	if uniqueid.MatchedString != "" {
-		uniqueid.UniqueId = uniqueid.MatchedString
-		uniqueid.IdentifierType = config.IdentifierString
-
-	}
-	return uniqueid, err
-}
-
-func GenerateIdentifierSha(v1 *viper.Viper, source config.Source, jsonld string) (Identifier, error) {
-	// need a copy of the arrays, or it will get munged in a multithreaded env
-	var jsonpath = make([]string, len(jsonPathsDefault))
-	copy(jsonpath, jsonPathsDefault)
-
-	if len(source.IdentifierPath) > 0 && source.IdentifierPath != "" {
-		// this does not move an item to the front of the array, if the item already exists in the array,
-		// overriding the default overrides all paths
-		//jsonpath = append(source.IdentifierPath, jsonPathsDefault...)
-		//jsonpath = source.IdentifierPath
-		paths := strings.Split(source.IdentifierPath, ",")
-		for _, p := range paths {
-			jsonpath = config.MoveToFront(p, jsonpath)
-		}
-
-	}
-	jsonsha, err := GenerateNormalizedSha(v1, jsonld)
-	if err != nil {
-		return jsonsha, err
-	}
-	uniqueid, foundPath, err := GetIdentiferByPaths(jsonpath, jsonld)
-
-	if err == nil && uniqueid != "[]" {
-		id := Identifier{UniqueId: GetSHA(fmt.Sprint(uniqueid)),
-			IdentifierType: config.IdentifierSha,
-			MatchedPath:    foundPath,
-			MatchedString:  fmt.Sprint(uniqueid),
-			JsonSha:        jsonsha.JsonSha,
-		}
-		return id, err
-	} else {
-		log.Info(config.IdentifierSha, "Action: Getting normalized sha  Error:", err)
-		// generate a filesha
-		return GenerateNormalizedSha(v1, jsonld)
-	}
-}
-func GenerateNormalizedSha(v1 *viper.Viper, jsonld string) (Identifier, error) {
-	var id Identifier
-	//uuid := common.GetSHA(jsonld)
-	uuid, err := GetNormSHA(jsonld, v1) // Moved to the normalized sha value
-
-	if uuid == "" {
-		// error
-		log.Error("ERROR: uuid generator:", "Action: Getting normalized sha  Error:", err)
-		id = Identifier{}
-	} else if err != nil {
-		// no error, then normalized triples generated
-		log.Info(" Action: Normalize sha generated sha:", uuid, " Error:", err)
-		id = Identifier{UniqueId: uuid,
-			IdentifierType: config.NormalizedJsonSha,
-			JsonSha:        uuid,
-		}
-		err = nil
-	} else {
-		log.Debug(" Action: Json sha generated", uuid)
-		id = Identifier{UniqueId: uuid,
-			IdentifierType: config.JsonSha,
-			JsonSha:        uuid,
-		}
-	}
-
-	return id, err
+func GetSHA(s string) string {
+	h := sha1.New()
+	h.Write([]byte(s))
+	hs := h.Sum(nil)
+	return fmt.Sprintf("%x", hs)
 }
 
 func GenerateFileSha(v1 *viper.Viper, jsonld string) (Identifier, error) {
