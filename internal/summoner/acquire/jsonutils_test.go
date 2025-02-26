@@ -144,24 +144,24 @@ func TestContextStringFix(t *testing.T) {
       "SO:name":"Some type in a graph" 
     }`
 	t.Run("It rewrites the jsonld context if it is not an object", func(t *testing.T) {
-		result, err := fixContextString(contextStringJson, config.Https)
+		result, err := fixContextString(contextStringJson)
 		assert.JSONEq(t, contextObjectJson, result)
 		assert.Nil(t, err)
 	})
 
 	t.Run("It does not change the jsonld context if it is already an object", func(t *testing.T) {
-		result, err := fixContextString(contextObjectJson, config.Https)
+		result, err := fixContextString(contextObjectJson)
 		assert.Equal(t, contextObjectJson, result)
 		assert.Nil(t, err)
 	})
 
 	t.Run("It does not change the jsonld context if it is already an object. Version 2", func(t *testing.T) {
-		result, err := fixContextString(contextObjectGraphJson, config.Https)
+		result, err := fixContextString(contextObjectGraphJson)
 		assert.Equal(t, contextObjectGraphJson, result)
 		assert.Nil(t, err)
 	})
 	t.Run("It does not change the jsonld context if it is array. ", func(t *testing.T) {
-		result, err := fixContextString(contextLocalNamspaceJson, config.Https)
+		result, err := fixContextString(contextLocalNamspaceJson)
 		assert.Equal(t, contextLocalNamspaceJson, result)
 		assert.Nil(t, err)
 	})
