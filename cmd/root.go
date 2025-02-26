@@ -9,7 +9,6 @@ import (
 	"gleaner/internal/check"
 	"gleaner/internal/common"
 	"gleaner/internal/config"
-	"gleaner/internal/millers"
 	"gleaner/internal/organizations"
 	"gleaner/internal/summoner"
 
@@ -134,10 +133,6 @@ func Gleaner(cli *GleanerCliArgs) error {
 		}
 	}
 
-	// if configured, process summoned sources fronm JSON-LD to RDF (nq)
-	if gleanerCfgSection["mill"] == "true" {
-		millers.Millers(mc, v1) // need to remove rundir and then fix the compile
-	}
 	return err
 }
 
