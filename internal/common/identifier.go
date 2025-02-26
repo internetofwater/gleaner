@@ -30,8 +30,6 @@ type Identifier struct {
 	JsonSha        string
 }
 
-var jsonPathsDefault = []string{"$['@graph'][?(@['@type']=='schema:Dataset')]['@id']", "$.identifier[?(@.propertyID=='https://registry.identifiers.org/registry/doi')].value", "$.identifier.value", "$.identifier", "$['@id']", "$.url"}
-
 func GenerateIdentifier(v1 *viper.Viper, source config.Source, jsonld string) (Identifier, error) {
 	return GenerateFileSha(v1, jsonld)
 }
