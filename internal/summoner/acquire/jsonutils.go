@@ -118,7 +118,7 @@ const httpsContext = "https://schema.org/"
 // Our first json fixup in existence.
 // If the top-level JSON-LD context is a string instead of an object,
 // this function corrects it.
-func fixContextString(jsonld string, option config.ContextOption) (string, error) {
+func fixContextString(jsonld string) (string, error) {
 	var err error
 	jsonContext := gjson.Get(jsonld, "@context")
 
@@ -302,7 +302,7 @@ func ProcessJson(v1 *viper.Viper,
 		// source level
 
 		log.Info("context.strict is not set to true; doing json-ld fixups.")
-		jsonld, err = fixContextString(jsonld, srcFixOption)
+		jsonld, err = fixContextString(jsonld)
 		if err != nil {
 			log.Error(
 				"ERROR: URL: ", urlloc, " Action: Fixing JSON-LD context from string to be an object Error: ", err)
