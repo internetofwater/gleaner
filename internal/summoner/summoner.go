@@ -7,7 +7,6 @@ import (
 	"syscall"
 	"time"
 
-	"gleaner/internal/common"
 	"gleaner/internal/config"
 
 	"github.com/minio/minio-go/v7"
@@ -23,7 +22,6 @@ func SummonSitemaps(mc *minio.Client, v1 *viper.Viper) error {
 
 	start := time.Now()
 	log.Info("Summoner start time:", start) // Log the time at start for the record
-	runStats := common.NewRunStats()
 
 	// Confusingly this function was originally written such that it should not return an error if there are no API sources
 	// it should just skip retrieving then and go on.
@@ -31,7 +29,7 @@ func SummonSitemaps(mc *minio.Client, v1 *viper.Viper) error {
 	if err != nil {
 		return fmt.Errorf("error getting API endpoint sources: %w", err)
 	} else if len(apiSources) > 0 {
-		acquire.RetrieveAPIData(apiSources, mc, runStats, v1)
+		acquire.RetrieveAPIData(apiSources, mc, v1)
 	} else {
 		log.Warnf("no API sources found in config file %s; this is ok if you're not using API sources", v1.ConfigFileUsed())
 	}
@@ -41,8 +39,6 @@ func SummonSitemaps(mc *minio.Client, v1 *viper.Viper) error {
 
 	go func() {
 		<-c
-		runStats.StopReason = "User Interrupt or Fatal Error"
-		runStats.OutputToFile()
 		os.Exit(1)
 	}()
 
@@ -53,7 +49,7 @@ func SummonSitemaps(mc *minio.Client, v1 *viper.Viper) error {
 	}
 	// just report the error, and then run gathered urls
 	if len(domainToUrls) > 0 {
-		acquire.ResRetrieve(v1, mc, domainToUrls, runStats) // TODO  These can be go funcs that run all at the same time..
+		acquire.ResRetrieve(v1, mc, domainToUrls) // TODO  These can be go funcs that run all at the same time..
 	}
 
 	hru, err := acquire.ResourceURLs(v1, mc, true)
@@ -63,15 +59,13 @@ func SummonSitemaps(mc *minio.Client, v1 *viper.Viper) error {
 	// just report the error, and then run gathered urls
 	if len(hru) > 0 {
 		log.Info("running headless:")
-		acquire.HeadlessNG(v1, mc, hru, runStats)
+		acquire.HeadlessNG(v1, mc, hru)
 	}
 
 	// Time report
 	et := time.Now()
 	diff := et.Sub(start)
 	log.Info("Summoner run time:", diff.Minutes())
-	runStats.StopReason = "Complete"
-	runStats.OutputToFile()
 	// What do I need to the "run" prov
 	// the URLs indexed  []string
 	// the graph generated?  "version" the graph by the build date

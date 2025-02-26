@@ -60,7 +60,6 @@ func TestHeadlessNG(t *testing.T) {
 
 	for _, test := range tests {
 
-		runstats := common.NewRepoStats(test.name)
 		conf := map[string]interface{}{
 			"minio":    map[string]interface{}{"bucket": "test"},
 			"summoner": map[string]interface{}{"threads": "5", "delay": 10, "headless": HEADLESS_URL},
@@ -73,7 +72,7 @@ func TestHeadlessNG(t *testing.T) {
 		}
 		repoLogger, _ := common.LogIssues(viper, test.name)
 		t.Run(test.name, func(t *testing.T) {
-			jsonlds, err := PageRender(viper, 5*time.Second, test.url, test.name, repoLogger, runstats)
+			jsonlds, err := PageRender(viper, 5*time.Second, test.url, test.name, repoLogger)
 			if !test.expectedFail {
 				assert.Equal(t, test.jsonldcount, len(jsonlds))
 			} else {
