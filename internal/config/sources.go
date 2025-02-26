@@ -132,21 +132,6 @@ func GetSources(g1 *viper.Viper) ([]Source, error) {
 	return cfg, err
 }
 
-func GetActiveSources(g1 *viper.Viper) ([]Source, error) {
-	var activeSources []Source
-
-	sources, err := GetSources(g1)
-	if err != nil {
-		return nil, err
-	}
-	for _, s := range sources {
-		if s.Active {
-			activeSources = append(activeSources, s)
-		}
-	}
-	return activeSources, err
-}
-
 func GetSourceByType(sources []Source, key string) []Source {
 	var sourcesSlice []Source
 	for _, s := range sources {
