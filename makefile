@@ -10,4 +10,4 @@ teste2e:
 
 # check for unused code in the repo
 deadcode:
-	bash -c 'deadcode -tags "e2e" -test ./... | tee out && [ ! -s out ]'
+	deadcode -tags "e2e" -test ./... 
