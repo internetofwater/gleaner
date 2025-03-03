@@ -4,7 +4,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -15,20 +14,6 @@ func SetupHelper(conf map[string]interface{}) *viper.Viper {
 		viper.Set(key, value)
 	}
 	return viper
-}
-
-// Read the config and get API endpoint template strings
-func RetrieveSourceAPIEndpoints(v1 *viper.Viper) ([]Source, error) {
-
-	// Get our API sources
-	sources, err := GetSources(v1)
-	if err != nil {
-		log.Error("Error getting sources to summon: ", err)
-		return []Source{}, err
-	}
-
-	return FilterSourcesByType(sources, "api"), nil
-
 }
 
 func fileNameWithoutExtTrimSuffix(fileName string) string {

@@ -1,9 +1,5 @@
 module gleaner
 
-// to update the nabu dependency used by glcon
-// go get nabu@dev
-// go mod tidy
-
 go 1.22
 
 toolchain go1.23.0
