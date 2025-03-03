@@ -67,7 +67,16 @@ func isGraphArray(v1 *viper.Viper, jsonld string) (bool, []string, error) {
 
 // Return true if the string is valid JSON-LD
 func isValid(v1 *viper.Viper, jsonld string) (bool, error) {
-	proc, options, err := common.GenerateJSONLDProcessor(v1)
+
+	cache := v1.GetStringMapString("context")["cache"] == "true"
+
+	var contexts []common.ContextMapping
+	err := v1.UnmarshalKey("contextmaps", &contexts)
+	if err != nil {
+		return false, err
+	}
+
+	proc, options, err := common.NewJSONLDProcessor(contexts, cache)
 	if err != nil {
 		return false, err
 	}
