@@ -51,7 +51,6 @@ func TestOrgNQsInMinio(t *testing.T) {
 		err = testcontainers.TerminateContainer(minioHelper.Container)
 		assert.NoError(t, err)
 	}()
-
 	err = BuildOrgNqsAndUpload(minioHelper.Client, v1)
 	require.NoError(t, err)
 

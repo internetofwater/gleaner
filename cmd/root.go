@@ -156,6 +156,24 @@ var rootCmd = &cobra.Command{
 		gleanerCliArgs.SetupBuckets, _ = cmd.Flags().GetBool("setup")
 		gleanerCliArgs.Rude, _ = cmd.Flags().GetBool("rude")
 
+		logLevel, _ := cmd.Flags().GetString("log-level")
+
+		switch logLevel {
+		case "DEBUG":
+			log.SetLevel(log.DebugLevel)
+		case "INFO":
+			log.SetLevel(log.InfoLevel)
+		case "WARN":
+			log.SetLevel(log.WarnLevel)
+		case "ERROR":
+			log.SetLevel(log.ErrorLevel)
+		case "FATAL":
+			log.SetLevel(log.FatalLevel)
+		default:
+			log.Fatalf("Invalid log level: %s", logLevel)
+		}
+		log.SetFormatter(&log.JSONFormatter{})
+
 		if err := Gleaner(gleanerCliArgs); err != nil {
 			log.Fatal(err)
 		}
@@ -186,6 +204,5 @@ func init() {
 	rootCmd.PersistentFlags().Bool("ssl", false, "Use SSL when connecting to minio")
 	rootCmd.PersistentFlags().Bool("rude", false, "Ignore robots.txt when connecting to source")
 	rootCmd.PersistentFlags().Bool("setup", false, "Setup buckets in minio")
-
-	cobra.OnInitialize(common.InitLogging)
+	rootCmd.PersistentFlags().String("log-level", "INFO", "the log level to use for the nabu logger")
 }
