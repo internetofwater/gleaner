@@ -60,7 +60,7 @@ func (g *GleanerClient) summon(mc *minio.Client, v1 *viper.Viper) error {
 		acquire.HeadlessNG(v1, mc, hru)
 	}
 
-	log.Infof("Summoner took %s minutes to run", time.Since(start).Minutes())
+	log.Infof("Summoner took %f minutes to run", time.Since(start).Minutes())
 
 	return err
 }
