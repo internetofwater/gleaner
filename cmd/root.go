@@ -7,9 +7,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"gleaner/internal/check"
-	"gleaner/internal/common"
 	"gleaner/internal/config"
+	"gleaner/internal/minioWrapper"
 	"gleaner/internal/organizations"
 	"gleaner/internal/summoner/acquire"
 
@@ -133,21 +132,20 @@ func (cli *GleanerClient) Run() error {
 		return errors.New("no minio config after applying args")
 	}
 	// Set up the minio connector
-	mc := common.MinioConnection(v1)
-
-	// If requested, set up the buckets
-	if cli.SetupBuckets {
-		log.Info("Setting up buckets inside minio")
-		err = check.Setup(mc, v1)
-		if err != nil {
-			return errors.New("error making buckets for setup call")
-		}
+	mcfg, err := config.ReadMinioConfig(v1.Sub("minio"))
+	if err != nil {
+		return err
 	}
 
-	// idate Minio access
-	err = check.PreflightChecks(mc, v1)
+	minioClient, err := minioWrapper.NewMinioConnection(mcfg.Port, mcfg.Address, mcfg.Secretkey, mcfg.Accesskey, mcfg.Region, mcfg.Ssl, mcfg.Bucket)
 	if err != nil {
-		return fmt.Errorf("minio access check failed. Make sure the server is running. Full error was: '%v'", err)
+		return err
+	}
+
+	if cli.SetupBuckets {
+		if err := minioClient.SetupBucket(); err != nil {
+			return err
+		}
 	}
 
 	gleanerCfgSection := v1.GetStringMapString("gleaner")
@@ -155,13 +153,13 @@ func (cli *GleanerClient) Run() error {
 		return errors.New("the 'gleaner' section in " + cli.Config + " is missing")
 	}
 
-	if err := organizations.BuildOrgNqsAndUpload(mc, v1); err != nil {
+	if err := organizations.BuildOrgNqsAndUpload(minioClient.Client, v1); err != nil {
 		return err
 	}
 
 	if gleanerCfgSection["summon"] == "true" {
 
-		if err := cli.summon(mc, v1); err != nil {
+		if err := cli.summon(minioClient.Client, v1); err != nil {
 			return err
 		}
 	}
