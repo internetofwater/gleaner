@@ -33,7 +33,7 @@ type GleanerClient struct {
 }
 
 // Summoner pulls the resources from the data resources
-func (g *GleanerClient) summon(mc *minio.Client, v1 *viper.Viper) error {
+func (g *GleanerClient) harvestJSONLD(mc *minio.Client, v1 *viper.Viper) error {
 
 	start := time.Now()
 
@@ -160,11 +160,8 @@ func (cli *GleanerClient) Run() error {
 		return err
 	}
 
-	if gleanerCfgSection["summon"] == "true" {
-
-		if err := cli.summon(minioClient.Client, v1); err != nil {
-			return err
-		}
+	if err := cli.harvestJSONLD(minioClient.Client, v1); err != nil {
+		return err
 	}
 
 	return err

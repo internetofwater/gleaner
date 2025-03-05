@@ -24,7 +24,6 @@ import (
 // It uses a chrome headless instance (which MUST BE RUNNING).
 // TODO..  trap out error where headless is NOT running
 
-
 //// ThreadedHeadlessNG does not work.. ;)
 //func ThreadedHeadlessNG(v1 *viper.Viper, mc *minio.Client, m map[string][]string, db *bolt.DB) {
 //	wg := sync.WaitGroup{}
@@ -110,39 +109,31 @@ import (
 
 func PageRenderAndUpload(v1 *viper.Viper, mc *minio.Client, timeout time.Duration, url, k string) error {
 	log.WithFields(log.Fields{"url": url}).Trace("PageRenderAndUpload")
-	// page render handles this
-	//ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	//defer cancel()
 
-	// read config file
-	//miniocfg := v1.GetStringMapString("minio")
-	//bucketName := miniocfg["bucket"] //   get the top level bucket for all of gleaner operations from config file
 	bucketName, err := configTypes.GetBucketName(v1)
 	if err != nil {
 		log.Error(err)
 		return err
 	}
 
-	//mcfg := v1.GetStringMapString("summoner")
-	//mcfg, err := configTypes.ReadSummmonerConfig(v1.Sub("summoner"))
-
 	jsonlds, err := PageRender(v1, timeout, url, k)
-
-	if err == nil { // from page render. If there are no errros, upload.
-		if len(jsonlds) > 1 {
-			log.WithFields(log.Fields{"url": url, "issue": "Multiple JSON"}).Info("Error uploading jsonld to object store:", url)
-			log.WithFields(log.Fields{"url": url, "issue": "Multiple JSON"}).Debug()
-		}
-		for _, jsonld := range jsonlds {
-			sha, err := Upload(v1, mc, bucketName, k, url, jsonld)
-			if err != nil {
-				log.WithFields(log.Fields{"url": url, "sha": sha, "issue": "Error uploading jsonld to object store"}).Error("Error uploading jsonld to object store:", url, err, sha)
-			} else {
-				log.WithFields(log.Fields{"url": url, "sha": sha, "issue": "Uploaded JSONLD to object store"}).Info("Uploaded JSONLD to object store:", url, err, sha)
-			}
-		}
+	if err != nil {
+		return err
 	}
-	return err
+
+	if len(jsonlds) > 1 {
+		log.Infof("Found %d JSONLDs for %s", len(jsonlds), url)
+	}
+	for _, jsonld := range jsonlds {
+		sha, err := Upload(v1, mc, bucketName, k, url, jsonld)
+		if err != nil {
+			log.Error(err)
+			return err
+		}
+		log.Debugf("Successfully put item with sha %s from %s in bucket", sha, url)
+
+	}
+	return nil
 }
 
 // render a page in headless chrome
