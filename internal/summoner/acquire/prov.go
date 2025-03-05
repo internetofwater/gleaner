@@ -7,14 +7,12 @@ import (
 	"text/template"
 	"time"
 
-	config "gleaner/internal/config"
-
 	log "github.com/sirupsen/logrus"
 
 	"gleaner/internal/common"
+	"gleaner/internal/config"
 
 	"github.com/minio/minio-go/v7"
-	"github.com/spf13/viper"
 )
 
 // Holds the prov meatdata data for a summoned data graph
@@ -80,14 +78,9 @@ var provTemplate = `{
 	]
   }`
 
-func StoreProvNamedGraph(v1 *viper.Viper, mc *minio.Client, domainName, sha, urlloc, objprefix string) error {
-	// read config file to get the bucket name
-	bucketName, err := config.GetBucketName(v1)
-	if err != nil {
-		return err
-	}
+func StoreProvNamedGraph(defaultBucket string, mc *minio.Client, domainName, sha, urlloc, objprefix string, sources []config.Source) error {
 
-	p, err := provOGraph(v1, domainName, sha, urlloc, objprefix)
+	p, err := provOGraph(defaultBucket, domainName, sha, urlloc, objprefix, sources)
 	if err != nil {
 		return err
 	}
@@ -109,11 +102,10 @@ func StoreProvNamedGraph(v1 *viper.Viper, mc *minio.Client, domainName, sha, url
 
 	contentType := "application/ld+json"
 
-	// Upload the file with FPutObject
-	_, err = mc.PutObject(context.Background(), bucketName, objectName, b, int64(b.Len()), minio.PutObjectOptions{ContentType: contentType, UserMetadata: usermeta})
+	_, err = mc.PutObject(context.Background(), defaultBucket, objectName, b, int64(b.Len()), minio.PutObjectOptions{ContentType: contentType, UserMetadata: usermeta})
 	if err != nil {
 		log.Errorf("%s: %s", objectName, err)
-		// Fatal?   seriously?    I guess this is the object write, so the run is likely a bust at this point, but this seems a bit much still.
+		return err
 	}
 
 	return err
@@ -121,40 +113,28 @@ func StoreProvNamedGraph(v1 *viper.Viper, mc *minio.Client, domainName, sha, url
 
 // provOGraph is a simpler provo prov function
 // I'll just build from a template for now, but using a real RDF lib to build these triples would be better
-func provOGraph(v1 *viper.Viper, domainName, sha, urlloc, objprefix string) (string, error) {
-	// read config file
-	miniocfg := v1.GetStringMapString("minio")
-	bucketName := miniocfg["bucket"] //   get the top level bucket for all of gleaner operations from config file
-
-	// get the time
+func provOGraph(defaultBucket string, domainName, sha, urlloc, objprefix string, sources []config.Source) (string, error) {
 	currentTime := time.Now() // date := currentTime.Format("2006-01-02")
-
-	// open the config to get the runID later
-	mcfg := v1.GetStringMapString("gleaner")
-	domains, err := config.GetSources(v1)
-	if err != nil {
-		return "", err
-	}
 
 	pid := "unknown"
 	pname := "unknown"
 	domain := "unknown"
-	for i := range domains {
-		if domains[i].Name == domainName {
-			pid = domains[i].PID
-			pname = domains[i].ProperName
-			domain = domains[i].Domain
+	for _, src := range sources {
+		if src.Name == domainName {
+			pid = src.PID
+			pname = src.ProperName
+			domain = src.Domain
 		}
 	}
 
 	// TODO:  There is danger here if this and the URN for the graph from Nabu do not match.
 	// We need to modify this to help prevent that from happening.
 	// Shouuld align with:  https://nabu/blob/dev/decisions/0001-URN-decision.md
-	gp := fmt.Sprintf("urn:%s:%s:%s", bucketName, domainName, sha)
+	gp := fmt.Sprintf("urn:%s:%s:%s", defaultBucket, domainName, sha)
 
 	td := ProvData{RESID: urlloc, SHA256: sha, PID: pid, SOURCE: domainName,
 		DATE:   currentTime.Format("2006-01-02"),
-		RUNID:  mcfg["runid"],
+		RUNID:  "",
 		URN:    gp,
 		PNAME:  pname,
 		DOMAIN: domain}
