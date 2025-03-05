@@ -49,7 +49,15 @@ func BuildOrgNqsAndUpload(mc *minio.Client, v1 *viper.Viper) error {
 		log.Error(err)
 		return err
 	}
-	jsonldProcessor, options, err := common.GenerateJSONLDProcessor(v1)
+	cache := v1.GetStringMapString("context")["cache"] == "true"
+
+	var contexts []common.ContextMapping
+	err = v1.UnmarshalKey("contextmaps", &contexts)
+	if err != nil {
+		return err
+	}
+
+	jsonldProcessor, options, err := common.NewJSONLDProcessor(contexts, cache)
 	if err != nil {
 		return err
 	}

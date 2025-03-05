@@ -14,27 +14,27 @@ import (
 )
 
 func TestFileExistsRelativeToRoot(t *testing.T) {
-	exists := FileExistsRelativeToRoot("./assets/schemaorg-current-https.jsonld")
+	exists := fileExistsRelativeToRoot("./assets/schemaorg-current-https.jsonld")
 	assert.True(t, exists)
 
-	exists = FileExistsRelativeToRoot("assets/schemaorg-current-https.jsonld")
+	exists = fileExistsRelativeToRoot("assets/schemaorg-current-https.jsonld")
 	assert.True(t, exists)
 
-	exists = FileExistsRelativeToRoot("/assets/schemaorg-current-https.jsonld")
+	exists = fileExistsRelativeToRoot("/assets/schemaorg-current-https.jsonld")
 	assert.True(t, exists)
 
-	exists = FileExistsRelativeToRoot("nonexist_dir/schemaorg-current-https.jsonld")
+	exists = fileExistsRelativeToRoot("nonexist_dir/schemaorg-current-https.jsonld")
 	assert.False(t, exists)
 }
 
-/* ldjsonprocessor.Normalize often returns "" or the same set of triples
+/*
+	ldjsonprocessor.Normalize often returns "" or the same set of triples
+
 for JSONLD Document with context or other issues.
 
 We will need to write a wrapper around Normalize to catch these issues, and return an error.
 These are tests that helped determine that Normalize was the issue.
-*/
 
-/*
 this tests a single path against a single json file
 */
 func TestNormalizeTriple(t *testing.T) {
@@ -129,7 +129,13 @@ sources:
 				if test.ignore {
 					return
 				}
-				proc, options, err := GenerateJSONLDProcessor(viperVal)
+
+				cache := viperVal.GetStringMapString("context")["cache"] == "true"
+
+				var contexts []ContextMapping
+				err := viperVal.UnmarshalKey("contextmaps", &contexts)
+				require.NoError(t, err)
+				proc, options, err := NewJSONLDProcessor(contexts, cache)
 				assert.NoError(t, err)
 
 				// add the processing mode explicitly if you need JSON-LD 1.1 features

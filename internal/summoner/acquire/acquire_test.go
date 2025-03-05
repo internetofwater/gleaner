@@ -8,7 +8,6 @@ import (
 
 	config "gleaner/internal/config"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -94,7 +93,6 @@ func TestFindJSONInResponse(t *testing.T) {
 		"contextmaps": map[string]interface{}{},
 	}
 	viper := config.SetupHelper(conf)
-	logger := log.New()
 	const JSONContentType = "application/ld+json"
 	testJson := `{
 	    "@graph":[
@@ -122,7 +120,7 @@ func TestFindJSONInResponse(t *testing.T) {
 
 	t.Run("It returns an error if the response document cannot be parsed", func(t *testing.T) {
 		// create dummy response object
-		result, err := FindJSONInResponse(viper, urlloc, JSONContentType, logger, &http.Response{})
+		result, err := FindJSONInResponse(viper, urlloc, JSONContentType, &http.Response{})
 		assert.Nil(t, result)
 		assert.Error(t, err)
 	})
@@ -134,7 +132,7 @@ func TestFindJSONInResponse(t *testing.T) {
 		response.ContentLength = int64(len(html))
 		var expected []string
 
-		result, err := FindJSONInResponse(viper, urlloc, JSONContentType, logger, response)
+		result, err := FindJSONInResponse(viper, urlloc, JSONContentType, response)
 		assert.Nil(t, err)
 		assert.Equal(t, result, append(expected, testJson))
 	})
@@ -144,7 +142,7 @@ func TestFindJSONInResponse(t *testing.T) {
 		response.ContentLength = int64(len(testJson))
 		var expected []string
 
-		result, err := FindJSONInResponse(viper, "test.json", JSONContentType, logger, response)
+		result, err := FindJSONInResponse(viper, "test.json", JSONContentType, response)
 		assert.Nil(t, err)
 		assert.Equal(t, result, append(expected, testJson))
 	})
@@ -155,7 +153,7 @@ func TestFindJSONInResponse(t *testing.T) {
 		response.Header.Add("Content-Type", JSONContentType)
 		var expected []string
 
-		result, err := FindJSONInResponse(viper, urlloc, JSONContentType, logger, response)
+		result, err := FindJSONInResponse(viper, urlloc, JSONContentType, response)
 		assert.Nil(t, err)
 		assert.Equal(t, result, append(expected, testJson))
 	})
@@ -166,7 +164,7 @@ func TestFindJSONInResponse(t *testing.T) {
 		response.Header.Add("Content-Type", "application/json; charset=utf-8")
 		var expected []string
 
-		result, err := FindJSONInResponse(viper, urlloc, JSONContentType, logger, response)
+		result, err := FindJSONInResponse(viper, urlloc, JSONContentType, response)
 		assert.Nil(t, err)
 		assert.Equal(t, result, append(expected, testJson))
 	})

@@ -1,9 +1,5 @@
 module gleaner
 
-// to update the nabu dependency used by glcon
-// go get nabu@dev
-// go mod tidy
-
 go 1.22
 
 toolchain go1.23.0
@@ -98,17 +94,9 @@ require (
 )
 
 require (
-	github.com/orandin/lumberjackrus v1.0.1
 	github.com/oxffaa/gopher-parse-sitemap v0.0.0-20191021113419-005d2eb1def4
 	github.com/sirupsen/logrus v1.9.3
 	github.com/temoto/robotstxt v1.1.2
 	github.com/tidwall/gjson v1.14.4
 	github.com/tidwall/sjson v1.2.5
-	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 )
-
-// to update the nabu dependency used by glcon
-// go get nabu@dev
-
-// local replace. gleaner and nabu at same level
-//replace  nabu v0.0.0-20211107193830-958398c3aaef  => "../nabu"

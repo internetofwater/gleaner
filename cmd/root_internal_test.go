@@ -37,7 +37,7 @@ func TestRootE2E(t *testing.T) {
 	url, _, err := minioHelper.ConnectionStrings()
 	require.NoError(t, err)
 
-	gleanerCliArgs := &GleanerCliArgs{
+	gleanerClient := &GleanerClient{
 		AccessKey:    minioHelper.Container.Username,
 		SecretKey:    minioHelper.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -46,11 +46,11 @@ func TestRootE2E(t *testing.T) {
 		Config:       "../testHelpers/sampleConfigs/justMainstems.yaml",
 		SetupBuckets: true,
 	}
-	log.Info("gleanerCliArgs: ", gleanerCliArgs)
+	log.Info("gleanerCliArgs: ", gleanerClient)
 
 	defer testcontainers.TerminateContainer(minioHelper.Container)
 
-	err = Gleaner(gleanerCliArgs)
+	err = gleanerClient.Run()
 	require.NoError(t, err)
 
 	buckets, err := minioHelper.Client.ListBuckets(context.Background())
@@ -77,7 +77,7 @@ func TestRootE2E(t *testing.T) {
 	require.Equal(t, len(sitesOnWebpage.URL), len(sumInfo))
 
 	// Run it again
-	err = Gleaner(gleanerCliArgs)
+	err = gleanerClient.Run()
 	require.NoError(t, err)
 
 	// Check that after the second run, the org metadata should be unchanged since the orgs have not changed
@@ -115,7 +115,7 @@ func TestGeoconnexPids(t *testing.T) {
 	url, _, err := minioHandle.ConnectionStrings()
 	require.NoError(t, err)
 
-	gleanerCliArgs := &GleanerCliArgs{
+	gleanerCliArgs := &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -126,7 +126,7 @@ func TestGeoconnexPids(t *testing.T) {
 
 	defer testcontainers.TerminateContainer(minioHandle.Container)
 
-	err = Gleaner(gleanerCliArgs)
+	err = gleanerCliArgs.Run()
 
 	require.NoError(t, err)
 
@@ -146,7 +146,7 @@ func TestGeoconnexPids(t *testing.T) {
 	}
 	assertCounts()
 
-	err = Gleaner(gleanerCliArgs)
+	err = gleanerCliArgs.Run()
 	assert.NoError(t, err)
 
 	// Asserts it is idempotent
@@ -164,7 +164,7 @@ func TestSitemapWithDeadLink(t *testing.T) {
 	url, _, err := minioHandle.ConnectionStrings()
 	require.NoError(t, err)
 
-	gleanerCliArgs := &GleanerCliArgs{
+	gleanerCliArgs := &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -176,7 +176,7 @@ func TestSitemapWithDeadLink(t *testing.T) {
 
 	defer testcontainers.TerminateContainer(minioHandle.Container)
 
-	err = Gleaner(gleanerCliArgs)
+	err = gleanerCliArgs.Run()
 	require.NoError(t, err)
 
 	// After the first run, only one org metadata file should be present
@@ -199,7 +199,7 @@ func TestEntireConfigWithoutSingleSource(t *testing.T) {
 	url, _, err := minioHandle.ConnectionStrings()
 	require.NoError(t, err)
 
-	hu02CliArgs := &GleanerCliArgs{
+	hu02CliArgs := &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -208,7 +208,7 @@ func TestEntireConfigWithoutSingleSource(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	err = Gleaner(hu02CliArgs)
+	err = hu02CliArgs.Run()
 	require.NoError(t, err)
 
 	_, summoned, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
@@ -228,7 +228,7 @@ func TestCrawlsAreAdditive(t *testing.T) {
 	url, _, err := minioHandle.ConnectionStrings()
 	require.NoError(t, err)
 
-	mainstemCliArgs := &GleanerCliArgs{
+	mainstemCliArgs := &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -239,7 +239,7 @@ func TestCrawlsAreAdditive(t *testing.T) {
 
 	defer testcontainers.TerminateContainer(minioHandle.Container)
 
-	err = Gleaner(mainstemCliArgs)
+	err = mainstemCliArgs.Run()
 	require.NoError(t, err)
 
 	_, summoned, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
@@ -248,7 +248,7 @@ func TestCrawlsAreAdditive(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, len(mainstemWebpage.URL), len(summoned))
 
-	hu02CliArgs := &GleanerCliArgs{
+	hu02CliArgs := &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -257,7 +257,7 @@ func TestCrawlsAreAdditive(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	err = Gleaner(hu02CliArgs)
+	err = hu02CliArgs.Run()
 	require.NoError(t, err)
 
 	_, summoned, err = testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
@@ -280,7 +280,7 @@ func TestConfigValidThenInvalid(t *testing.T) {
 	url, _, err := minioHandle.ConnectionStrings()
 	require.NoError(t, err)
 
-	gleanerCliArgs := &GleanerCliArgs{
+	gleanerClient := &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -291,7 +291,7 @@ func TestConfigValidThenInvalid(t *testing.T) {
 
 	defer testcontainers.TerminateContainer(minioHandle.Container)
 
-	err = Gleaner(gleanerCliArgs)
+	err = gleanerClient.Run()
 	require.NoError(t, err)
 
 	summonedInfo, summoned, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
@@ -302,7 +302,7 @@ func TestConfigValidThenInvalid(t *testing.T) {
 	require.Equal(t, len(mainstemWebpage.URL), len(summoned))
 
 	// change the config to have invalid urls
-	gleanerCliArgs = &GleanerCliArgs{
+	gleanerClient = &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -311,7 +311,7 @@ func TestConfigValidThenInvalid(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	err = Gleaner(gleanerCliArgs)
+	err = gleanerClient.Run()
 	require.NoError(t, err)
 
 	summonedInfo2, summoned2, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
@@ -336,7 +336,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 	url, _, err := minioHandle.ConnectionStrings()
 	require.NoError(t, err)
 
-	gleanerCliArgs := &GleanerCliArgs{
+	gleanerClient := &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -348,7 +348,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 	defer testcontainers.TerminateContainer(minioHandle.Container)
 
 	// Run gleaner with the entire
-	err = Gleaner(gleanerCliArgs)
+	err = gleanerClient.Run()
 	require.NoError(t, err)
 
 	sumInfo1, summoned1, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
@@ -385,7 +385,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 	err = testHelpers.MutateYamlSourceUrl(newConfig, 0, newConfigEndpoint)
 	require.NoError(t, err)
 
-	gleanerCliArgs = &GleanerCliArgs{
+	gleanerClient = &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -394,7 +394,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	err = Gleaner(gleanerCliArgs)
+	err = gleanerClient.Run()
 	require.NoError(t, err)
 
 	sumInfo2, summoned2, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
@@ -422,7 +422,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 	err = testHelpers.MutateYamlSourceUrl(newConfig, 0, differentDateEndpoint)
 	require.NoError(t, err)
 
-	gleanerCliArgs = &GleanerCliArgs{
+	gleanerClient = &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -431,7 +431,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	err = Gleaner(gleanerCliArgs)
+	err = gleanerClient.Run()
 	require.NoError(t, err)
 
 	sumInfo3, summoned3, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
@@ -522,7 +522,7 @@ func TestIncorrectJsonLd(t *testing.T) {
 	err = testHelpers.MutateYamlSourceUrl(newConfig, 0, sitemapEndpoint)
 	require.NoError(t, err)
 
-	gleanerCliArgs := &GleanerCliArgs{
+	gleanerCliArgs := &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -531,7 +531,7 @@ func TestIncorrectJsonLd(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	err = Gleaner(gleanerCliArgs)
+	err = gleanerCliArgs.Run()
 	require.NoError(t, err)
 
 	_, orgs1, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "orgs/")
@@ -582,7 +582,7 @@ func TestSameSitemapWithDifferentJSONLD(t *testing.T) {
 
 	defer os.Remove(mockedSitemapConfig)
 
-	gleanerCliArgs := &GleanerCliArgs{
+	gleanerCliArgs := &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -591,7 +591,7 @@ func TestSameSitemapWithDifferentJSONLD(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	err = Gleaner(gleanerCliArgs)
+	err = gleanerCliArgs.Run()
 	require.NoError(t, err)
 
 	// get the total amount of objects summoned
@@ -615,7 +615,7 @@ func TestSameSitemapWithDifferentJSONLD(t *testing.T) {
 	err = testHelpers.MutateYamlSourceUrl(mockedSitemapConfig, 0, mockUrl)
 	require.NoError(t, err)
 
-	gleanerCliArgs = &GleanerCliArgs{
+	gleanerCliArgs = &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -624,7 +624,7 @@ func TestSameSitemapWithDifferentJSONLD(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	err = Gleaner(gleanerCliArgs)
+	err = gleanerCliArgs.Run()
 	require.NoError(t, err)
 
 	summonedInfo2, summoned2, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
@@ -651,7 +651,7 @@ func TestDifferentSourceNameWithSameSitemapXMLDoesntDownload(t *testing.T) {
 	url, _, err := minioHandle.ConnectionStrings()
 	require.NoError(t, err)
 
-	mainstemCliArgs := &GleanerCliArgs{
+	mainstemCliArgs := &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -662,7 +662,7 @@ func TestDifferentSourceNameWithSameSitemapXMLDoesntDownload(t *testing.T) {
 
 	defer testcontainers.TerminateContainer(minioHandle.Container)
 
-	err = Gleaner(mainstemCliArgs)
+	err = mainstemCliArgs.Run()
 	summInfo, _, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 
@@ -684,7 +684,7 @@ func TestDifferentSourceNameWithSameSitemapXMLDoesntDownload(t *testing.T) {
 	err = tempFile.Close()
 	require.NoError(t, err)
 
-	mainstemCliArgs = &GleanerCliArgs{
+	mainstemCliArgs = &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -693,7 +693,7 @@ func TestDifferentSourceNameWithSameSitemapXMLDoesntDownload(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	err = Gleaner(mainstemCliArgs)
+	err = mainstemCliArgs.Run()
 	summInfo2, _, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 
@@ -712,7 +712,7 @@ func TestRecrawlSameSourceAfterRemovingFilesInS3(t *testing.T) {
 	url, _, err := minioHandle.ConnectionStrings()
 	require.NoError(t, err)
 
-	mainstemCliArgs := &GleanerCliArgs{
+	mainstemCliArgs := &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -723,7 +723,7 @@ func TestRecrawlSameSourceAfterRemovingFilesInS3(t *testing.T) {
 
 	defer testcontainers.TerminateContainer(minioHandle.Container)
 
-	err = Gleaner(mainstemCliArgs)
+	err = mainstemCliArgs.Run()
 	summInfo, _, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 
@@ -734,7 +734,7 @@ func TestRecrawlSameSourceAfterRemovingFilesInS3(t *testing.T) {
 	same, msg := testHelpers.SameObjects(t, summInfo, summAfterDeletingAndBeforeRecrawl, true, true)
 	require.False(t, same, msg)
 
-	err = Gleaner(mainstemCliArgs)
+	err = mainstemCliArgs.Run()
 	summInfo2, _, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 
@@ -755,7 +755,7 @@ func TestDifferentSourceDifferentURLButSameSitemapXMLDoesntChangeS3(t *testing.T
 	url, _, err := minioHandle.ConnectionStrings()
 	require.NoError(t, err)
 
-	mainstemCliArgs := &GleanerCliArgs{
+	mainstemCliArgs := &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -766,7 +766,7 @@ func TestDifferentSourceDifferentURLButSameSitemapXMLDoesntChangeS3(t *testing.T
 
 	defer testcontainers.TerminateContainer(minioHandle.Container)
 
-	err = Gleaner(mainstemCliArgs)
+	err = mainstemCliArgs.Run()
 	summInfo, _, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 
@@ -788,7 +788,7 @@ func TestDifferentSourceDifferentURLButSameSitemapXMLDoesntChangeS3(t *testing.T
 	err = tempFile.Close()
 	require.NoError(t, err)
 
-	mainstemCliArgs = &GleanerCliArgs{
+	mainstemCliArgs = &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -797,7 +797,7 @@ func TestDifferentSourceDifferentURLButSameSitemapXMLDoesntChangeS3(t *testing.T
 		SetupBuckets: true,
 	}
 
-	err = Gleaner(mainstemCliArgs)
+	err = mainstemCliArgs.Run()
 	summInfo2, _, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
 	require.NoError(t, err)
 

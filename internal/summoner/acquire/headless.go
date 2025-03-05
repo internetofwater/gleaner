@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"gleaner/internal/common"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -35,17 +34,11 @@ func HeadlessNG(v1 *viper.Viper, mc *minio.Client, m map[string][]string) {
 	//)
 
 	for k := range m {
-		repologger, err := common.LogIssues(v1, k)
-		if err != nil {
-			log.Error("Headless Error creating a logger for a repository", err)
-
-		} else {
-			repologger.Info("Headless chrome call to ", k)
-		}
+		log.Info("Headless chrome call to ", k)
 
 		for i := range m[k] {
 
-			err := PageRenderAndUpload(v1, mc, 60*time.Second, m[k][i], k, repologger) // TODO make delay configurable
+			err := PageRenderAndUpload(v1, mc, 60*time.Second, m[k][i], k) // TODO make delay configurable
 			if err != nil {
 				log.Error(m[k][i], "::", err)
 			}
@@ -138,8 +131,8 @@ func HeadlessNG(v1 *viper.Viper, mc *minio.Client, m map[string][]string) {
 //
 //}
 
-func PageRenderAndUpload(v1 *viper.Viper, mc *minio.Client, timeout time.Duration, url, k string, repologger *log.Logger) error {
-	repologger.WithFields(log.Fields{"url": url}).Trace("PageRenderAndUpload")
+func PageRenderAndUpload(v1 *viper.Viper, mc *minio.Client, timeout time.Duration, url, k string) error {
+	log.WithFields(log.Fields{"url": url}).Trace("PageRenderAndUpload")
 	// page render handles this
 	//ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	//defer cancel()
@@ -156,21 +149,19 @@ func PageRenderAndUpload(v1 *viper.Viper, mc *minio.Client, timeout time.Duratio
 	//mcfg := v1.GetStringMapString("summoner")
 	//mcfg, err := configTypes.ReadSummmonerConfig(v1.Sub("summoner"))
 
-	jsonlds, err := PageRender(v1, timeout, url, k, repologger)
+	jsonlds, err := PageRender(v1, timeout, url, k)
 
 	if err == nil { // from page render. If there are no errros, upload.
 		if len(jsonlds) > 1 {
 			log.WithFields(log.Fields{"url": url, "issue": "Multiple JSON"}).Info("Error uploading jsonld to object store:", url)
-			repologger.WithFields(log.Fields{"url": url, "issue": "Multiple JSON"}).Debug()
+			log.WithFields(log.Fields{"url": url, "issue": "Multiple JSON"}).Debug()
 		}
 		for _, jsonld := range jsonlds {
 			sha, err := Upload(v1, mc, bucketName, k, url, jsonld)
 			if err != nil {
 				log.WithFields(log.Fields{"url": url, "sha": sha, "issue": "Error uploading jsonld to object store"}).Error("Error uploading jsonld to object store:", url, err, sha)
-				repologger.WithFields(log.Fields{"url": url, "sha": sha, "issue": "Error uploading jsonld to object store"}).Error(err)
 			} else {
 				log.WithFields(log.Fields{"url": url, "sha": sha, "issue": "Uploaded JSONLD to object store"}).Info("Uploaded JSONLD to object store:", url, err, sha)
-				repologger.WithFields(log.Fields{"url": url, "sha": sha, "issue": "Uploaded JSONLD to object store"}).Debug()
 			}
 		}
 	}
@@ -178,8 +169,8 @@ func PageRenderAndUpload(v1 *viper.Viper, mc *minio.Client, timeout time.Duratio
 }
 
 // render a page in headless chrome
-func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologger *log.Logger) ([]string, error) {
-	repologger.WithFields(log.Fields{"url": url}).Trace("PageRender")
+func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string) ([]string, error) {
+	log.WithFields(log.Fields{"url": url}).Trace("PageRender")
 	retries := 3
 	sources, err := configTypes.GetSources(v1)
 	if err != nil {
@@ -220,7 +211,6 @@ func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologge
 		pt, err = devt.Create(ctx)
 		if err != nil {
 			log.WithFields(log.Fields{"url": url, "issue": "Not REPO FAULT. Devtools... Is Headless Container running?"}).Error(err)
-			repologger.WithFields(log.Fields{"url": url}).Error("Not REPO FAULT. Devtools... Is Headless Container running?")
 			return response, err
 		}
 	}
@@ -229,7 +219,6 @@ func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologge
 	conn, err := rpcc.DialContext(ctx, pt.WebSocketDebuggerURL)
 	if err != nil {
 		log.WithFields(log.Fields{"url": url, "issue": "Not REPO FAULT. Devtools... Is Headless Container running?"}).Error(err)
-		repologger.WithFields(log.Fields{"url": url}).Error("Not REPO FAULT. Devtools... Is Headless Container running?")
 		return response, err
 	}
 	defer conn.Close() // Leaving connections open will leak memory.
@@ -241,7 +230,6 @@ func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologge
 	err = c.Page.Enable(ctx)
 	if err != nil {
 		log.WithFields(log.Fields{"url": url, "issue": "Not REPO FAULT. Devtools... Is Headless Container running?"}).Error(err)
-		repologger.WithFields(log.Fields{"url": url}).Error("Not REPO FAULT. Devtools... Is Headless Container running?")
 		return response, err
 	}
 
@@ -249,7 +237,6 @@ func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologge
 	domContent, err := c.Page.DOMContentEventFired(ctx)
 	if err != nil {
 		log.WithFields(log.Fields{"url": url, "issue": "Not REPO FAULT. Devtools... Is Headless Container running?"}).Error(err)
-		repologger.WithFields(log.Fields{"url": url}).Error("Not REPO FAULT. Devtools... Is Headless Container running?")
 		return response, err
 	}
 	defer domContent.Close()
@@ -258,7 +245,6 @@ func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologge
 	loadEventFired, err := c.Page.LoadEventFired(ctx)
 	if err != nil {
 		log.WithFields(log.Fields{"url": url, "issue": "Not REPO FAULT. Devtools... Is Headless Container running?"}).Error(err)
-		repologger.WithFields(log.Fields{"url": url}).Error("Not REPO FAULT. Devtools... Is Headless Container running?")
 		return response, err
 	}
 	defer loadEventFired.Close()
@@ -268,7 +254,6 @@ func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologge
 	nav, err := c.Page.Navigate(ctx, navArgs)
 	if err != nil {
 		log.WithFields(log.Fields{"url": url, "issue": "Navigate To Headless"}).Error(err)
-		repologger.WithFields(log.Fields{"url": url, "issue": "Navigate To Headless"}).Error(err)
 		return response, err
 	}
 
@@ -281,12 +266,10 @@ func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologge
 	// Wait until we have a DOMContentEventFired event.
 	if _, err = domContent.Recv(); err != nil {
 		log.WithFields(log.Fields{"url": url, "issue": "Dom Error"}).Error(err)
-		repologger.WithFields(log.Fields{"url": url, "issue": "Dom Error"}).Error(err)
 		return response, err
 	}
 
 	log.WithFields(log.Fields{"url": url, "issue": "Navigate Complete"}).Debug(nav.FrameID, "for", url)
-	repologger.WithFields(log.Fields{"url": url, "issue": "Navigate Complete"}).Trace()
 	/**
 	 * This JavaScript expression will be run in Headless Chrome. It waits for 1000 milliseconds,
 	 * and then tries to find all of the JSON-LD elements on the page, and get their contents.
@@ -347,14 +330,13 @@ func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologge
 	eval, err := c.Runtime.Evaluate(ctx, evalArgs)
 	if err != nil {
 		log.WithFields(log.Fields{"url": url, "issue": "Headless Evaluate"}).Error(err)
-		repologger.WithFields(log.Fields{"url": url, "issue": "Headless Evaluate"}).Error(err)
 		return response, err
 	}
 
 	// Rejecting that promise just sends null as its value,
 	// so we need to stop if we got that.
 	if eval.Result.Value == nil {
-		repologger.WithFields(log.Fields{"url": url, "issue": "Headless Nil Result"}).Trace()
+		log.WithFields(log.Fields{"url": url, "issue": "Headless Nil Result"}).Trace()
 		return response, nil
 	}
 
@@ -363,12 +345,11 @@ func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologge
 	var jsonlds []string
 	if err = json.Unmarshal(eval.Result.Value, &jsonlds); err != nil {
 		log.WithFields(log.Fields{"url": url, "issue": "Json Unmarshal"}).Error(err)
-		repologger.WithFields(log.Fields{"url": url, "issue": "Json Unmarshal"}).Error(err)
 		return response, err
 	}
 
 	if len(jsonlds) > 1 {
-		repologger.WithFields(log.Fields{"url": url, "issue": "Multiple JSON"}).Debug(err)
+		log.WithFields(log.Fields{"url": url, "issue": "Multiple JSON"}).Debug(err)
 	}
 	for _, jsonld := range jsonlds {
 		valid, err := isValid(v1, jsonld)
@@ -376,7 +357,6 @@ func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologge
 			// there could be one bad jsonld, and one good. We want to process the jsonld
 			// so, do not set an err
 			log.WithFields(log.Fields{"url": url, "issue": "invalid JSON"}).Error("error checking for valid json :", err)
-			repologger.WithFields(log.Fields{"url": url, "issue": "invalid JSON"}).Error(err)
 		} else if valid && jsonld != "" { // traps out the root domain...   should do this different
 			response = append(response, jsonld)
 			// need to just return a list
@@ -384,7 +364,6 @@ func PageRender(v1 *viper.Viper, timeout time.Duration, url, k string, repologge
 			// there could be one bad jsonld, and one good. We want to process the jsonld
 			// so, do not set an err
 			log.Info("Empty JSON-LD document found. Continuing.", url)
-			repologger.WithFields(log.Fields{"url": url, "issue": "Empty JSON-LD document found"}).Debug()
 			// TODO  Is here where to add an entry to the KV store
 			//err = db.Update(func(tx *bolt.Tx) error {
 			//	b := tx.Bucket([]byte(k))

@@ -5,18 +5,21 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"gleaner/internal/check"
 	"gleaner/internal/common"
 	"gleaner/internal/config"
 	"gleaner/internal/organizations"
-	"gleaner/internal/summoner"
+	"gleaner/internal/summoner/acquire"
 
+	"github.com/minio/minio-go/v7"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-type GleanerCliArgs struct {
+type GleanerClient struct {
 	Address      string // address for minio
 	Port         string // port for minio
 	Bucket       string // minio bucket to put data
@@ -30,8 +33,40 @@ type GleanerCliArgs struct {
 	Rude         bool   // ignore robots.txt
 }
 
+// Summoner pulls the resources from the data resources
+func (g *GleanerClient) summon(mc *minio.Client, v1 *viper.Viper) error {
+
+	start := time.Now()
+
+	// Get a list of resource URLs that do and don't require headless processing
+	domainToUrls, err := acquire.ResourceURLs(v1, mc, false)
+	if err != nil {
+		log.Error("Error getting urls that do not require headless processing:", err)
+		return err
+	}
+	// just report the error, and then run gathered urls
+	if len(domainToUrls) > 0 {
+		acquire.ResRetrieve(v1, mc, domainToUrls) // TODO  These can be go funcs that run all at the same time..
+	}
+
+	hru, err := acquire.ResourceURLs(v1, mc, true)
+	if err != nil {
+		log.Error("Error getting urls that require headless processing:", err)
+		return err
+	}
+	// just report the error, and then run gathered urls
+	if len(hru) > 0 {
+		log.Info("running headless:")
+		acquire.HeadlessNG(v1, mc, hru)
+	}
+
+	log.Infof("Summoner took %f minutes to run", time.Since(start).Minutes())
+
+	return err
+}
+
 // Entrypoint for the gleaner command
-func Gleaner(cli *GleanerCliArgs) error {
+func (cli *GleanerClient) Run() error {
 	v1, err := config.ReadGleanerConfig(filepath.Base(cli.Config), filepath.Dir(cli.Config))
 	if err != nil {
 		return fmt.Errorf("error when reading config: %v", err)
@@ -126,10 +161,8 @@ func Gleaner(cli *GleanerCliArgs) error {
 
 	if gleanerCfgSection["summon"] == "true" {
 
-		err := summoner.SummonSitemaps(mc, v1)
-
-		if err != nil {
-			return fmt.Errorf("error summoning sitemaps: %v", err)
+		if err := cli.summon(mc, v1); err != nil {
+			return err
 		}
 	}
 
@@ -143,7 +176,7 @@ var rootCmd = &cobra.Command{
 	Short:            "Extract JSON-LD from web pages exposed in a domains sitemap file.",
 	Run: func(cmd *cobra.Command, args []string) {
 
-		gleanerCliArgs := &GleanerCliArgs{}
+		gleanerCliArgs := &GleanerClient{}
 		gleanerCliArgs.Address, _ = cmd.Flags().GetString("address")
 		gleanerCliArgs.Port, _ = cmd.Flags().GetString("port")
 		gleanerCliArgs.Bucket, _ = cmd.Flags().GetString("bucket")
@@ -156,7 +189,25 @@ var rootCmd = &cobra.Command{
 		gleanerCliArgs.SetupBuckets, _ = cmd.Flags().GetBool("setup")
 		gleanerCliArgs.Rude, _ = cmd.Flags().GetBool("rude")
 
-		if err := Gleaner(gleanerCliArgs); err != nil {
+		logLevel, _ := cmd.Flags().GetString("log-level")
+
+		switch logLevel {
+		case "DEBUG":
+			log.SetLevel(log.DebugLevel)
+		case "INFO":
+			log.SetLevel(log.InfoLevel)
+		case "WARN":
+			log.SetLevel(log.WarnLevel)
+		case "ERROR":
+			log.SetLevel(log.ErrorLevel)
+		case "FATAL":
+			log.SetLevel(log.FatalLevel)
+		default:
+			log.Fatalf("Invalid log level: %s", logLevel)
+		}
+		log.SetFormatter(&log.JSONFormatter{})
+
+		if err := gleanerCliArgs.Run(); err != nil {
 			log.Fatal(err)
 		}
 	},
@@ -186,6 +237,5 @@ func init() {
 	rootCmd.PersistentFlags().Bool("ssl", false, "Use SSL when connecting to minio")
 	rootCmd.PersistentFlags().Bool("rude", false, "Ignore robots.txt when connecting to source")
 	rootCmd.PersistentFlags().Bool("setup", false, "Setup buckets in minio")
-
-	cobra.OnInitialize(common.InitLogging)
+	rootCmd.PersistentFlags().String("log-level", "INFO", "the log level to use for the nabu logger")
 }

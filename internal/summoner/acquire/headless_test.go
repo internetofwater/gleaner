@@ -5,8 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"gleaner/internal/common"
-
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
@@ -70,9 +68,8 @@ func TestHeadlessNG(t *testing.T) {
 		for key, value := range conf {
 			viper.Set(key, value)
 		}
-		repoLogger, _ := common.LogIssues(viper, test.name)
 		t.Run(test.name, func(t *testing.T) {
-			jsonlds, err := PageRender(viper, 5*time.Second, test.url, test.name, repoLogger)
+			jsonlds, err := PageRender(viper, 5*time.Second, test.url, test.name)
 			if !test.expectedFail {
 				assert.Equal(t, test.jsonldcount, len(jsonlds))
 			} else {
