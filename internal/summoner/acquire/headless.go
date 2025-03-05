@@ -23,30 +23,7 @@ import (
 // HeadlessNG gets schema.org entries in sites that put the JSON-LD in dynamically with JS.
 // It uses a chrome headless instance (which MUST BE RUNNING).
 // TODO..  trap out error where headless is NOT running
-func HeadlessNG(v1 *viper.Viper, mc *minio.Client, m map[string][]string) {
-	// NOTE   this function compares to ResRetrieve in acquire.go.  They both approach things
-	// in same ways due to hwo we deal with threading (opportunities).   We don't queue up domains
-	// multiple times since we are dealing with our local resource now in the form of the headless tooling.
 
-	//var (
-	//	buf    bytes.Buffer
-	//	logger = log.New(&buf, "logger: ", log.Lshortfile)
-	//)
-
-	for k := range m {
-		log.Info("Headless chrome call to ", k)
-
-		for i := range m[k] {
-
-			err := PageRenderAndUpload(v1, mc, 60*time.Second, m[k][i], k) // TODO make delay configurable
-			if err != nil {
-				log.Error(m[k][i], "::", err)
-			}
-		}
-
-	}
-
-}
 
 //// ThreadedHeadlessNG does not work.. ;)
 //func ThreadedHeadlessNG(v1 *viper.Viper, mc *minio.Client, m map[string][]string, db *bolt.DB) {
