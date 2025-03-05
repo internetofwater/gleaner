@@ -20,7 +20,10 @@ func TestLogLevel(t *testing.T) {
 
 	url, _, err := minioHandle.ConnectionStrings()
 	require.NoError(t, err)
-	defer testcontainers.TerminateContainer(minioHandle.Container)
+	defer func() {
+		err := testcontainers.TerminateContainer(minioHandle.Container)
+		require.NoError(t, err)
+	}()
 
 	t.Run("log level error", func(t *testing.T) {
 		cmdStr := []string{"go", "run", projectpath.Root,
