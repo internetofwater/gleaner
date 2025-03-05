@@ -48,18 +48,21 @@ func (g *GleanerClient) summon(mc *minio.Client, v1 *viper.Viper) error {
 		acquire.ResRetrieve(v1, mc, domainToUrls) // TODO  These can be go funcs that run all at the same time..
 	}
 
-	hru, err := acquire.ResourceURLs(v1, mc, true)
+	headlessDomainToUrls, err := acquire.ResourceURLs(v1, mc, true)
 	if err != nil {
 		log.Error("Error getting urls that require headless processing:", err)
 		return err
 	}
-	// just report the error, and then run gathered urls
-	if len(hru) > 0 {
-		log.Info("running headless:")
-		acquire.HeadlessNG(v1, mc, hru)
+	for domain, urls := range headlessDomainToUrls {
+		for _, url := range urls {
+			if err := acquire.PageRenderAndUpload(v1, mc, 60*time.Second, url, domain); err != nil {
+				log.Error(url, "::", err)
+				return err
+			}
+		}
 	}
 
-	log.Infof("Summoner took %f minutes to run", time.Since(start).Minutes())
+	log.Infof("Summoner took %f minutes to run in total", time.Since(start).Minutes())
 
 	return err
 }
