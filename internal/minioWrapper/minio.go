@@ -46,6 +46,10 @@ func NewMinioConnection(port int, address, secretKey, accessKey string, region s
 }
 
 func (m *MinioClientWrapper) SetupBucket() error {
+	if m.DefaultBucket == "" {
+		return fmt.Errorf("no default bucket set")
+	}
+
 	if exists, err := m.Client.BucketExists(context.Background(), m.DefaultBucket); err != nil {
 		return err
 	} else if !exists {
