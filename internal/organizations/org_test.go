@@ -3,8 +3,8 @@ package organizations
 import (
 	"testing"
 
-	"gleaner/internal/check"
 	config "gleaner/internal/config"
+	"gleaner/internal/minioWrapper"
 	"gleaner/testHelpers"
 
 	"github.com/stretchr/testify/assert"
@@ -44,7 +44,8 @@ func TestOrgNQsInMinio(t *testing.T) {
 	minioHelper, err := testHelpers.NewMinioHandle("minio/minio:latest")
 	require.NoError(t, err)
 
-	err = check.MakeBuckets(minioHelper.Client, "gleanerbucket")
+	client := minioWrapper.MinioClientWrapper{Client: minioHelper.Client, DefaultBucket: "gleanerbucket"}
+	err = client.SetupBucket()
 	require.NoError(t, err)
 
 	defer func() {
