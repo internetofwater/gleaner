@@ -65,12 +65,20 @@ func TestOverrideCrawlDelayFromRobots(t *testing.T) {
 		assert.Equal(t, int64(0), source.Delay)
 	})
 
-	t.Run("It overrides the crawl delay if it is more than our default delay", func(t *testing.T) {
+	t.Run("It overrides the crawl delay if it is more", func(t *testing.T) {
 		group := robots.FindGroup(EarthCubeAgent)
 		src := &config.Source{}
 		err := overrideCrawlDelayFromRobots(src, 10000, group)
 		assert.NoError(t, err)
 		assert.Equal(t, int64(10000), src.Delay)
+	})
+
+	t.Run("default to the robots.txt crawl delay if it is less", func(t *testing.T) {
+		group := robots.FindGroup(EarthCubeAgent)
+		src := &config.Source{}
+		err := overrideCrawlDelayFromRobots(src, 1, group)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(10), src.Delay)
 	})
 
 }

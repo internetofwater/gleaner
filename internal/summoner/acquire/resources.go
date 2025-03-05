@@ -6,7 +6,6 @@ import (
 	"gleaner/internal/config"
 	"math"
 	"strings"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -173,14 +172,7 @@ func overrideCrawlDelayFromRobots(source *config.Source, delayOverride int64, ro
 	if robots == nil {
 		return fmt.Errorf("no robots.txt found for %s so no crawl delay will be set", config.SourceUrl)
 	}
-	// Look at the crawl delay from this domain's robots.txt, if we can, and one exists.
-	// this is a time.Duration, which is in nanoseconds but we want milliseconds
-	log.Debug("Raw crawl delay for robots ", source.Name, " set to ", robots.CrawlDelay)
-	groupDelay := int64(robots.CrawlDelay / time.Millisecond)
-	log.Debug("Crawl Delay specified by robots.txt for ", source.Name, " : ", groupDelay)
-
-	// delay is the max of the robots.txt delay or the command line delay
-	source.Delay = int64(math.Max(float64(groupDelay), float64(delayOverride)))
+	source.Delay = int64(math.Max(float64(robots.CrawlDelay.Seconds()), float64(delayOverride)))
 
 	return nil
 }
