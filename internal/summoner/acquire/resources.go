@@ -58,6 +58,11 @@ func ResourceURLs(v1 *viper.Viper, mc *minio.Client, headless bool) (map[string]
 		if robots != nil {
 			group = robots.FindGroup(EarthCubeAgent)
 			log.Info("Got robots.txt group ", group)
+			if group != nil {
+				if err = overrideCrawlDelayFromRobots(&domain, mcfg.Delay, group); err != nil {
+					return nil, err
+				}
+			}
 		}
 		urls, err := getSitemapURLList(domain.URL, group)
 		if err != nil {
@@ -69,10 +74,6 @@ func ResourceURLs(v1 *viper.Viper, mc *minio.Client, headless bool) (map[string]
 			log.Fatal("Mode diff is not currently supported")
 		}
 
-		err = overrideCrawlDelayFromRobots(&domain, mcfg.Delay, group)
-		if err != nil {
-			return nil, err
-		}
 		domainsMap[domain.Name] = urls
 		log.Debug(domain.Name, "sitemap size is :", len(domainsMap[domain.Name]), " mode: ", mcfg.Mode)
 	}
@@ -101,13 +102,14 @@ func ResourceURLs(v1 *viper.Viper, mc *minio.Client, headless bool) (map[string]
 			urls = append(urls, sitemapUrls...)
 		}
 		if mcfg.Mode == "diff" {
-			log.Error("Mode diff is not currently supported")
-			//urls = excludeAlreadySummoned(domain.Name, urls)
+			log.Fatal("Mode diff is not currently supported")
 		}
-		err = overrideCrawlDelayFromRobots(&domain, mcfg.Delay, group)
-		if err != nil {
-			return nil, err
+		if group != nil {
+			if err := overrideCrawlDelayFromRobots(&domain, mcfg.Delay, group); err != nil {
+				return nil, err
+			}
 		}
+
 		domainsMap[domain.Name] = urls
 		log.Debug(domain.Name, "sitemap size from robots.txt is : ", len(domainsMap[domain.Name]), " mode: ", mcfg.Mode)
 	}

@@ -58,7 +58,7 @@ func TestOverrideCrawlDelayFromRobots(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	t.Run("It does nothing if there is no robots.txt", func(t *testing.T) {
+	t.Run("It errors if there is no robots.txt", func(t *testing.T) {
 		source := &config.Source{}
 		err := overrideCrawlDelayFromRobots(source, 0, nil)
 		assert.Error(t, err) // should error
