@@ -1,9 +1,11 @@
 package acquire
 
 import (
+	"fmt"
 	"gleaner/internal/common"
+	"gleaner/internal/config"
+	"math"
 	"strings"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -56,6 +58,11 @@ func ResourceURLs(v1 *viper.Viper, mc *minio.Client, headless bool) (map[string]
 		if robots != nil {
 			group = robots.FindGroup(EarthCubeAgent)
 			log.Info("Got robots.txt group ", group)
+			if group != nil {
+				if err = overrideCrawlDelayFromRobots(&domain, mcfg.Delay, group); err != nil {
+					return nil, err
+				}
+			}
 		}
 		urls, err := getSitemapURLList(domain.URL, group)
 		if err != nil {
@@ -64,13 +71,9 @@ func ResourceURLs(v1 *viper.Viper, mc *minio.Client, headless bool) (map[string]
 			//return domainsMap, err // returning means that domains after broken one do not get indexed.
 		}
 		if mcfg.Mode == "diff" {
-			log.Error("Mode diff is not currently supported")
-			//urls = excludeAlreadySummoned(domain.Name, urls)
+			log.Fatal("Mode diff is not currently supported")
 		}
-		err = overrideCrawlDelayFromRobots(v1, domain.Name, mcfg.Delay, group)
-		if err != nil {
-			return nil, err
-		}
+
 		domainsMap[domain.Name] = urls
 		log.Debug(domain.Name, "sitemap size is :", len(domainsMap[domain.Name]), " mode: ", mcfg.Mode)
 	}
@@ -99,13 +102,14 @@ func ResourceURLs(v1 *viper.Viper, mc *minio.Client, headless bool) (map[string]
 			urls = append(urls, sitemapUrls...)
 		}
 		if mcfg.Mode == "diff" {
-			log.Error("Mode diff is not currently supported")
-			//urls = excludeAlreadySummoned(domain.Name, urls)
+			log.Fatal("Mode diff is not currently supported")
 		}
-		err = overrideCrawlDelayFromRobots(v1, domain.Name, mcfg.Delay, group)
-		if err != nil {
-			return nil, err
+		if group != nil {
+			if err := overrideCrawlDelayFromRobots(&domain, mcfg.Delay, group); err != nil {
+				return nil, err
+			}
 		}
+
 		domainsMap[domain.Name] = urls
 		log.Debug(domain.Name, "sitemap size from robots.txt is : ", len(domainsMap[domain.Name]), " mode: ", mcfg.Mode)
 	}
@@ -166,33 +170,12 @@ func getSitemapURLList(domainURL string, robots *robotstxt.Group) ([]string, err
 	return s, nil
 }
 
-func overrideCrawlDelayFromRobots(v1 *viper.Viper, sourceName string, delay int64, robots *robotstxt.Group) error {
+func overrideCrawlDelayFromRobots(source *config.Source, delayOverride int64, robots *robotstxt.Group) error {
 	if robots == nil {
-		log.Warnf("No robots.txt found for %s so no crawl delay will be set", sourceName)
-		return nil
+		return fmt.Errorf("no robots.txt found for %s so no crawl delay will be set", config.SourceUrl)
 	}
+	source.Delay = int64(math.Max(float64(robots.CrawlDelay.Seconds()), float64(delayOverride)))
 
-	// Look at the crawl delay from this domain's robots.txt, if we can, and one exists.
-	// this is a time.Duration, which is in nanoseconds but we want milliseconds
-	log.Debug("Raw crawl delay for robots ", sourceName, " set to ", robots.CrawlDelay)
-	crawlDelay := int64(robots.CrawlDelay / time.Millisecond)
-	log.Debug("Crawl Delay specified by robots.txt for ", sourceName, " : ", crawlDelay)
-
-	// If our default delay is less than what is set there, set a delay for this
-	// domain to respect the robots.txt setting.
-	if delay < crawlDelay {
-		sources, err := configTypes.GetSources(v1)
-		if err != nil {
-			log.Fatal(err)
-		}
-		source, err := configTypes.GetSourceByName(sources, sourceName)
-
-		if err != nil {
-			return err
-		}
-		source.Delay = crawlDelay
-		v1.Set("sources", sources)
-	}
 	return nil
 }
 
