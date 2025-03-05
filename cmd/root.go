@@ -133,7 +133,15 @@ func (cli *GleanerClient) Run() error {
 		return errors.New("no minio config after applying args")
 	}
 	// Set up the minio connector
-	mc := common.MinioConnection(v1)
+	mcfg, err := config.ReadMinioConfig(v1.Sub("minio"))
+	if err != nil {
+		return err
+	}
+
+	mc, err := common.MinioConnection(mcfg.Port, mcfg.Address, mcfg.Secretkey, mcfg.Accesskey, mcfg.Region, mcfg.Ssl)
+	if err != nil {
+		return err
+	}
 
 	// If requested, set up the buckets
 	if cli.SetupBuckets {
