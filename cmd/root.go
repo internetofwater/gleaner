@@ -33,7 +33,7 @@ type GleanerClient struct {
 	Rude         bool   // ignore robots.txt
 }
 
-// Summoner pulls the resources from the data facilities
+// Summoner pulls the resources from the data resources
 func (g *GleanerClient) summon(mc *minio.Client, v1 *viper.Viper) error {
 
 	start := time.Now()

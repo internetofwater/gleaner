@@ -37,7 +37,7 @@ func TestRootE2E(t *testing.T) {
 	url, _, err := minioHelper.ConnectionStrings()
 	require.NoError(t, err)
 
-	gleanerCliArgs := &GleanerClient{
+	gleanerClient := &GleanerClient{
 		AccessKey:    minioHelper.Container.Username,
 		SecretKey:    minioHelper.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -46,11 +46,11 @@ func TestRootE2E(t *testing.T) {
 		Config:       "../testHelpers/sampleConfigs/justMainstems.yaml",
 		SetupBuckets: true,
 	}
-	log.Info("gleanerCliArgs: ", gleanerCliArgs)
+	log.Info("gleanerCliArgs: ", gleanerClient)
 
 	defer testcontainers.TerminateContainer(minioHelper.Container)
 
-	err = gleanerCliArgs.Run()
+	err = gleanerClient.Run()
 	require.NoError(t, err)
 
 	buckets, err := minioHelper.Client.ListBuckets(context.Background())
@@ -77,7 +77,7 @@ func TestRootE2E(t *testing.T) {
 	require.Equal(t, len(sitesOnWebpage.URL), len(sumInfo))
 
 	// Run it again
-	err = gleanerCliArgs.Run()
+	err = gleanerClient.Run()
 	require.NoError(t, err)
 
 	// Check that after the second run, the org metadata should be unchanged since the orgs have not changed
@@ -280,7 +280,7 @@ func TestConfigValidThenInvalid(t *testing.T) {
 	url, _, err := minioHandle.ConnectionStrings()
 	require.NoError(t, err)
 
-	gleanerCliArgs := &GleanerClient{
+	gleanerClient := &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -291,7 +291,7 @@ func TestConfigValidThenInvalid(t *testing.T) {
 
 	defer testcontainers.TerminateContainer(minioHandle.Container)
 
-	err = gleanerCliArgs.Run()
+	err = gleanerClient.Run()
 	require.NoError(t, err)
 
 	summonedInfo, summoned, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
@@ -302,7 +302,7 @@ func TestConfigValidThenInvalid(t *testing.T) {
 	require.Equal(t, len(mainstemWebpage.URL), len(summoned))
 
 	// change the config to have invalid urls
-	gleanerCliArgs = &GleanerClient{
+	gleanerClient = &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -311,7 +311,7 @@ func TestConfigValidThenInvalid(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	err = gleanerCliArgs.Run()
+	err = gleanerClient.Run()
 	require.NoError(t, err)
 
 	summonedInfo2, summoned2, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
@@ -336,7 +336,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 	url, _, err := minioHandle.ConnectionStrings()
 	require.NoError(t, err)
 
-	gleanerCliArgs := &GleanerClient{
+	gleanerClient := &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -348,7 +348,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 	defer testcontainers.TerminateContainer(minioHandle.Container)
 
 	// Run gleaner with the entire
-	err = gleanerCliArgs.Run()
+	err = gleanerClient.Run()
 	require.NoError(t, err)
 
 	sumInfo1, summoned1, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
@@ -385,7 +385,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 	err = testHelpers.MutateYamlSourceUrl(newConfig, 0, newConfigEndpoint)
 	require.NoError(t, err)
 
-	gleanerCliArgs = &GleanerClient{
+	gleanerClient = &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -394,7 +394,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	err = gleanerCliArgs.Run()
+	err = gleanerClient.Run()
 	require.NoError(t, err)
 
 	sumInfo2, summoned2, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")
@@ -422,7 +422,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 	err = testHelpers.MutateYamlSourceUrl(newConfig, 0, differentDateEndpoint)
 	require.NoError(t, err)
 
-	gleanerCliArgs = &GleanerClient{
+	gleanerClient = &GleanerClient{
 		AccessKey:    minioHandle.Container.Username,
 		SecretKey:    minioHandle.Container.Password,
 		Address:      strings.Split(url, ":")[0],
@@ -431,7 +431,7 @@ func TestFullThenAbbreviated(t *testing.T) {
 		SetupBuckets: true,
 	}
 
-	err = gleanerCliArgs.Run()
+	err = gleanerClient.Run()
 	require.NoError(t, err)
 
 	sumInfo3, summoned3, err := testHelpers.GetGleanerBucketObjects(minioHandle.Client, "summoned/")

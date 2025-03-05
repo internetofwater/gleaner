@@ -100,9 +100,3 @@ require (
 	github.com/tidwall/gjson v1.14.4
 	github.com/tidwall/sjson v1.2.5
 )
-
-// to update the nabu dependency used by glcon
-// go get nabu@dev
-
-// local replace. gleaner and nabu at same level
-//replace  nabu v0.0.0-20211107193830-958398c3aaef  => "../nabu"
