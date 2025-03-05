@@ -357,9 +357,8 @@ func Upload(v1 *viper.Viper, mc *minio.Client, bucketName string, site string, u
 	objectName := fmt.Sprintf("summoned/%s/%s.jsonld", site, sha)
 	contentType := JSONContentType
 	b := bytes.NewBufferString(jsonld)
-	// size := int64(b.Len()) // gets set to 0 after upload for some reason
 
-	usermeta := make(map[string]string) // what do I want to know?
+	usermeta := make(map[string]string)
 	usermeta["url"] = urlloc
 	usermeta["sha1"] = sha
 	usermeta["uniqueid"] = sha
@@ -376,9 +375,9 @@ func Upload(v1 *viper.Viper, mc *minio.Client, bucketName string, site string, u
 		log.Info("not suppported, yet. needs url sanitizing")
 	}
 	// write the prov entry for this object
-	err = StoreProvNamedGraph(v1, mc, site, sha, urlloc, "milled")
+	err = StoreProvNamedGraph(bucketName, mc, site, sha, urlloc, "milled", sources)
 	if err != nil {
-		log.Error(err)
+		return "", err
 	}
 
 	// Make sure the object doesn't already exist and we don't accidentally overwrite it
@@ -388,7 +387,7 @@ func Upload(v1 *viper.Viper, mc *minio.Client, bucketName string, site string, u
 
 	_, err = mc.PutObject(context.Background(), bucketName, objectName, b, int64(b.Len()), minio.PutObjectOptions{ContentType: contentType, UserMetadata: usermeta})
 	if err != nil {
-		log.Errorf("%s: %s", objectName, err) // Fatal?   seriously?    I guess this is the object write, so the run is likely a bust at this point, but this seems a bit much still.
+		return "", err
 	}
 	log.Debug("Uploaded Bucket:", bucketName, " File:", objectName, "Size", int64(b.Len()))
 	return sha, err
