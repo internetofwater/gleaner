@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
 )
 
 type HeadlessContainer struct {
@@ -27,8 +28,9 @@ func NewHeadlessContainer() (HeadlessContainer, error) {
 		Image:        "chromedp/headless-shell:latest",
 		ExposedPorts: []string{"9222/tcp"},
 		Name:         "gleanerHeadlessTestcontainer",
+		WaitingFor:   wait.ForListeningPort("9222/tcp"),
 	}
-	graphdbC, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+	headlessC, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
 		Started:          true,
 		Reuse:            true,
@@ -38,13 +40,20 @@ func NewHeadlessContainer() (HeadlessContainer, error) {
 		return HeadlessContainer{}, err
 	}
 	// 9222 is the default http endpoint
-	port, err := graphdbC.MappedPort(ctx, "9222/tcp")
+	port, err := headlessC.MappedPort(ctx, "9222/tcp")
+	if err != nil {
+		return HeadlessContainer{}, err
+	}
+
+	host, err := headlessC.Host(ctx)
 
 	if err != nil {
 		return HeadlessContainer{}, err
 	}
 
-	return HeadlessContainer{mappedPort: port.Int(), url: "http://localhost:" + fmt.Sprint(port.Int()), Container: &graphdbC}, nil
+	url := "http://" + host + ":" + fmt.Sprint(port.Int())
+
+	return HeadlessContainer{mappedPort: port.Int(), url: url, Container: &headlessC}, nil
 }
 
 func (c *HeadlessContainer) Ping() (int, error) {
@@ -57,10 +66,12 @@ func (c *HeadlessContainer) Ping() (int, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return 0, err
 	}
+
 	resp.Body.Close()
 	return resp.StatusCode, nil
 }
@@ -70,7 +81,6 @@ func TestHeadlessNG(t *testing.T) {
 	require.NoError(t, err)
 
 	status, err := container.Ping()
-	t.Log(status)
 	require.NoError(t, err)
 	require.Equal(t, 200, status)
 
