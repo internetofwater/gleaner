@@ -18,7 +18,6 @@ import (
 	"github.com/ohler55/ojg/jp"
 	"github.com/ohler55/ojg/oj"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 // Identifier is the structure returned the information
@@ -28,10 +27,6 @@ type Identifier struct {
 	MatchedPath    string
 	MatchedString  string
 	JsonSha        string
-}
-
-func GenerateIdentifier(v1 *viper.Viper, source config.Source, jsonld string) (Identifier, error) {
-	return GenerateFileSha(v1, jsonld)
 }
 
 func GetIdentifierByPath(jsonPath string, jsonld string) (interface{}, error) {
@@ -48,7 +43,6 @@ func GetIdentifierByPath(jsonPath string, jsonld string) (interface{}, error) {
 	// we need to sort the results
 	aString := make([]string, len(ys))
 	for i, v := range ys {
-		//aString[i] = v.(string)
 		aString[i] = fmt.Sprint(v) // v not always a single string
 	}
 	sort.SliceStable(aString, func(i, j int) bool {
@@ -88,7 +82,6 @@ func GetIdentiferByPaths(jsonpaths []string, jsonld string) (interface{}, string
 			return obj, jsonPath, err
 
 		} else {
-			// error,
 			continue
 		}
 	}
@@ -102,20 +95,18 @@ func GetSHA(s string) string {
 	return fmt.Sprintf("%x", hs)
 }
 
-func GenerateFileSha(v1 *viper.Viper, jsonld string) (Identifier, error) {
+func GenerateFileSha(jsonld string) (Identifier, error) {
 	var id Identifier
-	//uuid := common.GetSHA(jsonld)
-	uuid := GetSHA(jsonld) // Moved to the normalized sha value
+	uuid := GetSHA(jsonld)
 
 	if uuid == "" {
 		return id, errors.New("could not generate uuid as a sha")
 	}
-	log.Debug(" Action: Json sha generated", uuid)
+	log.Debug("Action: Json sha generated", uuid)
 	id = Identifier{UniqueId: uuid,
 		IdentifierType: config.JsonSha,
 		JsonSha:        uuid,
 	}
 
-	//	fmt.Println("\njsonsha:", id)
 	return id, nil
 }
