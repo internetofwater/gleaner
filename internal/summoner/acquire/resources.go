@@ -1,7 +1,10 @@
 package acquire
 
 import (
+	"fmt"
 	"gleaner/internal/common"
+	"gleaner/internal/config"
+	"math"
 	"strings"
 	"time"
 
@@ -64,10 +67,10 @@ func ResourceURLs(v1 *viper.Viper, mc *minio.Client, headless bool) (map[string]
 			//return domainsMap, err // returning means that domains after broken one do not get indexed.
 		}
 		if mcfg.Mode == "diff" {
-			log.Error("Mode diff is not currently supported")
-			//urls = excludeAlreadySummoned(domain.Name, urls)
+			log.Fatal("Mode diff is not currently supported")
 		}
-		err = overrideCrawlDelayFromRobots(v1, domain.Name, mcfg.Delay, group)
+
+		err = overrideCrawlDelayFromRobots(&domain, mcfg.Delay, group)
 		if err != nil {
 			return nil, err
 		}
@@ -102,7 +105,7 @@ func ResourceURLs(v1 *viper.Viper, mc *minio.Client, headless bool) (map[string]
 			log.Error("Mode diff is not currently supported")
 			//urls = excludeAlreadySummoned(domain.Name, urls)
 		}
-		err = overrideCrawlDelayFromRobots(v1, domain.Name, mcfg.Delay, group)
+		err = overrideCrawlDelayFromRobots(&domain, mcfg.Delay, group)
 		if err != nil {
 			return nil, err
 		}
@@ -166,33 +169,19 @@ func getSitemapURLList(domainURL string, robots *robotstxt.Group) ([]string, err
 	return s, nil
 }
 
-func overrideCrawlDelayFromRobots(v1 *viper.Viper, sourceName string, delay int64, robots *robotstxt.Group) error {
+func overrideCrawlDelayFromRobots(source *config.Source, delayOverride int64, robots *robotstxt.Group) error {
 	if robots == nil {
-		log.Warnf("No robots.txt found for %s so no crawl delay will be set", sourceName)
-		return nil
+		return fmt.Errorf("no robots.txt found for %s so no crawl delay will be set", config.SourceUrl)
 	}
-
 	// Look at the crawl delay from this domain's robots.txt, if we can, and one exists.
 	// this is a time.Duration, which is in nanoseconds but we want milliseconds
-	log.Debug("Raw crawl delay for robots ", sourceName, " set to ", robots.CrawlDelay)
-	crawlDelay := int64(robots.CrawlDelay / time.Millisecond)
-	log.Debug("Crawl Delay specified by robots.txt for ", sourceName, " : ", crawlDelay)
+	log.Debug("Raw crawl delay for robots ", source.Name, " set to ", robots.CrawlDelay)
+	groupDelay := int64(robots.CrawlDelay / time.Millisecond)
+	log.Debug("Crawl Delay specified by robots.txt for ", source.Name, " : ", groupDelay)
 
-	// If our default delay is less than what is set there, set a delay for this
-	// domain to respect the robots.txt setting.
-	if delay < crawlDelay {
-		sources, err := configTypes.GetSources(v1)
-		if err != nil {
-			log.Fatal(err)
-		}
-		source, err := configTypes.GetSourceByName(sources, sourceName)
+	// delay is the max of the robots.txt delay or the command line delay
+	source.Delay = int64(math.Max(float64(groupDelay), float64(delayOverride)))
 
-		if err != nil {
-			return err
-		}
-		source.Delay = crawlDelay
-		v1.Set("sources", sources)
-	}
 	return nil
 }
 

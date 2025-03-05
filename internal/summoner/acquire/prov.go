@@ -80,7 +80,7 @@ var provTemplate = `{
 
 func StoreProvNamedGraph(defaultBucket string, mc *minio.Client, domainName, sha, urlloc, objprefix string, sources []config.Source) error {
 
-	p, err := provOGraph(defaultBucket, domainName, sha, urlloc, objprefix, sources)
+	p, err := provOGraph(defaultBucket, domainName, sha, urlloc, sources)
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func StoreProvNamedGraph(defaultBucket string, mc *minio.Client, domainName, sha
 
 // provOGraph is a simpler provo prov function
 // I'll just build from a template for now, but using a real RDF lib to build these triples would be better
-func provOGraph(defaultBucket string, domainName, sha, urlloc, objprefix string, sources []config.Source) (string, error) {
+func provOGraph(defaultBucket string, domainName, sha, urlloc string, sources []config.Source) (string, error) {
 	currentTime := time.Now() // date := currentTime.Format("2006-01-02")
 
 	pid := "unknown"
