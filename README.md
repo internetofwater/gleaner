@@ -1,5 +1,7 @@
 # Gleaner 
 
+## **NOTE: This repo is archived and all gleaner work has been moved into [one central repo for both nabu and gleaner](https://github.com/internetofwater/nabu)**
+
 This repo is a heavily modified fork of the [gleanerio/gleaner](https://github.com/gleanerio/gleaner) project, used under the Apache 2.0 license. It has been modified to be easier to test for the Geoconnex project.
 
 ## About
